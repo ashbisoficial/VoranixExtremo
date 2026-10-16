@@ -16,6 +16,36 @@ pvp:
     volume: 1.0
     pitch: 1.0
 
+economy:
+  # Si Vault está instalado en el servidor, VoranixExtremo se registra como su
+  # proveedor de economía (así otros plugins de tiendas/subastas usan esta moneda).
+  vault-integration: true
+
+  currency:
+    singular: "Moneda"
+    plural: "Monedas"
+
+  # Cada moneda es un ítem vanilla (material) + un custom-model-data que el resource
+  # pack usa para dibujar la textura/modelo real. Ajustá material/custom-model-data
+  # a los valores que ya tengan definidos en su resource pack; "value" es el valor
+  # de cada moneda en la unidad de la economía (usado para pagar, depositar, retirar).
+  coins:
+    cobre:
+      material: COPPER_INGOT
+      custom-model-data: 1001
+      display-name: "&6Moneda de Cobre"
+      value: 1
+    plata:
+      material: IRON_INGOT
+      custom-model-data: 1002
+      display-name: "&7Moneda de Plata"
+      value: 10
+    oro:
+      material: GOLD_INGOT
+      custom-model-data: 1003
+      display-name: "&eMoneda de Oro"
+      value: 100
+
 death-effects:
   # Efectos que se reproducen a TODOS los jugadores cuando alguien muere.
   enabled: true

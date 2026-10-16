@@ -3,7 +3,8 @@ version: '${project.version}'
 main: com.voranixextremo.plugin.VoranixExtremoPlugin
 api-version: '1.20'
 author: ashbisoficial
-description: Plugin base para la serie Voranix Extremo (sistema de vidas, control de PVP y futuras mecánicas de evento).
+description: Plugin base para la serie Voranix Extremo (vidas, PVP, economía y futuras mecánicas de evento).
+softdepend: [Vault]
 
 commands:
   vidas:
@@ -14,6 +15,18 @@ commands:
     description: Activa o desactiva el PVP del servidor.
     usage: "/<command> [on|off|toggle]"
     permission: voranixextremo.pvp
+  dinero:
+    description: Consulta o administra el balance (banco) de los jugadores.
+    usage: "/<command> [pagar <jugador> <cantidad>|dar|quitar|set <jugador> <cantidad>]"
+    permission: voranixextremo.economia
+  banco:
+    description: Convierte monedas físicas en balance y viceversa.
+    usage: "/<command> <depositar|retirar> [cantidad]"
+    permission: voranixextremo.economia
+  moneda:
+    description: Entrega monedas físicas a un jugador.
+    usage: "/<command> dar <jugador> <tipo> [cantidad]"
+    permission: voranixextremo.moneda.admin
 
 permissions:
   voranixextremo.vidas:
@@ -24,4 +37,13 @@ permissions:
     default: op
   voranixextremo.pvp:
     description: Permite activar o desactivar el PVP del servidor.
+    default: op
+  voranixextremo.economia:
+    description: Permite usar /dinero y /banco sobre la propia cuenta.
+    default: true
+  voranixextremo.dinero.admin:
+    description: Permite dar, quitar o fijar el balance de cualquier jugador.
+    default: op
+  voranixextremo.moneda.admin:
+    description: Permite entregar monedas físicas a cualquier jugador.
     default: op

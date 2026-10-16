@@ -53,13 +53,33 @@ Al morir un jugador (sea que pierda una vida o quede eliminado) se reproduce a *
 
 Todo se puede desactivar o cambiar en `config.yml` → `death-effects` sin tocar código (cualquier [`Particle`](https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Particle.html) o [`Sound`](https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html) válido sirve). Para una animación más elaborada (ej. un fuego artificial real, un esqueleto decorativo, un modelo con un resource pack) hay que escribir código específico — avisá qué tipo de animación tenés en mente y la agrego.
 
+### Economía (`/dinero`, `/banco`, `/moneda`)
+
+Sistema de monedas físicas + balance, pensado para que funcione junto al comercio vanilla de aldeanos (esmeraldas) sin tocarlo — esta es una moneda aparte para tiendas, kits y cosas que agreguemos al plugin más adelante.
+
+- **Monedas físicas**: cada denominación (`economy.coins` en `config.yml`) es un ítem vanilla (ej. `IRON_INGOT`) + un `custom-model-data`, para que el resource pack le ponga el modelo/textura real de la moneda. Cada moneda tiene un `value` (su valor). Vienen 3 de ejemplo (cobre=1, plata=10, oro=100): cambiá `material`, `custom-model-data` y `value` por los de sus diseños reales.
+- **Balance ("banco")**: cada jugador tiene un balance guardado en `economy.yml`, independiente de las monedas físicas que tenga en el inventario.
+- Comandos:
+  - `/dinero` — ver tu balance.
+  - `/dinero pagar <jugador> <cantidad>` — transferir balance a otro jugador.
+  - `/dinero dar|quitar|set <jugador> <cantidad>` — (admin) administrar el balance de cualquiera.
+  - `/banco depositar` — convierte todas las monedas físicas de tu inventario en balance.
+  - `/banco retirar <cantidad>` — te da monedas físicas por ese monto (usando las denominaciones configuradas, de mayor a menor, como dar cambio; si el monto no se puede armar exacto, avisa y no retira nada).
+  - `/moneda dar <jugador> <tipo> [cantidad]` — (admin) entrega monedas físicas directamente (ej. `/moneda dar Ash oro 5`).
+- Permisos: `voranixextremo.economia` (todos, para `/dinero` y `/banco` propios), `voranixextremo.dinero.admin` y `voranixextremo.moneda.admin` (operadores).
+- **Compatibilidad con Vault**: si el plugin [Vault](https://www.spigotmc.org/resources/vault.34315/) está instalado en el servidor, VoranixExtremo se registra como su proveedor de economía automáticamente (`economy.vault-integration: true`). Así, cualquier plugin de tiendas/subastas/trabajos que use Vault (ChestShop, etc.) va a leer y modificar este mismo balance sin configuración adicional.
+- **Protección**: como las monedas son ítems vanilla con una textura encima, el plugin bloquea que se usen como ingrediente de crafteo, combustible de horno, o en yunque/mesa de herrería, para que no se "gasten" por accidente ni generen exploits.
+
+> Nota sobre los modelos: hoy el ítem se construye con material base + `custom-model-data` (el método estándar sin plugins extra, vía resource pack). Si en algún momento definen las monedas en un plugin de ítems personalizados (Oraxen/ItemsAdder/Nexo), hay que avisar — se cambia solo `CoinItemFactory` para pedirle el ítem a ese plugin en vez de crearlo acá; el resto (balance, comandos, Vault) no cambia.
+
 ## Estructura del proyecto
 
 ```
 src/main/java/com/voranixextremo/plugin/
 ├── VoranixExtremoPlugin.java   # clase principal
-├── lives/                      # sistema de vidas
+├── lives/                      # sistema de vidas + animaciones de muerte
 ├── pvp/                        # sistema de PVP
+├── economy/                    # monedas físicas, balance y Vault
 └── util/                       # utilidades (mensajes)
 src/main/resources/
 ├── plugin.yml
