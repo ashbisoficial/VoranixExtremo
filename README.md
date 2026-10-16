@@ -57,7 +57,7 @@ Todo se puede desactivar o cambiar en `config.yml` → `death-effects` sin tocar
 
 Sistema de monedas físicas + balance, pensado para que funcione junto al comercio vanilla de aldeanos (esmeraldas) sin tocarlo — esta es una moneda aparte para tiendas, kits y cosas que agreguemos al plugin más adelante.
 
-- **Monedas físicas**: cada denominación (`economy.coins` en `config.yml`) es un ítem vanilla (ej. `IRON_INGOT`) + un `custom-model-data`, para que el resource pack le ponga el modelo/textura real de la moneda. Cada moneda tiene un `value` (su valor). Vienen 3 de ejemplo (cobre=1, plata=10, oro=100): cambiá `material`, `custom-model-data` y `value` por los de sus diseños reales.
+- **Monedas físicas**: 6 denominaciones (`economy.coins` en `config.yml`), todas sobre `IRON_NUGGET` + un `custom-model-data` distinto para que el resource pack le ponga la textura real: **Estaño** (1), **Plata** (5), **Oro** (25), **Mithril** (100), **Oricalco** (500) y **Ajna** (2500). Las texturas son las que ya habían diseñado (del mod Voranix Coins original) — ver [`resourcepack/`](#resource-pack-de-las-monedas) más abajo.
 - **Balance ("banco")**: cada jugador tiene un balance guardado en `economy.yml`, independiente de las monedas físicas que tenga en el inventario.
 - Comandos:
   - `/dinero` — ver tu balance.
@@ -71,6 +71,29 @@ Sistema de monedas físicas + balance, pensado para que funcione junto al comerc
 - **Protección**: como las monedas son ítems vanilla con una textura encima, el plugin bloquea que se usen como ingrediente de crafteo, combustible de horno, o en yunque/mesa de herrería, para que no se "gasten" por accidente ni generen exploits.
 
 > Nota sobre los modelos: hoy el ítem se construye con material base + `custom-model-data` (el método estándar sin plugins extra, vía resource pack). Si en algún momento definen las monedas en un plugin de ítems personalizados (Oraxen/ItemsAdder/Nexo), hay que avisar — se cambia solo `CoinItemFactory` para pedirle el ítem a ese plugin en vez de crearlo acá; el resto (balance, comandos, Vault) no cambia.
+
+#### Resource pack de las monedas
+
+El mod de Forge "Voranix Coins" que armaron antes **no se puede usar tal cual** en un servidor Paper (son dos ecosistemas distintos: un mod de Forge necesita que todos instalen Forge + el mod; un plugin de Paper no necesita que el jugador instale nada). Lo que se reaprovechó de ese mod son los **6 diseños/texturas** (`estano`, `silver`, `gold`, `mithril`, `oricalco`, `ajna`), reempaquetados como un resource pack vanilla en [`resourcepack/`](resourcepack/):
+
+```
+resourcepack/
+├── pack.mcmeta
+└── assets/
+    ├── minecraft/models/item/iron_nugget.json   # overrides por custom-model-data
+    └── voranixextremo/
+        ├── models/item/coin_*.json              # un modelo por moneda
+        └── textures/item/coin_*.png             # las texturas originales
+```
+
+Para usarlo en el servidor:
+
+1. Empaquetarlo en un `.zip` (el contenido de `pack.mcmeta` y `assets/` tiene que quedar en la RAÍZ del zip, no dentro de una subcarpeta):
+   ```bash
+   cd resourcepack && zip -r ../VoranixExtremo-resourcepack.zip . && cd ..
+   ```
+2. Subir ese `.zip` a algún lugar con URL directa de descarga (ej. un [Release de GitHub](https://docs.github.com/es/repositories/releasing-projects-on-github)).
+3. Pegar esa URL en `config.yml` → `resourcepack.url`. Al conectarse, cada jugador recibe automáticamente la oferta de instalar el resource pack (no es obligatorio aceptarla, pero si no la aceptan ven las monedas como un lingote de hierro genérico en vez de la textura real).
 
 ### Trofeos de asesinato PVP (`pvp-kill-rewards`)
 

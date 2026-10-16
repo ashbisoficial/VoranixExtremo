@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/iron_nugget"
+  },
+  "overrides": [
+    { "predicate": { "custom_model_data": 1001 }, "model": "voranixextremo:item/coin_estano" },
+    { "predicate": { "custom_model_data": 1002 }, "model": "voranixextremo:item/coin_silver" },
+    { "predicate": { "custom_model_data": 1003 }, "model": "voranixextremo:item/coin_gold" },
+    { "predicate": { "custom_model_data": 1004 }, "model": "voranixextremo:item/coin_mithril" },
+    { "predicate": { "custom_model_data": 1005 }, "model": "voranixextremo:item/coin_oricalco" },
+    { "predicate": { "custom_model_data": 1006 }, "model": "voranixextremo:item/coin_ajna" }
+  ]
+}

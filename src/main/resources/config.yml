@@ -1,5 +1,12 @@
 # Configuración de VoranixExtremo
 
+resourcepack:
+  # URL pública y directa al .zip del resource pack (ver carpeta resourcepack/ en el
+  # repo para armarlo). Si está vacío, no se le ofrece resource pack a nadie y las
+  # monedas se ven como un ítem genérico (sin la textura). Lo tienen que subir a algún
+  # lado (ej. un Release de GitHub) para tener una URL directa de descarga.
+  url: ""
+
 lives:
   # Vidas con las que empieza cada jugador.
   max: 5
@@ -26,25 +33,41 @@ economy:
     plural: "Monedas"
 
   # Cada moneda es un ítem vanilla (material) + un custom-model-data que el resource
-  # pack usa para dibujar la textura/modelo real. Ajustá material/custom-model-data
-  # a los valores que ya tengan definidos en su resource pack; "value" es el valor
-  # de cada moneda en la unidad de la economía (usado para pagar, depositar, retirar).
+  # pack usa para dibujar la textura/modelo real (ver carpeta resourcepack/ en el repo).
+  # "value" es el valor de cada moneda en la unidad de la economía (pagar, depositar, retirar).
+  # Las 6 denominaciones y texturas vienen del diseño original (mod Voranix Coins);
+  # todas usan IRON_NUGGET como base para que ningún crafteo vanilla las confunda.
   coins:
-    cobre:
-      material: COPPER_INGOT
+    estano:
+      material: IRON_NUGGET
       custom-model-data: 1001
-      display-name: "&6Moneda de Cobre"
+      display-name: "&7Moneda de Estaño"
       value: 1
-    plata:
-      material: IRON_INGOT
+    silver:
+      material: IRON_NUGGET
       custom-model-data: 1002
-      display-name: "&7Moneda de Plata"
-      value: 10
-    oro:
-      material: GOLD_INGOT
+      display-name: "&fMoneda de Plata"
+      value: 5
+    gold:
+      material: IRON_NUGGET
       custom-model-data: 1003
       display-name: "&eMoneda de Oro"
+      value: 25
+    mithril:
+      material: IRON_NUGGET
+      custom-model-data: 1004
+      display-name: "&bMoneda de Mithril"
       value: 100
+    oricalco:
+      material: IRON_NUGGET
+      custom-model-data: 1005
+      display-name: "&dMoneda de Oricalco"
+      value: 500
+    ajna:
+      material: IRON_NUGGET
+      custom-model-data: 1006
+      display-name: "&6&lMoneda de Ajna"
+      value: 2500
 
 death-effects:
   # Efectos que se reproducen a TODOS los jugadores cuando alguien muere.

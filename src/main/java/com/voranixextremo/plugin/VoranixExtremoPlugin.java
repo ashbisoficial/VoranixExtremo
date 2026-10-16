@@ -17,6 +17,7 @@ import com.voranixextremo.plugin.lives.PlayerJoinListener;
 import com.voranixextremo.plugin.pvp.PvpCommand;
 import com.voranixextremo.plugin.pvp.PvpListener;
 import com.voranixextremo.plugin.pvp.PvpManager;
+import com.voranixextremo.plugin.util.ResourcePackListener;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -44,6 +45,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager), this);
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);
+        getServer().getPluginManager().registerEvents(new ResourcePackListener(this), this);
 
         LivesCommand livesCommand = new LivesCommand(this, livesManager);
         getCommand("vidas").setExecutor(livesCommand);
