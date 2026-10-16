@@ -1,0 +1,29 @@
+# Configuración de VoranixExtremo
+
+lives:
+  # Vidas con las que empieza cada jugador.
+  max: 5
+  # Gamemode al que pasa un jugador cuando se queda sin vidas.
+  elimination-gamemode: SPECTATOR
+
+pvp:
+  # Estado del PVP cuando el plugin se activa por primera vez.
+  enabled-by-default: true
+  # Sonido que se reproduce a todos los jugadores al activar/desactivar el PVP.
+  # Lista de sonidos válidos: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
+  sound:
+    name: ENTITY_ENDER_DRAGON_GROWL
+    volume: 1.0
+    pitch: 1.0
+
+messages:
+  prefix: "&8[&cVoranix&6Extremo&8] &r"
+  life-lost: "&c%player% &7perdió una vida. Le quedan &c%vidas% &7vida(s)."
+  eliminated: "&4%player% &7ha sido &4ELIMINADO&7 de la serie."
+  vidas-check: "&7Tienes &c%vidas% &7vida(s) restantes."
+  vidas-check-other: "&c%player% &7tiene &c%vidas% &7vida(s) restantes."
+  no-permission: "&cNo tienes permiso para usar este comando."
+  only-players: "&cEste comando solo puede ser usado por jugadores."
+  player-not-found: "&cJugador no encontrado."
+  pvp-enabled: "&a¡El PVP ha sido ACTIVADO!"
+  pvp-disabled: "&c¡El PVP ha sido DESACTIVADO!"

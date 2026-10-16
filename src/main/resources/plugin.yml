@@ -1,0 +1,27 @@
+name: VoranixExtremo
+version: '${project.version}'
+main: com.voranixextremo.plugin.VoranixExtremoPlugin
+api-version: '1.20'
+author: ashbisoficial
+description: Plugin base para la serie Voranix Extremo (sistema de vidas, control de PVP y futuras mecánicas de evento).
+
+commands:
+  vidas:
+    description: Consulta o administra las vidas de los jugadores.
+    usage: "/<command> [jugador|set <jugador> <cantidad>|reset <jugador>]"
+    permission: voranixextremo.vidas
+  pvp:
+    description: Activa o desactiva el PVP del servidor.
+    usage: "/<command> [on|off|toggle]"
+    permission: voranixextremo.pvp
+
+permissions:
+  voranixextremo.vidas:
+    description: Permite consultar las propias vidas.
+    default: true
+  voranixextremo.vidas.admin:
+    description: Permite administrar las vidas de cualquier jugador (set/reset).
+    default: op
+  voranixextremo.pvp:
+    description: Permite activar o desactivar el PVP del servidor.
+    default: op
