@@ -210,6 +210,131 @@ shops:
       - banderilla_mozzarella
       - banderilla_premium
 
+roulette:
+  # La "ruleta de sucesos" al estilo Desafío/Extremo: /ruleta gira y cae en uno de estos
+  # sucesos al azar (ponderado por "weight" — más alto = más probable), con una pequeña
+  # animación tipo tragamonedas antes de revelar el resultado.
+  cooldown-seconds: 300
+  spin-steps: 14
+  outcomes:
+    vida_extra:
+      category: BUENO
+      type: EXTRA_LIFE
+      display-name: "¡Vida extra!"
+      weight: 4
+    lluvia_monedas:
+      category: BUENO
+      type: GIVE_COINS
+      display-name: "¡Lluvia de monedas!"
+      weight: 10
+      amount: 50
+    velocidad:
+      category: BUENO
+      type: EFFECT
+      display-name: "Zapatillas rápidas"
+      weight: 10
+      effect: SPEED
+      duration: 600
+      amplifier: 1
+    fuerza:
+      category: BUENO
+      type: EFFECT
+      display-name: "Fuerza bruta"
+      weight: 8
+      effect: INCREASE_DAMAGE
+      duration: 600
+      amplifier: 1
+    regeneracion:
+      category: BUENO
+      type: EFFECT
+      display-name: "Curación rápida"
+      weight: 8
+      effect: REGENERATION
+      duration: 200
+      amplifier: 1
+    absorcion:
+      category: BUENO
+      type: EFFECT
+      display-name: "Corazones extra"
+      weight: 6
+      effect: ABSORPTION
+      duration: 2400
+      amplifier: 1
+    festin_gratis:
+      # Ejemplo de "command": reutiliza /comida dar para entregar un premio sin tener
+      # que programar un tipo de suceso nuevo.
+      category: BUENO
+      type: COMMAND
+      display-name: "¡Festín gratis!"
+      weight: 6
+      command: "comida dar %player% banderilla_premium 1"
+    veneno:
+      category: MALO
+      type: EFFECT
+      display-name: "Comida en mal estado"
+      weight: 10
+      effect: POISON
+      duration: 100
+      amplifier: 0
+    ceguera:
+      category: MALO
+      type: EFFECT
+      display-name: "Oscuridad total"
+      weight: 8
+      effect: BLINDNESS
+      duration: 150
+      amplifier: 0
+    lentitud:
+      category: MALO
+      type: EFFECT
+      display-name: "Patas de plomo"
+      weight: 8
+      effect: SLOW
+      duration: 200
+      amplifier: 1
+    debilidad:
+      category: MALO
+      type: EFFECT
+      display-name: "Mano floja"
+      weight: 8
+      effect: WEAKNESS
+      duration: 200
+      amplifier: 1
+    perder_monedas:
+      category: MALO
+      type: TAKE_COINS
+      display-name: "Te robaron"
+      weight: 10
+      amount: 30
+    rayo_caos:
+      category: MALO
+      type: LIGHTNING
+      display-name: "Mal karma"
+      weight: 6
+    perder_vida:
+      category: MALO
+      type: LOSE_LIFE
+      display-name: "Mala suerte extrema"
+      weight: 3
+    tarea_construir:
+      category: TAREA
+      type: TASK
+      display-name: "Tarea: construir un refugio"
+      weight: 8
+      description: "Construí un refugio de al menos 5x5 en los próximos 10 minutos"
+      duration-seconds: 600
+      reward-coins: 100
+      penalty-coins: 50
+    tarea_recolectar:
+      category: TAREA
+      type: TASK
+      display-name: "Tarea: recolectar minerales"
+      weight: 8
+      description: "Conseguí 10 de cualquier mineral en los próximos 8 minutos"
+      duration-seconds: 480
+      reward-coins: 80
+      penalty-coins: 40
+
 death-effects:
   # Efectos que se reproducen a TODOS los jugadores cuando alguien muere.
   enabled: true
@@ -252,3 +377,10 @@ messages:
   player-not-found: "&cJugador no encontrado."
   pvp-enabled: "&a¡El PVP ha sido ACTIVADO!"
   pvp-disabled: "&c¡El PVP ha sido DESACTIVADO!"
+  roulette-spinning: "&6¡%player% está girando la ruleta de sucesos!"
+  roulette-result-bueno: "&a%player% obtuvo: &f%resultado%"
+  roulette-result-malo: "&c%player% obtuvo: &f%resultado%"
+  roulette-result-tarea: "&e%player% tiene una nueva tarea: &f%resultado%"
+  roulette-task-assigned: "&e%player% tiene %segundos% segundos para: &f%tarea%"
+  roulette-task-completed: "&a%player% completó su tarea de la ruleta."
+  roulette-task-failed: "&c%player% falló su tarea de la ruleta."

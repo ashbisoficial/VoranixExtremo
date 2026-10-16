@@ -121,6 +121,29 @@ Portado del módulo `ottoke` del repo [voranixmod](https://github.com/ashbisofic
 
 **Lo que quedó afuera de este portado** (ver el repo voranixmod si se quiere retomar más adelante): las Banderillas "crudas" y la Freidora (la estación de cocina donde se fríen) — no hacen falta para que el chef las venda listas; el módulo hermano `maipizza` (pizzas, que en el original son bloques con porciones, no ítems simples — pedirían más diseño); bloques personalizados (mostrador, cartel, menú); y los efectos de crecer/encoger (no hay atributo de escala en la versión de Minecraft que usa este plugin, 1.20.4 — recién existe desde 1.20.5+).
 
+### Ruleta de sucesos (`/ruleta`)
+
+Al estilo de las ruletas de eventos de Desafío/Extremo: cae en un suceso al azar (ponderado por `weight`), con una animación corta tipo tragamonedas (títulos cambiando rápido + sonido) antes de revelar el resultado a todo el server.
+
+- `/ruleta` o `/ruleta girar` — girás para vos mismo (respeta un cooldown, `roulette.cooldown-seconds`, 5 min por defecto).
+- `/ruleta girar <jugador>` — (admin) girás para otro, sin cooldown.
+- `/ruleta sortear` — (admin) elige un jugador conectado al azar y gira para él/ella — para el clásico "a quién le toca la ruleta".
+- `/ruleta completar <jugador>` / `/ruleta fallar <jugador>` — (admin) resuelve manualmente una tarea asignada (si nadie la resuelve antes, se marca como fallida sola cuando se acaba el tiempo).
+- Permisos: `voranixextremo.ruleta` (todos, girar para uno mismo), `voranixextremo.ruleta.admin`.
+
+Los sucesos son 100% configurables en `config.yml` → `roulette.outcomes`, sin tocar código. Cada uno tiene una `category` (`BUENO`/`MALO`/`TAREA`, solo afecta el color) y un `type` que define qué hace de verdad:
+
+| `type` | Qué hace |
+|---|---|
+| `EFFECT` | Aplica un efecto de poción (`effect`, `duration` en ticks, `amplifier`) |
+| `GIVE_COINS` / `TAKE_COINS` | Suma o resta `amount` del balance |
+| `EXTRA_LIFE` / `LOSE_LIFE` | Suma o resta una vida (igual que una muerte normal) |
+| `LIGHTNING` | Rayo decorativo en la posición del jugador (sin daño) |
+| `COMMAND` | Ejecuta cualquier comando de consola (`command`, con `%player%`) — la forma de agregar sucesos nuevos sin programar nada, ej. dar un ítem con `/comida dar` |
+| `TASK` | Asigna una tarea (`description`, `duration-seconds`, `reward-coins`, `penalty-coins`) que se resuelve con `/ruleta completar\|fallar` o falla sola al acabarse el tiempo |
+
+Vienen 16 sucesos de ejemplo (vida extra, lluvia de monedas, buffs, un festín gratis vía `/comida dar`, venenos, robos, un rayo de mal karma, y dos tareas con plazo) — se pueden agregar, quitar o ajustar los pesos libremente.
+
 ## Estructura del proyecto
 
 ```
@@ -132,6 +155,7 @@ src/main/java/com/voranixextremo/plugin/
 ├── kills/                      # trofeos (cabeza + monedas) al matar en PVP
 ├── food/                       # comidas y bebidas (hambre/saturación/efectos)
 ├── shops/                      # aldeanos chef y su comercio
+├── roulette/                   # ruleta de sucesos (buenos, malos, tareas)
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml
