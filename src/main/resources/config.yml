@@ -35,39 +35,40 @@ economy:
   # Cada moneda es un ítem vanilla (material) + un custom-model-data que el resource
   # pack usa para dibujar la textura/modelo real (ver carpeta resourcepack/ en el repo).
   # "value" es el valor de cada moneda en la unidad de la economía (pagar, depositar, retirar).
-  # Las 6 denominaciones y texturas vienen del diseño original (mod Voranix Coins);
-  # todas usan IRON_NUGGET como base para que ningún crafteo vanilla las confunda.
+  # Las 6 denominaciones, texturas, colores (por rareza) y la tasa de conversión (x10 por
+  # nivel) vienen del diseño original en el repo voranixmod (CoinDenomination.java).
+  # Todas usan IRON_NUGGET como base para que ningún crafteo vanilla las confunda.
   coins:
     estano:
       material: IRON_NUGGET
       custom-model-data: 1001
-      display-name: "&7Moneda de Estaño"
+      display-name: "&fMoneda de Estaño"
       value: 1
     silver:
       material: IRON_NUGGET
       custom-model-data: 1002
-      display-name: "&fMoneda de Plata"
-      value: 5
+      display-name: "&eMoneda de Plata"
+      value: 10
     gold:
       material: IRON_NUGGET
       custom-model-data: 1003
-      display-name: "&eMoneda de Oro"
-      value: 25
+      display-name: "&bMoneda de Oro"
+      value: 100
     mithril:
       material: IRON_NUGGET
       custom-model-data: 1004
       display-name: "&bMoneda de Mithril"
-      value: 100
+      value: 1000
     oricalco:
       material: IRON_NUGGET
       custom-model-data: 1005
       display-name: "&dMoneda de Oricalco"
-      value: 500
+      value: 10000
     ajna:
       material: IRON_NUGGET
       custom-model-data: 1006
-      display-name: "&6&lMoneda de Ajna"
-      value: 2500
+      display-name: "&dMoneda de Ajna"
+      value: 100000
 
 death-effects:
   # Efectos que se reproducen a TODOS los jugadores cuando alguien muere.

@@ -57,7 +57,7 @@ Todo se puede desactivar o cambiar en `config.yml` → `death-effects` sin tocar
 
 Sistema de monedas físicas + balance, pensado para que funcione junto al comercio vanilla de aldeanos (esmeraldas) sin tocarlo — esta es una moneda aparte para tiendas, kits y cosas que agreguemos al plugin más adelante.
 
-- **Monedas físicas**: 6 denominaciones (`economy.coins` en `config.yml`), todas sobre `IRON_NUGGET` + un `custom-model-data` distinto para que el resource pack le ponga la textura real: **Estaño** (1), **Plata** (5), **Oro** (25), **Mithril** (100), **Oricalco** (500) y **Ajna** (2500). Las texturas son las que ya habían diseñado (del mod Voranix Coins original) — ver [`resourcepack/`](#resource-pack-de-las-monedas) más abajo.
+- **Monedas físicas**: 6 denominaciones (`economy.coins` en `config.yml`), todas sobre `IRON_NUGGET` + un `custom-model-data` distinto para que el resource pack le ponga la textura real: **Estaño** (1), **Plata** (10), **Oro** (100), **Mithril** (1.000), **Oricalco** (10.000) y **Ajna** (100.000) — escala x10 por nivel, tal cual está definida en `CoinDenomination.java` del repo [voranixmod](https://github.com/ashbisoficial/voranixmod). Las texturas y colores (por rareza: común/poco común/raro/épico) también vienen de ahí.
 - **Balance ("banco")**: cada jugador tiene un balance guardado en `economy.yml`, independiente de las monedas físicas que tenga en el inventario.
 - Comandos:
   - `/dinero` — ver tu balance.
