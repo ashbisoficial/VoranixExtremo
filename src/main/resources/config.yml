@@ -16,6 +16,25 @@ pvp:
     volume: 1.0
     pitch: 1.0
 
+death-effects:
+  # Efectos que se reproducen a TODOS los jugadores cuando alguien muere.
+  enabled: true
+  particle:
+    # Lista de partículas válidas: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Particle.html
+    name: EXPLOSION_HUGE
+    count: 1
+  sound:
+    # Lista de sonidos válidos: https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html
+    name: ENTITY_GENERIC_EXPLODE
+    volume: 1.0
+    pitch: 1.0
+  # Rayo decorativo en el punto de la muerte (NO hace daño ni prende fuego).
+  lightning-effect: true
+  title:
+    enabled: true
+    death-text: "&c%player% ha muerto"
+    eliminated-text: "&4☠ %player% ELIMINADO ☠"
+
 messages:
   prefix: "&8[&cVoranix&6Extremo&8] &r"
   life-lost: "&c%player% &7perdió una vida. Le quedan &c%vidas% &7vida(s)."

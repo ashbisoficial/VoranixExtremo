@@ -42,6 +42,17 @@ El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plu
 
 Todos los mensajes (vidas, eliminación, PVP, errores) son editables en `config.yml` bajo `messages:` y admiten códigos de color con `&`.
 
+### Animaciones/efectos de muerte
+
+Al morir un jugador (sea que pierda una vida o quede eliminado) se reproduce a **todos los jugadores conectados**:
+
+- Una partícula en el punto de la muerte (`death-effects.particle`, por defecto `EXPLOSION_HUGE`).
+- Un sonido global (`death-effects.sound`, por defecto `ENTITY_GENERIC_EXPLODE`).
+- Un rayo decorativo en ese punto, sin daño ni fuego (`death-effects.lightning-effect`).
+- Un título grande en pantalla (`death-effects.title`), con texto distinto si fue una muerte normal o una eliminación.
+
+Todo se puede desactivar o cambiar en `config.yml` → `death-effects` sin tocar código (cualquier [`Particle`](https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Particle.html) o [`Sound`](https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html) válido sirve). Para una animación más elaborada (ej. un fuego artificial real, un esqueleto decorativo, un modelo con un resource pack) hay que escribir código específico — avisá qué tipo de animación tenés en mente y la agrego.
+
 ## Estructura del proyecto
 
 ```

@@ -11,10 +11,12 @@ public class PlayerDeathListener implements Listener {
 
     private final VoranixExtremoPlugin plugin;
     private final LivesManager livesManager;
+    private final DeathEffects deathEffects;
 
-    public PlayerDeathListener(VoranixExtremoPlugin plugin, LivesManager livesManager) {
+    public PlayerDeathListener(VoranixExtremoPlugin plugin, LivesManager livesManager, DeathEffects deathEffects) {
         this.plugin = plugin;
         this.livesManager = livesManager;
+        this.deathEffects = deathEffects;
     }
 
     @EventHandler
@@ -26,11 +28,14 @@ public class PlayerDeathListener implements Listener {
         }
 
         int remaining = livesManager.loseLife(player);
+        boolean eliminated = remaining <= 0;
 
-        if (remaining > 0) {
-            Messages.broadcast(plugin, "life-lost", "%player%", player.getName(), "%vidas%", String.valueOf(remaining));
-        } else {
+        if (eliminated) {
             Messages.broadcast(plugin, "eliminated", "%player%", player.getName());
+        } else {
+            Messages.broadcast(plugin, "life-lost", "%player%", player.getName(), "%vidas%", String.valueOf(remaining));
         }
+
+        deathEffects.play(player, eliminated);
     }
 }

@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin;
 
+import com.voranixextremo.plugin.lives.DeathEffects;
 import com.voranixextremo.plugin.lives.LivesCommand;
 import com.voranixextremo.plugin.lives.LivesManager;
 import com.voranixextremo.plugin.lives.PlayerDeathListener;
@@ -20,8 +21,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
 
         this.livesManager = new LivesManager(this);
         this.pvpManager = new PvpManager(this);
+        DeathEffects deathEffects = new DeathEffects(this);
 
-        getServer().getPluginManager().registerEvents(new PlayerDeathListener(this, livesManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerDeathListener(this, livesManager, deathEffects), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager), this);
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
 
