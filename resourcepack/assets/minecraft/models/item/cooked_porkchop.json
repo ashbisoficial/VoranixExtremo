@@ -1,0 +1,13 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/cooked_porkchop"
+  },
+  "overrides": [
+    { "predicate": { "custom_model_data": 2001 }, "model": "voranixextremo:item/banderilla_clasica" },
+    { "predicate": { "custom_model_data": 2002 }, "model": "voranixextremo:item/banderilla_papa" },
+    { "predicate": { "custom_model_data": 2003 }, "model": "voranixextremo:item/banderilla_picante" },
+    { "predicate": { "custom_model_data": 2004 }, "model": "voranixextremo:item/banderilla_mozzarella" },
+    { "predicate": { "custom_model_data": 2005 }, "model": "voranixextremo:item/banderilla_premium" }
+  ]
+}

@@ -8,6 +8,9 @@ import com.voranixextremo.plugin.economy.CoinProtectionListener;
 import com.voranixextremo.plugin.economy.EconomyCommand;
 import com.voranixextremo.plugin.economy.EconomyManager;
 import com.voranixextremo.plugin.economy.VaultEconomyProvider;
+import com.voranixextremo.plugin.food.FoodCommand;
+import com.voranixextremo.plugin.food.FoodConsumeListener;
+import com.voranixextremo.plugin.food.FoodManager;
 import com.voranixextremo.plugin.kills.PvpKillRewards;
 import com.voranixextremo.plugin.lives.DeathEffects;
 import com.voranixextremo.plugin.lives.LivesCommand;
@@ -17,6 +20,9 @@ import com.voranixextremo.plugin.lives.PlayerJoinListener;
 import com.voranixextremo.plugin.pvp.PvpCommand;
 import com.voranixextremo.plugin.pvp.PvpListener;
 import com.voranixextremo.plugin.pvp.PvpManager;
+import com.voranixextremo.plugin.shops.ChefCommand;
+import com.voranixextremo.plugin.shops.ChefVillagerManager;
+import com.voranixextremo.plugin.shops.ShopManager;
 import com.voranixextremo.plugin.util.ResourcePackListener;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.ServicePriority;
@@ -39,6 +45,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         CoinItemFactory coinItemFactory = new CoinItemFactory(this);
         BankService bankService = new BankService(economyManager, coinItemFactory);
         PvpKillRewards pvpKillRewards = new PvpKillRewards(this, bankService);
+        FoodManager foodManager = new FoodManager(this);
+        ShopManager shopManager = new ShopManager(this);
+        ChefVillagerManager chefVillagerManager = new ChefVillagerManager(this, economyManager, coinItemFactory, foodManager);
 
         getServer().getPluginManager().registerEvents(
                 new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);
@@ -46,6 +55,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);
         getServer().getPluginManager().registerEvents(new ResourcePackListener(this), this);
+        getServer().getPluginManager().registerEvents(new FoodConsumeListener(this, foodManager), this);
 
         LivesCommand livesCommand = new LivesCommand(this, livesManager);
         getCommand("vidas").setExecutor(livesCommand);
@@ -61,6 +71,14 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         CoinCommand coinCommand = new CoinCommand(this, economyManager, coinItemFactory);
         getCommand("moneda").setExecutor(coinCommand);
         getCommand("moneda").setTabCompleter(coinCommand);
+
+        FoodCommand foodCommand = new FoodCommand(this, foodManager);
+        getCommand("comida").setExecutor(foodCommand);
+        getCommand("comida").setTabCompleter(foodCommand);
+
+        ChefCommand chefCommand = new ChefCommand(this, shopManager, chefVillagerManager);
+        getCommand("chef").setExecutor(chefCommand);
+        getCommand("chef").setTabCompleter(chefCommand);
 
         registerVaultIfPresent();
 

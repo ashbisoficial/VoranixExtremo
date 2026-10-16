@@ -27,6 +27,14 @@ commands:
     description: Entrega monedas físicas a un jugador.
     usage: "/<command> dar <jugador> <tipo> [cantidad]"
     permission: voranixextremo.moneda.admin
+  comida:
+    description: Entrega comida o bebidas a un jugador.
+    usage: "/<command> dar <jugador> <id> [cantidad]"
+    permission: voranixextremo.comida.admin
+  chef:
+    description: Aparece o elimina un aldeano chef que vende comida por monedas.
+    usage: "/<command> <spawn <tienda>|remove>"
+    permission: voranixextremo.chef.admin
 
 permissions:
   voranixextremo.vidas:
@@ -46,4 +54,10 @@ permissions:
     default: op
   voranixextremo.moneda.admin:
     description: Permite entregar monedas físicas a cualquier jugador.
+    default: op
+  voranixextremo.comida.admin:
+    description: Permite entregar comida o bebidas a cualquier jugador.
+    default: op
+  voranixextremo.chef.admin:
+    description: Permite aparecer o eliminar aldeanos chef.
     default: op

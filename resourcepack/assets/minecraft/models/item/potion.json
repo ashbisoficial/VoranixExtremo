@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "minecraft:item/potion_overlay",
+    "layer1": "minecraft:item/potion"
+  },
+  "overrides": [
+    { "predicate": { "custom_model_data": 2101 }, "model": "voranixextremo:item/cola_ottoke" },
+    { "predicate": { "custom_model_data": 2102 }, "model": "voranixextremo:item/te_durazno" },
+    { "predicate": { "custom_model_data": 2103 }, "model": "voranixextremo:item/limon_ottoke" },
+    { "predicate": { "custom_model_data": 2104 }, "model": "voranixextremo:item/naranja_ottoke" },
+    { "predicate": { "custom_model_data": 2105 }, "model": "voranixextremo:item/ginger_ottoke" }
+  ]
+}

@@ -80,10 +80,13 @@ El mod de Forge "Voranix Coins" que armaron antes **no se puede usar tal cual** 
 resourcepack/
 ├── pack.mcmeta
 └── assets/
-    ├── minecraft/models/item/iron_nugget.json   # overrides por custom-model-data
+    ├── minecraft/models/item/
+    │   ├── iron_nugget.json      # overrides por custom-model-data (monedas)
+    │   ├── cooked_porkchop.json  # overrides por custom-model-data (banderillas)
+    │   └── potion.json           # overrides por custom-model-data (bebidas)
     └── voranixextremo/
-        ├── models/item/coin_*.json              # un modelo por moneda
-        └── textures/item/coin_*.png             # las texturas originales
+        ├── models/item/*.json    # un modelo por moneda/comida/bebida
+        └── textures/item/*.png  # las texturas originales (del mod Forge)
 ```
 
 Para usarlo en el servidor:
@@ -104,6 +107,20 @@ Cuando un jugador mata a otro **en combate** (se detecta con `getKiller()`, que 
 
 Caen al suelo (no van directo al inventario del asesino), así que es botín que cualquiera puede levantar — útil para el estilo de riesgo/recompensa de la serie. Todo se puede desactivar por separado (`enabled`, `head-drop`, `coin-reward.enabled`) en `config.yml`.
 
+### Comida, bebidas y el chef Ottoke (`food`, `shops`, `/chef`, `/comida`)
+
+Portado del módulo `ottoke` del repo [voranixmod](https://github.com/ashbisoficial/voranixmod) (el restaurante de comida coreana "Ottoke Street Food"). Ahí el chef es un aldeano con modelo/renderer propio de Forge — eso **no existe en Paper** (Bukkit no permite reskinear una entidad), así que se usa un `Villager` vanilla con la profesión `BUTCHER` (ya trae puesto un delantal) y un nombre visible como aproximación. Todo lo demás (comida real, hambre/saturación/efectos, precios, comercio) es fiel al original.
+
+- **Comidas** (`food.items`, 5 Banderillas): ítems reales y comestibles, con hambre/saturación/efectos de poción exactos a `ModItems.java`/`OttokeConfig.java` del mod. Cada una se construye sobre un material vanilla comestible (`COOKED_PORKCHOP` para la mayoría; `GOLDEN_APPLE` para la Premium, porque necesita ser "siempre comestible" como el original) + `custom-model-data` para la textura real. Como Paper 1.20.4 no tiene un sistema de nutrición "a medida" por ítem, `FoodConsumeListener` corrige el hambre/saturación/efectos un tick después de comer, sin importar qué valores de nutrición tenga el material base.
+- **Bebidas** (`food.drinks`, 5 gaseosas/té): se construyen sobre `Material.POTION` (con `PotionMeta`), para que beberlas sea gratis — la animación de "beber" y que al terminar quede un frasco de cristal son comportamiento nativo de las pociones. Los efectos los aplica Minecraft solo (están en el `PotionMeta`); el listener solo corrige el hambre. **Todavía no las vende ningún chef** (tampoco en el diseño original) — se consiguen con `/comida dar`.
+- **Precios**: igual que el mod original, el comercio no cobra en una sola moneda fija ni en una mezcla — elige automáticamente la denominación más conveniente (`CoinEconomy.bestDenominationFor`, redondeando siempre hacia arriba) porque un trade de aldeano de Minecraft solo admite hasta 2 tipos de ítem como costo.
+- `/chef spawn <tienda>` — (admin) hace aparecer un aldeano-chef en tu posición, con su comercio ya armado. Por ahora la única tienda es `ottoke`.
+- `/chef remove` — (admin) elimina el chef más cercano (8 bloques).
+- `/comida dar <jugador> <id> [cantidad]` — (admin) entrega una comida o bebida directamente, sin pasar por el chef.
+- Permisos: `voranixextremo.chef.admin`, `voranixextremo.comida.admin`.
+
+**Lo que quedó afuera de este portado** (ver el repo voranixmod si se quiere retomar más adelante): las Banderillas "crudas" y la Freidora (la estación de cocina donde se fríen) — no hacen falta para que el chef las venda listas; el módulo hermano `maipizza` (pizzas, que en el original son bloques con porciones, no ítems simples — pedirían más diseño); bloques personalizados (mostrador, cartel, menú); y los efectos de crecer/encoger (no hay atributo de escala en la versión de Minecraft que usa este plugin, 1.20.4 — recién existe desde 1.20.5+).
+
 ## Estructura del proyecto
 
 ```
@@ -111,9 +128,11 @@ src/main/java/com/voranixextremo/plugin/
 ├── VoranixExtremoPlugin.java   # clase principal
 ├── lives/                      # sistema de vidas + animaciones de muerte
 ├── pvp/                        # sistema de PVP
-├── economy/                    # monedas físicas, balance y Vault
+├── economy/                    # monedas físicas, balance, Vault y precios de trades
 ├── kills/                      # trofeos (cabeza + monedas) al matar en PVP
-└── util/                       # utilidades (mensajes)
+├── food/                       # comidas y bebidas (hambre/saturación/efectos)
+├── shops/                      # aldeanos chef y su comercio
+└── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml
 └── config.yml

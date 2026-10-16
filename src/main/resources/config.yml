@@ -70,6 +70,146 @@ economy:
       display-name: "&dMoneda de Ajna"
       value: 100000
 
+food:
+  # Comidas vendibles por un chef (food.items) y bebidas (food.drinks), con los mismos
+  # valores de hambre/saturación/efectos/precio del diseño original en voranixmod
+  # (OttokeConfig.java y ModItems.java del módulo "ottoke"). "saturation" es el
+  # modificador vanilla (no puntos de saturación directos): saturación real
+  # restaurada = hunger * saturation * 2, igual que cualquier comida de Minecraft.
+  # "price" está en unidades base (el valor de la moneda Estaño); -1 = no se vende.
+  items:
+    banderilla_clasica:
+      base-material: COOKED_PORKCHOP
+      custom-model-data: 2001
+      display-name: "&6Banderilla Clásica"
+      hunger: 8
+      saturation: 0.8
+      price: 8
+      trade-max-uses: 20
+      trade-xp: 2
+    banderilla_papa:
+      base-material: COOKED_PORKCHOP
+      custom-model-data: 2002
+      display-name: "&6Banderilla con Papa"
+      hunger: 9
+      saturation: 0.7
+      price: 10
+      trade-max-uses: 16
+      trade-xp: 5
+    banderilla_picante:
+      base-material: COOKED_PORKCHOP
+      custom-model-data: 2003
+      display-name: "&6Banderilla Picante"
+      hunger: 8
+      saturation: 0.9
+      price: 10
+      trade-max-uses: 16
+      trade-xp: 5
+      effects:
+        - type: SPEED
+          duration: 300
+          amplifier: 0
+    banderilla_mozzarella:
+      base-material: COOKED_PORKCHOP
+      custom-model-data: 2004
+      display-name: "&6Banderilla con Mozzarella"
+      hunger: 8
+      saturation: 1.0
+      price: 11
+      trade-max-uses: 12
+      trade-xp: 10
+      effects:
+        - type: INCREASE_DAMAGE
+          duration: 300
+          amplifier: 0
+    banderilla_premium:
+      # GOLDEN_APPLE para que sea "siempre comestible" como el original; de yapa trae
+      # la Regeneración corta propia de la manzana dorada vanilla (no estaba en el
+      # diseño original, pero pega bien con el tema "premium/dorado").
+      base-material: GOLDEN_APPLE
+      custom-model-data: 2005
+      display-name: "&6Banderilla Premium"
+      hunger: 10
+      saturation: 1.2
+      price: 18
+      trade-max-uses: 8
+      trade-xp: 20
+      effects:
+        - type: DAMAGE_RESISTANCE
+          duration: 400
+          amplifier: 0
+        - type: ABSORPTION
+          duration: 2400
+          amplifier: 0
+
+  drinks:
+    # Las bebidas todavía no las vende ningún chef (en el diseño original tampoco);
+    # por ahora se consiguen con /comida dar.
+    cola_ottoke:
+      custom-model-data: 2101
+      display-name: "&bCola Ottoke"
+      color: "#3B1A00"
+      hunger: 2
+      saturation: 0.3
+      effects:
+        - type: DAMAGE_RESISTANCE
+          duration: 1200
+          amplifier: 0
+    te_durazno:
+      custom-model-data: 2102
+      display-name: "&6Té de Durazno"
+      color: "#E8A33D"
+      hunger: 2
+      saturation: 0.4
+      effects:
+        - type: REGENERATION
+          duration: 400
+          amplifier: 1
+    limon_ottoke:
+      custom-model-data: 2103
+      display-name: "&eSoda de Limón"
+      color: "#D9E34D"
+      hunger: 2
+      saturation: 0.25
+      effects:
+        - type: SLOW_FALLING
+          duration: 200
+          amplifier: 0
+    naranja_ottoke:
+      custom-model-data: 2104
+      display-name: "&6Soda de Naranja"
+      color: "#E87B1E"
+      hunger: 3
+      saturation: 0.3
+      effects:
+        - type: SPEED
+          duration: 1200
+          amplifier: 1
+    ginger_ottoke:
+      custom-model-data: 2105
+      display-name: "&fGinger Ale"
+      color: "#D8C27A"
+      hunger: 1
+      saturation: 0.2
+      effects:
+        - type: NIGHT_VISION
+          duration: 3000
+          amplifier: 0
+
+shops:
+  # Un aldeano "chef" que vende food.items a cambio de monedas. Bukkit no permite
+  # reskinear la entidad (no hay chef con modelo propio como en el mod de Forge); se usa
+  # un Villager vanilla con la profesión que visualmente se parezca más.
+  ottoke:
+    display-name: "&6Chef Ottoke"
+    profession: BUTCHER
+    sells:
+      - banderilla_clasica
+      - banderilla_papa
+      - banderilla_picante
+      - banderilla_mozzarella
+      - banderilla_premium
+
 death-effects:
   # Efectos que se reproducen a TODOS los jugadores cuando alguien muere.
   enabled: true
