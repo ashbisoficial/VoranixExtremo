@@ -8,6 +8,7 @@ import com.voranixextremo.plugin.economy.CoinProtectionListener;
 import com.voranixextremo.plugin.economy.EconomyCommand;
 import com.voranixextremo.plugin.economy.EconomyManager;
 import com.voranixextremo.plugin.economy.VaultEconomyProvider;
+import com.voranixextremo.plugin.kills.PvpKillRewards;
 import com.voranixextremo.plugin.lives.DeathEffects;
 import com.voranixextremo.plugin.lives.LivesCommand;
 import com.voranixextremo.plugin.lives.LivesManager;
@@ -36,8 +37,10 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         DeathEffects deathEffects = new DeathEffects(this);
         CoinItemFactory coinItemFactory = new CoinItemFactory(this);
         BankService bankService = new BankService(economyManager, coinItemFactory);
+        PvpKillRewards pvpKillRewards = new PvpKillRewards(this, bankService);
 
-        getServer().getPluginManager().registerEvents(new PlayerDeathListener(this, livesManager, deathEffects), this);
+        getServer().getPluginManager().registerEvents(
+                new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager), this);
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);

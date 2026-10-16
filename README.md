@@ -72,6 +72,15 @@ Sistema de monedas físicas + balance, pensado para que funcione junto al comerc
 
 > Nota sobre los modelos: hoy el ítem se construye con material base + `custom-model-data` (el método estándar sin plugins extra, vía resource pack). Si en algún momento definen las monedas en un plugin de ítems personalizados (Oraxen/ItemsAdder/Nexo), hay que avisar — se cambia solo `CoinItemFactory` para pedirle el ítem a ese plugin en vez de crearlo acá; el resto (balance, comandos, Vault) no cambia.
 
+### Trofeos de asesinato PVP (`pvp-kill-rewards`)
+
+Cuando un jugador mata a otro **en combate** (se detecta con `getKiller()`, que Bukkit solo pone si el último golpe fue de un jugador — no aplica a caídas, lava, mobs, etc.), además de la animación de muerte normal caen al piso en el lugar de la muerte:
+
+- La **cabeza de la víctima**, con su skin real (`pvp-kill-rewards.head-drop`).
+- **Monedas físicas** de botín, por un valor configurable (`pvp-kill-rewards.coin-reward.value`, por defecto 50), repartidas automáticamente en las denominaciones de `economy.coins` — reutiliza la misma lógica de "dar cambio" que usa `/banco retirar`.
+
+Caen al suelo (no van directo al inventario del asesino), así que es botín que cualquiera puede levantar — útil para el estilo de riesgo/recompensa de la serie. Todo se puede desactivar por separado (`enabled`, `head-drop`, `coin-reward.enabled`) en `config.yml`.
+
 ## Estructura del proyecto
 
 ```
@@ -80,6 +89,7 @@ src/main/java/com/voranixextremo/plugin/
 ├── lives/                      # sistema de vidas + animaciones de muerte
 ├── pvp/                        # sistema de PVP
 ├── economy/                    # monedas físicas, balance y Vault
+├── kills/                      # trofeos (cabeza + monedas) al matar en PVP
 └── util/                       # utilidades (mensajes)
 src/main/resources/
 ├── plugin.yml

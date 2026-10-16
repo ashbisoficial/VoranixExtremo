@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Convierte entre monedas físicas (ítems en el inventario) y el balance guardado.
@@ -64,11 +65,39 @@ public class BankService {
             return false;
         }
 
+        Optional<List<ItemStack>> coins = breakIntoCoins(amount);
+        if (coins.isEmpty()) {
+            // El monto no se puede armar exactamente con las denominaciones configuradas.
+            return false;
+        }
+
+        for (ItemStack item : coins.get()) {
+            Map<Integer, ItemStack> leftovers = player.getInventory().addItem(item);
+            for (ItemStack leftover : leftovers.values()) {
+                player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+            }
+        }
+
+        economyManager.withdraw(player, amount);
+        return true;
+    }
+
+    /**
+     * Convierte un monto a la menor cantidad de monedas físicas posible, usando las
+     * denominaciones configuradas (de mayor a menor valor), sin tocar ningún balance.
+     *
+     * @return la lista de ítems de moneda, o vacío si el monto no se puede armar exacto.
+     */
+    public Optional<List<ItemStack>> breakIntoCoins(double amount) {
+        if (amount <= 0) {
+            return Optional.of(List.of());
+        }
+
         List<CoinType> sorted = new ArrayList<>(economyManager.getCoinTypes().values());
         sorted.sort(Comparator.comparingDouble(CoinType::getValue).reversed());
 
         double remaining = amount;
-        List<ItemStack> toGive = new ArrayList<>();
+        List<ItemStack> result = new ArrayList<>();
 
         for (CoinType type : sorted) {
             if (type.getValue() <= 0) {
@@ -78,23 +107,10 @@ public class BankService {
             if (count <= 0) {
                 continue;
             }
-            toGive.add(coinItemFactory.create(type, count));
+            result.add(coinItemFactory.create(type, count));
             remaining -= count * type.getValue();
         }
 
-        if (remaining > 1e-4) {
-            // El monto no se puede armar exactamente con las denominaciones configuradas.
-            return false;
-        }
-
-        for (ItemStack item : toGive) {
-            Map<Integer, ItemStack> leftovers = player.getInventory().addItem(item);
-            for (ItemStack leftover : leftovers.values()) {
-                player.getWorld().dropItemNaturally(player.getLocation(), leftover);
-            }
-        }
-
-        economyManager.withdraw(player, amount);
-        return true;
+        return remaining > 1e-4 ? Optional.empty() : Optional.of(result);
     }
 }

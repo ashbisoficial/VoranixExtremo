@@ -65,6 +65,18 @@ death-effects:
     death-text: "&c%player% ha muerto"
     eliminated-text: "&4☠ %player% ELIMINADO ☠"
 
+pvp-kill-rewards:
+  # Cuando un jugador mata a otro en combate (no por caída, lava, mobs, etc.), además
+  # de los efectos de muerte normales caen estos "trofeos" al lugar de la muerte.
+  enabled: true
+  # Cae la cabeza de la víctima (con su skin real).
+  head-drop: true
+  coin-reward:
+    enabled: true
+    # Valor total (en la unidad de la economía) que cae como monedas físicas,
+    # repartido en las denominaciones de economy.coins (de mayor a menor).
+    value: 50
+
 messages:
   prefix: "&8[&cVoranix&6Extremo&8] &r"
   life-lost: "&c%player% &7perdió una vida. Le quedan &c%vidas% &7vida(s)."
