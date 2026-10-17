@@ -278,14 +278,17 @@ death-effects:
 
 pvp-kill-rewards:
   # Cuando un jugador mata a otro en combate (no por caída, lava, mobs, etc.), además
-  # de los efectos de muerte normales caen estos "trofeos" al lugar de la muerte.
+  # de los efectos de muerte normales pasa esto en el lugar de la muerte.
   enabled: true
-  # Cae la cabeza de la víctima (con su skin real).
+  # Arma un mini monumento: un bloque de "trophy-wall-material" con la cabeza de la
+  # víctima (su skin real) montada encima.
   head-drop: true
+  trophy-wall-material: DEEPSLATE_BRICK_WALL
   coin-reward:
     enabled: true
-    # Valor total (en la unidad de la economía) que cae como monedas físicas,
-    # repartido en las denominaciones de economy.coins (de mayor a menor).
+    # Valor total (en la unidad de la economía) que recibe el asesino, directo en el
+    # inventario (no se tira al piso), repartido en las denominaciones de economy.coins
+    # (de mayor a menor). Si el inventario está lleno, el sobrante sí cae a sus pies.
     value: 50
 
 messages:

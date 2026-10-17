@@ -102,12 +102,12 @@ Para usarlo en el servidor:
 
 ### Trofeos de asesinato PVP (`pvp-kill-rewards`)
 
-Cuando un jugador mata a otro **en combate** (se detecta con `getKiller()`, que Bukkit solo pone si el último golpe fue de un jugador — no aplica a caídas, lava, mobs, etc.), además de la animación de muerte normal caen al piso en el lugar de la muerte:
+Cuando un jugador mata a otro **en combate** (se detecta con `getKiller()`, que Bukkit solo pone si el último golpe fue de un jugador — no aplica a caídas, lava, mobs, etc.), además de la animación de muerte normal pasa esto en el lugar de la muerte:
 
-- La **cabeza de la víctima**, con su skin real (`pvp-kill-rewards.head-drop`).
-- **Monedas físicas** de botín, por un valor configurable (`pvp-kill-rewards.coin-reward.value`, por defecto 50), repartidas automáticamente en las denominaciones de `economy.coins` — reutiliza la misma lógica de "dar cambio" que usa `/banco retirar`.
+- Se arma un mini monumento: un bloque de `pvp-kill-rewards.trophy-wall-material` (por defecto `DEEPSLATE_BRICK_WALL`) con la **cabeza de la víctima** montada encima, con su skin real (`pvp-kill-rewards.head-drop`).
+- **Monedas** de botín, por un valor configurable (`pvp-kill-rewards.coin-reward.value`, por defecto 50), van **directo al inventario del asesino** (repartidas automáticamente en las denominaciones de `economy.coins`, reutilizando la misma lógica de "dar cambio" que usa `/banco retirar`). Si no le entran en el inventario, el sobrante cae a sus pies.
 
-Caen al suelo (no van directo al inventario del asesino), así que es botín que cualquiera puede levantar — útil para el estilo de riesgo/recompensa de la serie. Todo se puede desactivar por separado (`enabled`, `head-drop`, `coin-reward.enabled`) en `config.yml`.
+Todo se puede desactivar por separado (`enabled`, `head-drop`, `coin-reward.enabled`) en `config.yml`.
 
 ### Comida, bebidas y el chef Ottoke (`food`, `shops`, `/chef`, `/comida`)
 

@@ -44,8 +44,9 @@ public class PlayerDeathListener implements Listener {
 
         // getKiller() solo es distinto de null cuando la muerte la causó otro jugador
         // (combate), no caídas, lava, mobs, etc.
-        if (player.getKiller() != null) {
-            pvpKillRewards.drop(player, player.getLocation());
+        Player killer = player.getKiller();
+        if (killer != null) {
+            pvpKillRewards.drop(player, killer, player.getLocation());
         }
     }
 }
