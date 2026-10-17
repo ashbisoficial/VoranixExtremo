@@ -10,6 +10,7 @@ import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.boss.BarStyle;
@@ -190,6 +191,28 @@ public class WorldEventManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.showTitle(title);
             player.playSound(player.getLocation(), sound, 1.0F, 1.0F);
+            spawnSpinAura(player, outcome.getCategory(), isFinal);
+        }
+    }
+
+    /** Aro de partículas de color alrededor de cada jugador en cada "tic" de la ruleta —
+     * del color de la categoría que está pasando. En el resultado final es más grande y
+     * suma un estallido de partículas de tótem, como remate. */
+    private void spawnSpinAura(Player player, EventCategory category, boolean isFinal) {
+        World world = player.getWorld();
+        Location center = player.getLocation().add(0, 1.2, 0);
+        Particle.DustOptions dustOptions = new Particle.DustOptions(category.getParticleColor(), isFinal ? 2.0F : 1.2F);
+
+        int points = isFinal ? 24 : 10;
+        double radius = isFinal ? 1.4 : 0.9;
+        for (int i = 0; i < points; i++) {
+            double angle = 2 * Math.PI * i / points;
+            Location point = center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+            world.spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0, dustOptions);
+        }
+
+        if (isFinal) {
+            world.spawnParticle(Particle.TOTEM, center, 40, 0.5, 0.8, 0.5, 0.3);
         }
     }
 

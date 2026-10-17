@@ -319,6 +319,12 @@ pvp-kill-rewards:
   # víctima (su skin real) montada encima.
   head-drop: true
   trophy-wall-material: DEEPSLATE_BRICK_WALL
+  # Al momento de poner el trofeo: sonido + un breve remolino de partículas de alma
+  # alrededor de la cabeza (dura "trophy-particle-duration-ticks", 20 ticks = 1 segundo;
+  # después queda el monumento solo, sin partículas, para no acumular efectos permanentes
+  # en una serie larga).
+  trophy-sound: ENTITY_WITHER_AMBIENT
+  trophy-particle-duration-ticks: 60
   coin-reward:
     enabled: true
     # Valor total (en la unidad de la economía) que recibe el asesino, directo en el

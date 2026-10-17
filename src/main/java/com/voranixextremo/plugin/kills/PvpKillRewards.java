@@ -5,14 +5,18 @@ import com.voranixextremo.plugin.economy.BankService;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Skull;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
 
 /**
  * "Trofeos" al matar a otro jugador en combate (PVP): un mini monumento con la cabeza
@@ -50,8 +54,14 @@ public class PvpKillRewards {
         }
     }
 
-    /** Pone un muro con la cabeza de la víctima montada encima, en el lugar de la muerte. */
+    /** Pone un muro con la cabeza de la víctima montada encima, en el lugar de la muerte,
+     * y le suma una breve animación de partículas + sonido para que se note el momento. */
     private void placeTrophy(OfflinePlayer victim, Location location) {
+        World world = location.getWorld();
+        if (world == null) {
+            return;
+        }
+
         Block wallBlock = location.getBlock();
         wallBlock.setType(resolveWallMaterial());
 
@@ -61,12 +71,46 @@ public class PvpKillRewards {
             skull.setOwningPlayer(victim);
             skull.update(true);
         }
+
+        Location headCenter = headBlock.getLocation().add(0.5, 0.3, 0.5);
+        world.playSound(headCenter, resolveTrophySound(), 1.0F, 1.0F);
+        playTrophyRevealAnimation(world, headCenter);
     }
 
     private Material resolveWallMaterial() {
         String name = plugin.getConfig().getString("pvp-kill-rewards.trophy-wall-material", "DEEPSLATE_BRICK_WALL");
         Material material = Material.matchMaterial(name.toUpperCase());
         return material != null ? material : Material.DEEPSLATE_BRICK_WALL;
+    }
+
+    private Sound resolveTrophySound() {
+        String name = plugin.getConfig().getString("pvp-kill-rewards.trophy-sound", "ENTITY_WITHER_AMBIENT");
+        try {
+            return Sound.valueOf(name.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().log(Level.WARNING, "Sonido de trofeo inválido en config.yml: " + name);
+            return Sound.ENTITY_WITHER_AMBIENT;
+        }
+    }
+
+    /** Partículas de alma girando alrededor de la cabeza durante unos segundos, como
+     * "revelación" del trofeo recién puesto — después queda el monumento solo, estático. */
+    private void playTrophyRevealAnimation(World world, Location headCenter) {
+        int durationTicks = plugin.getConfig().getInt("pvp-kill-rewards.trophy-particle-duration-ticks", 60);
+
+        BukkitTask[] holder = new BukkitTask[1];
+        int[] elapsed = {0};
+        holder[0] = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            if (elapsed[0] >= durationTicks) {
+                holder[0].cancel();
+                return;
+            }
+            double angle = Math.toRadians(elapsed[0] * 24.0);
+            double radius = 0.6;
+            Location point = headCenter.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
+            world.spawnParticle(Particle.SOUL, point, 1, 0, 0, 0, 0);
+            elapsed[0] += 2;
+        }, 0L, 2L);
     }
 
     private void giveToInventory(Player killer, List<ItemStack> coins) {
