@@ -23,10 +23,18 @@ public class WorldEventOutcome {
     private final double mobDamageMultiplier;
     private final List<BonusDrop> bonusDrops;
     private final String command;
+    private final String objectiveDescription;
+    private final RevillObjectiveType objectiveType;
+    private final double objectiveY;
+    private final int meteorIntervalTicks;
+    private final double meteorYield;
+    private final boolean meteorBreaksBlocks;
 
     private WorldEventOutcome(String id, WorldEventType type, EventCategory category, String displayName, int weight,
                                int durationSeconds, double mobHealthMultiplier, double mobDamageMultiplier,
-                               List<BonusDrop> bonusDrops, String command) {
+                               List<BonusDrop> bonusDrops, String command, String objectiveDescription,
+                               RevillObjectiveType objectiveType, double objectiveY, int meteorIntervalTicks,
+                               double meteorYield, boolean meteorBreaksBlocks) {
         this.id = id;
         this.type = type;
         this.category = category;
@@ -37,6 +45,12 @@ public class WorldEventOutcome {
         this.mobDamageMultiplier = mobDamageMultiplier;
         this.bonusDrops = bonusDrops;
         this.command = command;
+        this.objectiveDescription = objectiveDescription;
+        this.objectiveType = objectiveType;
+        this.objectiveY = objectiveY;
+        this.meteorIntervalTicks = meteorIntervalTicks;
+        this.meteorYield = meteorYield;
+        this.meteorBreaksBlocks = meteorBreaksBlocks;
     }
 
     public static WorldEventOutcome fromConfig(String id, ConfigurationSection section) {
@@ -65,6 +79,20 @@ public class WorldEventOutcome {
         double damageMultiplier = section.getDouble("mob-damage-multiplier", 1.0);
         String command = section.getString("command");
 
+        String objectiveDescription = section.getString("objective-description", "");
+        RevillObjectiveType objectiveType = null;
+        if (section.contains("objective-type")) {
+            try {
+                objectiveType = RevillObjectiveType.valueOf(section.getString("objective-type", "").toUpperCase());
+            } catch (IllegalArgumentException ex) {
+                objectiveType = null;
+            }
+        }
+        double objectiveY = section.getDouble("objective-y", 0);
+        int meteorIntervalTicks = Math.max(20, section.getInt("meteor-interval-ticks", 60));
+        double meteorYield = section.getDouble("meteor-yield", 1.5);
+        boolean meteorBreaksBlocks = section.getBoolean("meteor-break-blocks", false);
+
         List<BonusDrop> bonusDrops = new ArrayList<>();
         for (Map<?, ?> raw : section.getMapList("bonus-drops")) {
             Object materialName = raw.get("material");
@@ -82,7 +110,8 @@ public class WorldEventOutcome {
         }
 
         return new WorldEventOutcome(id.toLowerCase(), type, category, displayName, weight, durationSeconds,
-                healthMultiplier, damageMultiplier, bonusDrops, command);
+                healthMultiplier, damageMultiplier, bonusDrops, command, objectiveDescription, objectiveType,
+                objectiveY, meteorIntervalTicks, meteorYield, meteorBreaksBlocks);
     }
 
     public String getId() {
@@ -123,5 +152,29 @@ public class WorldEventOutcome {
 
     public String getCommand() {
         return command;
+    }
+
+    public String getObjectiveDescription() {
+        return objectiveDescription;
+    }
+
+    public RevillObjectiveType getObjectiveType() {
+        return objectiveType;
+    }
+
+    public double getObjectiveY() {
+        return objectiveY;
+    }
+
+    public int getMeteorIntervalTicks() {
+        return meteorIntervalTicks;
+    }
+
+    public double getMeteorYield() {
+        return meteorYield;
+    }
+
+    public boolean isMeteorBreaksBlocks() {
+        return meteorBreaksBlocks;
     }
 }

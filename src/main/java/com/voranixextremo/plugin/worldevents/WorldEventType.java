@@ -7,5 +7,8 @@ public enum WorldEventType {
     /** Pone la noche/tormenta, y mientras dura: mobs más fuertes (salud/daño) y botín extra al morir. */
     RED_MOON,
     /** Ejecuta un comando de consola al empezar — forma genérica de agregar eventos sin tocar código. */
-    COMMAND
+    COMMAND,
+    /** "Momento Revill": tormenta + lluvia de meteoritos + un objetivo con cuenta regresiva
+     * visible; quien no lo cumpla a tiempo queda eliminado directamente (estilo DEDsafio). */
+    REVILL
 }

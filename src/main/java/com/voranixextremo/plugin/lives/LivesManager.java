@@ -102,4 +102,11 @@ public class LivesManager {
         }
         return remaining;
     }
+
+    /** Elimina al jugador directamente (vidas a 0), sin importar cuántas tenía. Para
+     * sucesos que eliminan de una, como fallar un Momento Revill. */
+    public void eliminate(Player player) {
+        setLives(player, 0);
+        player.setGameMode(eliminationGameMode);
+    }
 }

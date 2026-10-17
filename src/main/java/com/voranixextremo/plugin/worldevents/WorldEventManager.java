@@ -1,6 +1,7 @@
 package com.voranixextremo.plugin.worldevents;
 
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
+import com.voranixextremo.plugin.lives.LivesManager;
 import com.voranixextremo.plugin.pvp.PvpManager;
 import com.voranixextremo.plugin.util.Messages;
 import net.kyori.adventure.text.Component;
@@ -8,13 +9,16 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.entity.LargeFireball;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -32,16 +36,21 @@ public class WorldEventManager {
 
     private final VoranixExtremoPlugin plugin;
     private final PvpManager pvpManager;
+    private final LivesManager livesManager;
     private final Map<String, WorldEventOutcome> outcomes = new LinkedHashMap<>();
 
     private WorldEventOutcome activeEvent;
     private long activeEventEndsAt;
     private boolean pvpStateBeforeWindow;
     private BukkitTask revertTask;
+    private BukkitTask meteorTask;
+    private BukkitTask countdownTask;
+    private BossBar revillCountdownBar;
 
-    public WorldEventManager(VoranixExtremoPlugin plugin, PvpManager pvpManager) {
+    public WorldEventManager(VoranixExtremoPlugin plugin, PvpManager pvpManager, LivesManager livesManager) {
         this.plugin = plugin;
         this.pvpManager = pvpManager;
+        this.livesManager = livesManager;
         load();
     }
 
@@ -202,14 +211,19 @@ public class WorldEventManager {
             case RED_MOON -> {
                 for (World world : plugin.getServer().getWorlds()) {
                     world.setTime(18000);
-                    world.setStorm(true);
-                    world.setThundering(true);
                 }
+                setStormyWeather(true);
             }
             case COMMAND -> {
                 if (outcome.getCommand() != null && !outcome.getCommand().isBlank()) {
                     plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), outcome.getCommand());
                 }
+            }
+            case REVILL -> {
+                setStormyWeather(true);
+                announceRevillStart(outcome);
+                startRevillCountdown(outcome);
+                startMeteorShower(outcome);
             }
         }
 
@@ -228,10 +242,23 @@ public class WorldEventManager {
             pvpManager.setPvpEnabled(false);
         }
         if (finished.getType() == WorldEventType.RED_MOON) {
-            for (World world : plugin.getServer().getWorlds()) {
-                world.setStorm(false);
-                world.setThundering(false);
+            setStormyWeather(false);
+        }
+        if (finished.getType() == WorldEventType.REVILL) {
+            if (countdownTask != null) {
+                countdownTask.cancel();
+                countdownTask = null;
             }
+            if (meteorTask != null) {
+                meteorTask.cancel();
+                meteorTask = null;
+            }
+            if (revillCountdownBar != null) {
+                revillCountdownBar.removeAll();
+                revillCountdownBar = null;
+            }
+            setStormyWeather(false);
+            resolveRevill(finished);
         }
 
         activeEvent = null;
@@ -239,5 +266,115 @@ public class WorldEventManager {
         revertTask = null;
 
         Messages.broadcast(plugin, "world-event-ended", "%evento%", finished.getDisplayName());
+    }
+
+    private void setStormyWeather(boolean stormy) {
+        for (World world : plugin.getServer().getWorlds()) {
+            world.setStorm(stormy);
+            world.setThundering(stormy);
+        }
+    }
+
+    private void announceRevillStart(WorldEventOutcome outcome) {
+        Messages.broadcast(plugin, "revill-objective", "%objetivo%", outcome.getObjectiveDescription());
+
+        Component titleText = LegacyComponentSerializer.legacySection()
+                .deserialize(ChatColor.translateAlternateColorCodes('&', "&4&l¡MOMENTO REVILL!"));
+        Component subtitleText = LegacyComponentSerializer.legacySection()
+                .deserialize(ChatColor.translateAlternateColorCodes('&', "&c" + outcome.getObjectiveDescription()));
+        Title title = Title.title(titleText, subtitleText,
+                Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofMillis(500)));
+
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.showTitle(title);
+            player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0F, 1.0F);
+        }
+    }
+
+    private void startRevillCountdown(WorldEventOutcome outcome) {
+        revillCountdownBar = Bukkit.createBossBar("", EventCategory.PELIGRO.getBarColor(), BarStyle.SOLID);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            revillCountdownBar.addPlayer(player);
+        }
+
+        int totalSeconds = Math.max(1, outcome.getDurationSeconds());
+        int[] remaining = {totalSeconds};
+        updateRevillBar(outcome, remaining[0], totalSeconds);
+
+        countdownTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
+            remaining[0]--;
+            if (remaining[0] <= 0) {
+                if (countdownTask != null) {
+                    countdownTask.cancel();
+                }
+                return;
+            }
+            updateRevillBar(outcome, remaining[0], totalSeconds);
+        }, 20L, 20L);
+    }
+
+    private void updateRevillBar(WorldEventOutcome outcome, int remainingSeconds, int totalSeconds) {
+        if (revillCountdownBar == null) {
+            return;
+        }
+        String title = ChatColor.translateAlternateColorCodes('&',
+                "&c&l¡REVILL! &r&f" + outcome.getObjectiveDescription() + " &7(" + remainingSeconds + "s)");
+        revillCountdownBar.setTitle(title);
+        revillCountdownBar.setProgress(Math.max(0.0, (double) remainingSeconds / totalSeconds));
+    }
+
+    private void startMeteorShower(WorldEventOutcome outcome) {
+        int interval = Math.max(20, outcome.getMeteorIntervalTicks());
+        meteorTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> spawnMeteor(outcome), interval, interval);
+    }
+
+    private void spawnMeteor(WorldEventOutcome outcome) {
+        List<Player> online = new ArrayList<>(Bukkit.getOnlinePlayers());
+        if (online.isEmpty()) {
+            return;
+        }
+        Player target = online.get(ThreadLocalRandom.current().nextInt(online.size()));
+        Location spawnLocation = target.getLocation().clone().add(
+                ThreadLocalRandom.current().nextInt(-12, 13), 25, ThreadLocalRandom.current().nextInt(-12, 13));
+        World world = spawnLocation.getWorld();
+        if (world == null) {
+            return;
+        }
+
+        LargeFireball fireball = world.spawn(spawnLocation, LargeFireball.class);
+        fireball.setVelocity(new Vector(0, -1, 0));
+        fireball.setYield((float) outcome.getMeteorYield());
+        fireball.setIsIncendiary(outcome.isMeteorBreaksBlocks());
+    }
+
+    private void resolveRevill(WorldEventOutcome outcome) {
+        int survived = 0;
+        int eliminated = 0;
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            if (livesManager.isEliminated(player)) {
+                continue;
+            }
+            if (meetsRevillObjective(player, outcome)) {
+                survived++;
+            } else {
+                livesManager.eliminate(player);
+                eliminated++;
+                Messages.broadcast(plugin, "revill-eliminated", "%player%", player.getName());
+            }
+        }
+        Messages.broadcast(plugin, "revill-summary",
+                "%sobrevivientes%", String.valueOf(survived), "%eliminados%", String.valueOf(eliminated));
+    }
+
+    private boolean meetsRevillObjective(Player player, WorldEventOutcome outcome) {
+        RevillObjectiveType type = outcome.getObjectiveType();
+        if (type == null) {
+            return true;
+        }
+        double y = player.getLocation().getY();
+        return switch (type) {
+            case Y_ABOVE -> y >= outcome.getObjectiveY();
+            case Y_BELOW -> y <= outcome.getObjectiveY();
+        };
     }
 }

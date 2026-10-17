@@ -51,7 +51,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         FoodManager foodManager = new FoodManager(this);
         ShopManager shopManager = new ShopManager(this);
         ChefVillagerManager chefVillagerManager = new ChefVillagerManager(this, economyManager, coinItemFactory, foodManager);
-        WorldEventManager worldEventManager = new WorldEventManager(this, pvpManager);
+        WorldEventManager worldEventManager = new WorldEventManager(this, pvpManager, livesManager);
 
         getServer().getPluginManager().registerEvents(
                 new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);

@@ -140,7 +140,7 @@ No se puede girar si ya hay un evento activo (hay que esperar a que termine o us
 - **`luna_roja`** (`PELIGRO`, `RED_MOON`) — pone de noche y en tormenta en todos los mundos; mientras dura, todo mob que nace sale con la salud y el daño multiplicados (`mob-health-multiplier`, `mob-damage-multiplier`) y al morir tiene una chance extra de soltar ítems de `bonus-drops` (ender pearls, huesos, pólvora, carne podrida — además de su loot normal, no en vez de).
 - **`buena_racha`** (`BUENO`, `COMMAND`) — le da Velocidad II a todos los jugadores conectados por 5 minutos (`/effect give @a`).
 - **`tormenta`** (`NEUTRAL`, `COMMAND`) — ejemplo del escape genérico: ejecuta cualquier comando de consola al empezar (acá, `/weather rain`) — la forma de agregar eventos nuevos sin tocar código.
-
+- **`momento_revill`** (`PELIGRO`, `REVILL`) — inspirado en el "Momento Revill" de DEDsafio: tormenta + lluvia de meteoritos (`meteor-interval-ticks`, `meteor-yield`, `meteor-break-blocks`) + un objetivo (`objective-description`) con cuenta regresiva en una boss bar propia. Cuando se acaba el tiempo (`duration-seconds`), se evalúa a cada jugador conectado según `objective-type` (`Y_ABOVE`/`Y_BELOW` contra `objective-y`, ej. "bajá a Y=40"): quien no lo cumple queda **eliminado directo** (no pierde 1 vida, va a 0), el resto sobrevive. Ajustá `objective-y` a algo real de tu mapa antes de usarlo en serio.
 ## Estructura del proyecto
 
 ```

@@ -273,6 +273,24 @@ world-events:
       weight: 6
       duration-seconds: 0
       command: "weather rain"
+    momento_revill:
+      # Al estilo DEDsafio: tormenta + lluvia de meteoritos + un objetivo con cuenta
+      # regresiva visible (boss bar). Quien no lo cumpla cuando se acaba el tiempo queda
+      # ELIMINADO directo (no pierde 1 vida, va a 0). Ajustá "objective-y" a algo real de
+      # su mapa (ej. la altura de su búnker) antes de usarlo en serio.
+      type: REVILL
+      category: PELIGRO
+      display-name: "&l¡MOMENTO REVILL!"
+      weight: 5
+      duration-seconds: 90
+      objective-description: "¡Bajen a Y=40 o serán ELIMINADOS!"
+      objective-type: Y_BELOW
+      objective-y: 40
+      # Cada cuántos ticks (20 = 1 segundo) cae un meteorito, y qué tan fuerte explota.
+      meteor-interval-ticks: 40
+      meteor-yield: 1.5
+      # Si es false, el meteorito hace ruido/partículas/empuje pero no rompe bloques.
+      meteor-break-blocks: false
 
 death-effects:
   # Efectos que se reproducen a TODOS los jugadores cuando alguien muere.
@@ -322,3 +340,6 @@ messages:
   world-event-spinning: "&6&l¡Se está girando la RULETA DE EVENTOS MUNDIALES!"
   world-event-started: "&d&l¡Comenzó: %evento%!"
   world-event-ended: "&7El evento %evento% terminó."
+  revill-objective: "&4&l¡MOMENTO REVILL! &r&c%objetivo%"
+  revill-eliminated: "&4☠ %player% no cumplió el objetivo del Revill y fue ELIMINADO."
+  revill-summary: "&7Revill terminado: &a%sobrevivientes% sobrevivieron&7, &c%eliminados% eliminados&7."
