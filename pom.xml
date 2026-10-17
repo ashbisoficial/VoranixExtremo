@@ -13,10 +13,13 @@
     <description>Plugin de Minecraft para la serie Voranix Extremo (vidas, PVP y futuras mecánicas de evento).</description>
 
     <properties>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <paper.version>1.20.4-R0.1-SNAPSHOT</paper.version>
+        <!-- Minecraft/Paper pasaron a versionar por año desde la 25.x (26.3 salió en
+             septiembre de 2026). El rango "[26.3.build,)" trae siempre el último build
+             publicado de esa versión, tal como recomienda la guía oficial de Paper
+             (docs.papermc.io/paper/dev/project-setup). -->
+        <paper.version>[26.3.build,)</paper.version>
     </properties>
 
     <repositories>
