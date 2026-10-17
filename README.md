@@ -123,44 +123,20 @@ Portado del módulo `ottoke` del repo [voranixmod](https://github.com/ashbisofic
 
 **Lo que quedó afuera de este portado** (ver el repo voranixmod si se quiere retomar más adelante): las Banderillas "crudas" y la Freidora (la estación de cocina donde se fríen) — no hacen falta para que el chef las venda listas; el módulo hermano `maipizza` (pizzas, que en el original son bloques con porciones, no ítems simples — pedirían más diseño); bloques personalizados (mostrador, cartel, menú); y los efectos de crecer/encoger (no hay atributo de escala en la versión de Minecraft que usa este plugin, 1.20.4 — recién existe desde 1.20.5+).
 
-### Ruleta de sucesos (`/ruleta`)
+### Ruleta de eventos (`/ruleta`)
 
-Al estilo de las ruletas de eventos de Desafío/Extremo: cae en un suceso al azar (ponderado por `weight`), con una animación corta tipo tragamonedas (títulos cambiando rápido + sonido) antes de revelar el resultado a todo el server.
+Al estilo de las ruletas de Desafío/Extremo, pero **para todo el servidor a la vez**: no es un suceso por jugador, es un evento único que cae al azar (ponderado por `weight`) y cambia las reglas del juego por un tiempo — la animación (títulos + sonido) se ve en la pantalla de todos los conectados en el mismo instante. Pensado para que lo dispare producción/staff en un momento puntual del stream, no algo que cualquier jugador pueda tirar (por eso es 100% admin, sin cooldown — lo manejan ustedes a criterio).
 
-- `/ruleta` o `/ruleta girar` — girás para vos mismo (respeta un cooldown, `roulette.cooldown-seconds`, 5 min por defecto).
-- `/ruleta girar <jugador>` — (admin) girás para otro, sin cooldown.
-- `/ruleta sortear` — (admin) elige un jugador conectado al azar y gira para él/ella — para el clásico "a quién le toca la ruleta".
-- `/ruleta completar <jugador>` / `/ruleta fallar <jugador>` — (admin) resuelve manualmente una tarea asignada (si nadie la resuelve antes, se marca como fallida sola cuando se acaba el tiempo).
-- Permisos: `voranixextremo.ruleta` (todos, girar para uno mismo), `voranixextremo.ruleta.admin`.
+- `/ruleta` o `/ruleta girar` — gira y aplica un resultado al azar.
+- `/ruleta estado` — qué evento está activo y cuánto le queda.
+- `/ruleta detener` — corta el evento activo antes de tiempo.
+- Permiso: `voranixextremo.ruleta.admin`.
 
-Los sucesos son 100% configurables en `config.yml` → `roulette.outcomes`, sin tocar código. Cada uno tiene una `category` (`BUENO`/`MALO`/`TAREA`, solo afecta el color) y un `type` que define qué hace de verdad:
-
-| `type` | Qué hace |
-|---|---|
-| `EFFECT` | Aplica un efecto de poción (`effect`, `duration` en ticks, `amplifier`) |
-| `GIVE_COINS` / `TAKE_COINS` | Suma o resta `amount` del balance |
-| `EXTRA_LIFE` / `LOSE_LIFE` | Suma o resta una vida (igual que una muerte normal) |
-| `LIGHTNING` | Rayo decorativo en la posición del jugador (sin daño) |
-| `COMMAND` | Ejecuta cualquier comando de consola (`command`, con `%player%`) — la forma de agregar sucesos nuevos sin programar nada, ej. dar un ítem con `/comida dar` |
-| `TASK` | Asigna una tarea (`description`, `duration-seconds`, `reward-coins`, `penalty-coins`) que se resuelve con `/ruleta completar\|fallar` o falla sola al acabarse el tiempo |
-
-Vienen 16 sucesos de ejemplo (vida extra, lluvia de monedas, buffs, un festín gratis vía `/comida dar`, venenos, robos, un rayo de mal karma, y dos tareas con plazo) — se pueden agregar, quitar o ajustar los pesos libremente.
-
-### Ruleta de eventos MUNDIALES (`/evento`)
-
-Distinta de `/ruleta`: esto no es para un jugador, es para **todo el servidor a la vez** — la animación (títulos + sonido) se ve en la pantalla de todos los conectados en el mismo instante, y el resultado es un evento que cambia las reglas del juego por un tiempo. Pensado para que lo dispare producción/staff en un momento puntual del stream, no algo que cualquiera pueda tirar (por eso es 100% admin: `voranixextremo.evento.admin`, sin cooldown — lo manejan ustedes a criterio).
-
-- `/evento` o `/evento girar` — gira y aplica un resultado al azar.
-- `/evento estado` — qué evento está activo y cuánto le queda.
-- `/evento detener` — corta el evento activo antes de tiempo.
-
-Vienen 3 ejemplos en `world-events.outcomes`, con los dos que pediste:
+No se puede girar si ya hay un evento activo (hay que esperar a que termine o usar `/ruleta detener`), para no superponer dos a la vez. Los sucesos son 100% configurables en `config.yml` → `world-events.outcomes`, sin tocar código. Vienen 3 de ejemplo:
 
 - **`pvp_libre`** (`PVP_WINDOW`) — fuerza el PVP activado por `duration-seconds` (300 por defecto) y lo devuelve a como estaba al terminar (reutiliza el mismo `PvpManager`, con su sonido de activar/desactivar).
 - **`luna_roja`** (`RED_MOON`) — pone de noche y en tormenta en todos los mundos; mientras dura, todo mob que nace sale con la salud y el daño multiplicados (`mob-health-multiplier`, `mob-damage-multiplier`) y al morir tiene una chance extra de soltar ítems de `bonus-drops` (ender pearls, huesos, pólvora, carne podrida — además de su loot normal, no en vez de).
-- **`tormenta`** (`COMMAND`) — ejemplo simple del escape genérico: ejecuta cualquier comando de consola al empezar (acá, `/weather rain`). Igual que en la ruleta personal, es la forma de agregar eventos nuevos sin tocar código.
-
-No se puede girar si ya hay un evento activo (hay que esperar a que termine o usar `/evento detener`), para no superponer dos a la vez.
+- **`tormenta`** (`COMMAND`) — ejemplo del escape genérico: ejecuta cualquier comando de consola al empezar (acá, `/weather rain`) — la forma de agregar eventos nuevos sin tocar código.
 
 ## Estructura del proyecto
 
@@ -173,8 +149,7 @@ src/main/java/com/voranixextremo/plugin/
 ├── kills/                      # trofeos (cabeza + monedas) al matar en PVP
 ├── food/                       # comidas y bebidas (hambre/saturación/efectos)
 ├── shops/                      # aldeanos chef y su comercio
-├── roulette/                   # ruleta de sucesos (buenos, malos, tareas)
-├── worldevents/                # ruleta de eventos mundiales (pvp libre, luna roja)
+├── worldevents/                # ruleta de eventos (afecta a todo el server: pvp libre, luna roja)
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml

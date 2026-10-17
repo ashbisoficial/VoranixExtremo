@@ -36,13 +36,9 @@ commands:
     usage: "/<command> <spawn <tienda>|remove>"
     permission: voranixextremo.chef.admin
   ruleta:
-    description: Gira la ruleta de sucesos (buenos, malos y tareas).
-    usage: "/<command> [girar [jugador]|sortear|completar <jugador>|fallar <jugador>]"
-    permission: voranixextremo.ruleta
-  evento:
-    description: Gira la ruleta de eventos MUNDIALES (afecta a todo el servidor).
+    description: Gira la ruleta de eventos (afecta a todo el servidor, se ve en la pantalla de todos).
     usage: "/<command> [girar|estado|detener]"
-    permission: voranixextremo.evento.admin
+    permission: voranixextremo.ruleta.admin
 
 permissions:
   voranixextremo.vidas:
@@ -69,12 +65,6 @@ permissions:
   voranixextremo.chef.admin:
     description: Permite aparecer o eliminar aldeanos chef.
     default: op
-  voranixextremo.ruleta:
-    description: Permite girar la ruleta de sucesos para uno mismo.
-    default: true
   voranixextremo.ruleta.admin:
-    description: Permite girar la ruleta para otros, sortear al azar, resolver tareas e ignorar el cooldown.
-    default: op
-  voranixextremo.evento.admin:
-    description: Permite girar, consultar o detener la ruleta de eventos mundiales.
+    description: Permite girar, consultar o detener la ruleta de eventos.
     default: op

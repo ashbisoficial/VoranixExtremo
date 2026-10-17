@@ -20,8 +20,6 @@ import com.voranixextremo.plugin.lives.PlayerJoinListener;
 import com.voranixextremo.plugin.pvp.PvpCommand;
 import com.voranixextremo.plugin.pvp.PvpListener;
 import com.voranixextremo.plugin.pvp.PvpManager;
-import com.voranixextremo.plugin.roulette.RouletteCommand;
-import com.voranixextremo.plugin.roulette.RouletteManager;
 import com.voranixextremo.plugin.shops.ChefCommand;
 import com.voranixextremo.plugin.shops.ChefVillagerManager;
 import com.voranixextremo.plugin.shops.ShopManager;
@@ -53,7 +51,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         FoodManager foodManager = new FoodManager(this);
         ShopManager shopManager = new ShopManager(this);
         ChefVillagerManager chefVillagerManager = new ChefVillagerManager(this, economyManager, coinItemFactory, foodManager);
-        RouletteManager rouletteManager = new RouletteManager(this, economyManager, livesManager);
         WorldEventManager worldEventManager = new WorldEventManager(this, pvpManager);
 
         getServer().getPluginManager().registerEvents(
@@ -88,11 +85,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getCommand("chef").setExecutor(chefCommand);
         getCommand("chef").setTabCompleter(chefCommand);
 
-        RouletteCommand rouletteCommand = new RouletteCommand(this, rouletteManager);
-        getCommand("ruleta").setExecutor(rouletteCommand);
-        getCommand("ruleta").setTabCompleter(rouletteCommand);
-
-        getCommand("evento").setExecutor(new WorldEventCommand(this, worldEventManager));
+        getCommand("ruleta").setExecutor(new WorldEventCommand(this, worldEventManager));
 
         registerVaultIfPresent();
 

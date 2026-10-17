@@ -7,7 +7,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
 /**
- * /evento [girar|estado|detener] — pensado para que lo use producción/staff en un
+ * /ruleta [girar|estado|detener] — pensado para que lo use producción/staff en un
  * momento del stream, no algo que cualquier jugador pueda disparar.
  */
 public class WorldEventCommand implements CommandExecutor {
@@ -22,7 +22,7 @@ public class WorldEventCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("voranixextremo.evento.admin")) {
+        if (!sender.hasPermission("voranixextremo.ruleta.admin")) {
             Messages.send(sender, plugin, "no-permission");
             return true;
         }
@@ -57,7 +57,7 @@ public class WorldEventCommand implements CommandExecutor {
             return true;
         }
 
-        sender.sendMessage("Uso: /evento [girar|estado|detener]");
+        sender.sendMessage("Uso: /ruleta [girar|estado|detener]");
         return true;
     }
 }
