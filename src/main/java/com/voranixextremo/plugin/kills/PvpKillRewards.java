@@ -10,6 +10,7 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Skull;
+import org.bukkit.entity.EnderCrystal;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
@@ -75,6 +76,21 @@ public class PvpKillRewards {
         Location headCenter = headBlock.getLocation().add(0.5, 0.3, 0.5);
         world.playSound(headCenter, resolveTrophySound(), 1.0F, 1.0F);
         playTrophyRevealAnimation(world, headCenter);
+        spawnTrophyCrystal(world, headCenter);
+    }
+
+    /** Cristal del fin flotando sobre la cabeza: da el brillo/haz de luz giratorio "gratis"
+     * (es render nativo del juego, no cuesta nada de plugin) sin necesitar un modelo 3D
+     * custom — alcanza con retexturizarlo en el resource pack (ver README). Invulnerable
+     * para que no explote si alguien lo golpea. */
+    private void spawnTrophyCrystal(World world, Location headCenter) {
+        if (!plugin.getConfig().getBoolean("pvp-kill-rewards.trophy-crystal", true)) {
+            return;
+        }
+        EnderCrystal crystal = world.spawn(headCenter.clone().add(0, 0.9, 0), EnderCrystal.class);
+        crystal.setShowingBottom(false);
+        crystal.setInvulnerable(true);
+        crystal.setPersistent(true);
     }
 
     private Material resolveWallMaterial() {

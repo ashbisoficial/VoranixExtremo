@@ -325,6 +325,12 @@ pvp-kill-rewards:
   # en una serie larga).
   trophy-sound: ENTITY_WITHER_AMBIENT
   trophy-particle-duration-ticks: 60
+  # Suma un Cristal del Fin flotando sobre la cabeza, permanente (da el brillo/haz de luz
+  # giratorio nativo del juego, gratis, sin plugin haciendo nada tick a tick). Es
+  # invulnerable para que no explote si lo golpean. Por defecto se ve igual que un cristal
+  # del fin normal (blanco/verde); para el look rojo/oscuro de la referencia hay que poner
+  # una textura propia en el resource pack — ver README.
+  trophy-crystal: true
   coin-reward:
     enabled: true
     # Valor total (en la unidad de la economía) que recibe el asesino, directo en el
