@@ -10,6 +10,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
@@ -23,7 +25,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 
 /**
- * Eventos GLOBALES: afectan a todo el servidor, no a un jugador. /evento gira y la
+ * Eventos GLOBALES: afectan a todo el servidor, no a un jugador. /ruleta gira y la
  * animación (y el resultado) se muestra a TODOS los jugadores conectados a la vez.
  */
 public class WorldEventManager {
@@ -120,31 +122,65 @@ public class WorldEventManager {
         return outcomes.values().iterator().next();
     }
 
+    /**
+     * Ritmo de los "tics" de la ruleta en ticks de Minecraft (20/seg) entre cada cambio
+     * de nombre mostrado: arranca rápido y se va frenando, como una ruleta de verdad
+     * perdiendo impulso, hasta la pausa final antes de revelar el resultado.
+     */
+    private static final int[] SPIN_INTERVALS_TICKS = {
+            2, 2, 2, 2, 3, 3, 3, 4, 4, 5, 6, 7, 8, 10, 12, 14, 18
+    };
+
     private void runSpinAnimation(WorldEventOutcome result) {
         List<WorldEventOutcome> all = new ArrayList<>(outcomes.values());
-        int steps = plugin.getConfig().getInt("world-events.spin-steps", 16);
+        int totalTicks = 0;
+        for (int interval : SPIN_INTERVALS_TICKS) {
+            totalTicks += interval;
+        }
 
-        BukkitTask[] holder = new BukkitTask[1];
-        int[] step = {0};
-        holder[0] = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
-            if (step[0] >= steps) {
-                holder[0].cancel();
-                startEvent(result);
-                return;
-            }
-            WorldEventOutcome flash = all.get(ThreadLocalRandom.current().nextInt(all.size()));
-            showFrameToEveryone(flash);
-            step[0]++;
-        }, 0L, 4L);
+        BossBar bossBar = Bukkit.createBossBar("", EventCategory.NEUTRAL.getBarColor(), BarStyle.SOLID);
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            bossBar.addPlayer(player);
+        }
+        bossBar.setProgress(1.0);
+
+        scheduleSpinStep(all, result, 0, 0, totalTicks, bossBar);
     }
 
-    private void showFrameToEveryone(WorldEventOutcome outcome) {
-        String colored = ChatColor.translateAlternateColorCodes('&', outcome.getDisplayName());
+    private void scheduleSpinStep(List<WorldEventOutcome> all, WorldEventOutcome result, int stepIndex,
+                                   int elapsedTicks, int totalTicks, BossBar bossBar) {
+        if (stepIndex >= SPIN_INTERVALS_TICKS.length) {
+            bossBar.removeAll();
+            showFrameToEveryone(result, true);
+            startEvent(result);
+            return;
+        }
+
+        WorldEventOutcome flash = all.get(ThreadLocalRandom.current().nextInt(all.size()));
+        showFrameToEveryone(flash, false);
+
+        int nextElapsed = elapsedTicks + SPIN_INTERVALS_TICKS[stepIndex];
+        bossBar.setColor(flash.getCategory().getBarColor());
+        bossBar.setTitle(ChatColor.translateAlternateColorCodes('&', flash.getCategory().getChatColorCode() + flash.getDisplayName()));
+        bossBar.setProgress(Math.max(0.0, 1.0 - (double) nextElapsed / totalTicks));
+
+        plugin.getServer().getScheduler().runTaskLater(plugin,
+                () -> scheduleSpinStep(all, result, stepIndex + 1, nextElapsed, totalTicks, bossBar),
+                SPIN_INTERVALS_TICKS[stepIndex]);
+    }
+
+    private void showFrameToEveryone(WorldEventOutcome outcome, boolean isFinal) {
+        String colored = ChatColor.translateAlternateColorCodes('&', outcome.getCategory().getChatColorCode() + outcome.getDisplayName());
         Component component = LegacyComponentSerializer.legacySection().deserialize(colored);
-        Title title = Title.title(component, Component.empty(), Title.Times.times(Duration.ZERO, Duration.ofMillis(250), Duration.ZERO));
+        Title.Times times = isFinal
+                ? Title.Times.times(Duration.ZERO, Duration.ofMillis(1600), Duration.ofMillis(500))
+                : Title.Times.times(Duration.ZERO, Duration.ofMillis(300), Duration.ZERO);
+        Title title = Title.title(component, Component.empty(), times);
+        Sound sound = isFinal ? Sound.ENTITY_PLAYER_LEVELUP : Sound.UI_BUTTON_CLICK;
+
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.showTitle(title);
-            player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0F, 1.0F);
+            player.playSound(player.getLocation(), sound, 1.0F, 1.0F);
         }
     }
 

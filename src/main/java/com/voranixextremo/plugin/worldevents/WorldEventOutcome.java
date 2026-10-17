@@ -15,6 +15,7 @@ public class WorldEventOutcome {
 
     private final String id;
     private final WorldEventType type;
+    private final EventCategory category;
     private final String displayName;
     private final int weight;
     private final int durationSeconds;
@@ -23,10 +24,12 @@ public class WorldEventOutcome {
     private final List<BonusDrop> bonusDrops;
     private final String command;
 
-    private WorldEventOutcome(String id, WorldEventType type, String displayName, int weight, int durationSeconds,
-                               double mobHealthMultiplier, double mobDamageMultiplier, List<BonusDrop> bonusDrops, String command) {
+    private WorldEventOutcome(String id, WorldEventType type, EventCategory category, String displayName, int weight,
+                               int durationSeconds, double mobHealthMultiplier, double mobDamageMultiplier,
+                               List<BonusDrop> bonusDrops, String command) {
         this.id = id;
         this.type = type;
+        this.category = category;
         this.displayName = displayName;
         this.weight = weight;
         this.durationSeconds = durationSeconds;
@@ -46,6 +49,13 @@ public class WorldEventOutcome {
             type = WorldEventType.valueOf(typeName.toUpperCase());
         } catch (IllegalArgumentException ex) {
             throw new IllegalArgumentException("type inválido: " + typeName);
+        }
+
+        EventCategory category;
+        try {
+            category = EventCategory.valueOf(section.getString("category", "NEUTRAL").toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            category = EventCategory.NEUTRAL;
         }
 
         String displayName = section.getString("display-name", id);
@@ -71,7 +81,7 @@ public class WorldEventOutcome {
             bonusDrops.add(new BonusDrop(material, chance, min, Math.max(min, max)));
         }
 
-        return new WorldEventOutcome(id.toLowerCase(), type, displayName, weight, durationSeconds,
+        return new WorldEventOutcome(id.toLowerCase(), type, category, displayName, weight, durationSeconds,
                 healthMultiplier, damageMultiplier, bonusDrops, command);
     }
 
@@ -81,6 +91,10 @@ public class WorldEventOutcome {
 
     public WorldEventType getType() {
         return type;
+    }
+
+    public EventCategory getCategory() {
+        return category;
     }
 
     public String getDisplayName() {

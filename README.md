@@ -125,18 +125,21 @@ Portado del módulo `ottoke` del repo [voranixmod](https://github.com/ashbisofic
 
 ### Ruleta de eventos (`/ruleta`)
 
-Al estilo de las ruletas de Desafío/Extremo, pero **para todo el servidor a la vez**: no es un suceso por jugador, es un evento único que cae al azar (ponderado por `weight`) y cambia las reglas del juego por un tiempo — la animación (títulos + sonido) se ve en la pantalla de todos los conectados en el mismo instante. Pensado para que lo dispare producción/staff en un momento puntual del stream, no algo que cualquier jugador pueda tirar (por eso es 100% admin, sin cooldown — lo manejan ustedes a criterio).
+Al estilo de las ruletas de Desafío/Extremo, pero **para todo el servidor a la vez**: no es un suceso por jugador, es un evento único que cae al azar (ponderado por `weight`) y cambia las reglas del juego por un tiempo — la animación se ve en la pantalla de todos los conectados en el mismo instante. Pensado para que lo dispare producción/staff en un momento puntual del stream, no algo que cualquier jugador pueda tirar (por eso es 100% admin, sin cooldown — lo manejan ustedes a criterio).
+
+**La animación** simula una ruleta de verdad frenando: va mostrando nombres al azar cada vez más espaciados (empieza cambiando varias veces por segundo y se va frenando hasta una pausa final antes de revelar el resultado), con una barra de progreso (boss bar) arriba de la pantalla que se va vaciando en sincro, y un sonido de "clic" en cada cambio y uno distinto al final. Cada suceso tiene una `category` que define su color en el título y en la barra — **rojo (`PELIGRO`)**, **verde (`BUENO`)**, **amarillo (`NEUTRAL`)** — para que de un vistazo se entienda qué tipo de cosa está por tocar.
 
 - `/ruleta` o `/ruleta girar` — gira y aplica un resultado al azar.
 - `/ruleta estado` — qué evento está activo y cuánto le queda.
 - `/ruleta detener` — corta el evento activo antes de tiempo.
 - Permiso: `voranixextremo.ruleta.admin`.
 
-No se puede girar si ya hay un evento activo (hay que esperar a que termine o usar `/ruleta detener`), para no superponer dos a la vez. Los sucesos son 100% configurables en `config.yml` → `world-events.outcomes`, sin tocar código. Vienen 3 de ejemplo:
+No se puede girar si ya hay un evento activo (hay que esperar a que termine o usar `/ruleta detener`), para no superponer dos a la vez. Los sucesos son 100% configurables en `config.yml` → `world-events.outcomes`, sin tocar código. Vienen 4 de ejemplo:
 
-- **`pvp_libre`** (`PVP_WINDOW`) — fuerza el PVP activado por `duration-seconds` (300 por defecto) y lo devuelve a como estaba al terminar (reutiliza el mismo `PvpManager`, con su sonido de activar/desactivar).
-- **`luna_roja`** (`RED_MOON`) — pone de noche y en tormenta en todos los mundos; mientras dura, todo mob que nace sale con la salud y el daño multiplicados (`mob-health-multiplier`, `mob-damage-multiplier`) y al morir tiene una chance extra de soltar ítems de `bonus-drops` (ender pearls, huesos, pólvora, carne podrida — además de su loot normal, no en vez de).
-- **`tormenta`** (`COMMAND`) — ejemplo del escape genérico: ejecuta cualquier comando de consola al empezar (acá, `/weather rain`) — la forma de agregar eventos nuevos sin tocar código.
+- **`pvp_libre`** (`PELIGRO`, `PVP_WINDOW`) — fuerza el PVP activado por `duration-seconds` (300 por defecto) y lo devuelve a como estaba al terminar (reutiliza el mismo `PvpManager`, con su sonido de activar/desactivar).
+- **`luna_roja`** (`PELIGRO`, `RED_MOON`) — pone de noche y en tormenta en todos los mundos; mientras dura, todo mob que nace sale con la salud y el daño multiplicados (`mob-health-multiplier`, `mob-damage-multiplier`) y al morir tiene una chance extra de soltar ítems de `bonus-drops` (ender pearls, huesos, pólvora, carne podrida — además de su loot normal, no en vez de).
+- **`buena_racha`** (`BUENO`, `COMMAND`) — le da Velocidad II a todos los jugadores conectados por 5 minutos (`/effect give @a`).
+- **`tormenta`** (`NEUTRAL`, `COMMAND`) — ejemplo del escape genérico: ejecuta cualquier comando de consola al empezar (acá, `/weather rain`) — la forma de agregar eventos nuevos sin tocar código.
 
 ## Estructura del proyecto
 

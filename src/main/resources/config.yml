@@ -211,21 +211,26 @@ shops:
       - banderilla_premium
 
 world-events:
-  # Eventos GLOBALES: afectan a TODO el servidor, no a un jugador puntual. /evento gira
+  # Eventos GLOBALES: afectan a TODO el servidor, no a un jugador puntual. /ruleta gira
   # y el resultado se ve en la pantalla de todos los conectados al mismo tiempo. Pensado
   # para que lo dispare producción/staff en un momento del stream (por eso es admin-only
   # y no tiene cooldown: lo manejan ustedes a criterio).
-  spin-steps: 16
+  #
+  # Cada suceso tiene una "category" que define su color (en el título y en la barra de
+  # progreso que se ve mientras gira): PELIGRO = rojo, BUENO = verde, NEUTRAL = amarillo.
+  # El "display-name" ya no necesita código de color — lo pone la categoría solo.
   outcomes:
     pvp_libre:
       type: PVP_WINDOW
-      display-name: "&c&l¡PVP LIBRE!"
+      category: PELIGRO
+      display-name: "&l¡PVP LIBRE!"
       weight: 10
       # Fuerza el PVP activado por este tiempo y lo devuelve a como estaba al terminar.
       duration-seconds: 300
     luna_roja:
       type: RED_MOON
-      display-name: "&4&l¡LUNA ROJA!"
+      category: PELIGRO
+      display-name: "&l¡LUNA ROJA!"
       weight: 8
       duration-seconds: 600
       # Multiplicadores sobre la salud/daño de los mobs que nazcan mientras dura.
@@ -249,10 +254,22 @@ world-events:
           chance: 0.5
           min: 1
           max: 2
-    tormenta:
-      # Ejemplo de "command": cualquier comando de consola al empezar el evento.
+    buena_racha:
+      # Ejemplo "BUENO" (verde): le da Velocidad II a todos los jugadores conectados por
+      # 5 minutos. duration-seconds en 0 porque el efecto ya trae su propia duración; acá
+      # no hace falta que el plugin lo revierta él mismo.
       type: COMMAND
-      display-name: "&9&l¡Tormenta!"
+      category: BUENO
+      display-name: "&l¡Buena racha para todos!"
+      weight: 8
+      duration-seconds: 0
+      command: "effect give @a minecraft:speed 300 1"
+    tormenta:
+      # Ejemplo "NEUTRAL" (amarillo) y de "command": cualquier comando de consola al
+      # empezar el evento, ni bueno ni peligroso, solo ambientación.
+      type: COMMAND
+      category: NEUTRAL
+      display-name: "&l¡Tormenta!"
       weight: 6
       duration-seconds: 0
       command: "weather rain"
