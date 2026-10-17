@@ -39,6 +39,10 @@ commands:
     description: Gira la ruleta de sucesos (buenos, malos y tareas).
     usage: "/<command> [girar [jugador]|sortear|completar <jugador>|fallar <jugador>]"
     permission: voranixextremo.ruleta
+  evento:
+    description: Gira la ruleta de eventos MUNDIALES (afecta a todo el servidor).
+    usage: "/<command> [girar|estado|detener]"
+    permission: voranixextremo.evento.admin
 
 permissions:
   voranixextremo.vidas:
@@ -70,4 +74,7 @@ permissions:
     default: true
   voranixextremo.ruleta.admin:
     description: Permite girar la ruleta para otros, sortear al azar, resolver tareas e ignorar el cooldown.
+    default: op
+  voranixextremo.evento.admin:
+    description: Permite girar, consultar o detener la ruleta de eventos mundiales.
     default: op

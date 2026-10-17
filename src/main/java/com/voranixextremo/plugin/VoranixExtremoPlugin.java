@@ -26,6 +26,9 @@ import com.voranixextremo.plugin.shops.ChefCommand;
 import com.voranixextremo.plugin.shops.ChefVillagerManager;
 import com.voranixextremo.plugin.shops.ShopManager;
 import com.voranixextremo.plugin.util.ResourcePackListener;
+import com.voranixextremo.plugin.worldevents.RedMoonListener;
+import com.voranixextremo.plugin.worldevents.WorldEventCommand;
+import com.voranixextremo.plugin.worldevents.WorldEventManager;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -51,6 +54,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         ShopManager shopManager = new ShopManager(this);
         ChefVillagerManager chefVillagerManager = new ChefVillagerManager(this, economyManager, coinItemFactory, foodManager);
         RouletteManager rouletteManager = new RouletteManager(this, economyManager, livesManager);
+        WorldEventManager worldEventManager = new WorldEventManager(this, pvpManager);
 
         getServer().getPluginManager().registerEvents(
                 new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);
@@ -59,6 +63,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);
         getServer().getPluginManager().registerEvents(new ResourcePackListener(this), this);
         getServer().getPluginManager().registerEvents(new FoodConsumeListener(this, foodManager), this);
+        getServer().getPluginManager().registerEvents(new RedMoonListener(worldEventManager), this);
 
         LivesCommand livesCommand = new LivesCommand(this, livesManager);
         getCommand("vidas").setExecutor(livesCommand);
@@ -86,6 +91,8 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         RouletteCommand rouletteCommand = new RouletteCommand(this, rouletteManager);
         getCommand("ruleta").setExecutor(rouletteCommand);
         getCommand("ruleta").setTabCompleter(rouletteCommand);
+
+        getCommand("evento").setExecutor(new WorldEventCommand(this, worldEventManager));
 
         registerVaultIfPresent();
 

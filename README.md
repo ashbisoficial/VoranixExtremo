@@ -144,6 +144,22 @@ Los sucesos son 100% configurables en `config.yml` → `roulette.outcomes`, sin 
 
 Vienen 16 sucesos de ejemplo (vida extra, lluvia de monedas, buffs, un festín gratis vía `/comida dar`, venenos, robos, un rayo de mal karma, y dos tareas con plazo) — se pueden agregar, quitar o ajustar los pesos libremente.
 
+### Ruleta de eventos MUNDIALES (`/evento`)
+
+Distinta de `/ruleta`: esto no es para un jugador, es para **todo el servidor a la vez** — la animación (títulos + sonido) se ve en la pantalla de todos los conectados en el mismo instante, y el resultado es un evento que cambia las reglas del juego por un tiempo. Pensado para que lo dispare producción/staff en un momento puntual del stream, no algo que cualquiera pueda tirar (por eso es 100% admin: `voranixextremo.evento.admin`, sin cooldown — lo manejan ustedes a criterio).
+
+- `/evento` o `/evento girar` — gira y aplica un resultado al azar.
+- `/evento estado` — qué evento está activo y cuánto le queda.
+- `/evento detener` — corta el evento activo antes de tiempo.
+
+Vienen 3 ejemplos en `world-events.outcomes`, con los dos que pediste:
+
+- **`pvp_libre`** (`PVP_WINDOW`) — fuerza el PVP activado por `duration-seconds` (300 por defecto) y lo devuelve a como estaba al terminar (reutiliza el mismo `PvpManager`, con su sonido de activar/desactivar).
+- **`luna_roja`** (`RED_MOON`) — pone de noche y en tormenta en todos los mundos; mientras dura, todo mob que nace sale con la salud y el daño multiplicados (`mob-health-multiplier`, `mob-damage-multiplier`) y al morir tiene una chance extra de soltar ítems de `bonus-drops` (ender pearls, huesos, pólvora, carne podrida — además de su loot normal, no en vez de).
+- **`tormenta`** (`COMMAND`) — ejemplo simple del escape genérico: ejecuta cualquier comando de consola al empezar (acá, `/weather rain`). Igual que en la ruleta personal, es la forma de agregar eventos nuevos sin tocar código.
+
+No se puede girar si ya hay un evento activo (hay que esperar a que termine o usar `/evento detener`), para no superponer dos a la vez.
+
 ## Estructura del proyecto
 
 ```
@@ -156,6 +172,7 @@ src/main/java/com/voranixextremo/plugin/
 ├── food/                       # comidas y bebidas (hambre/saturación/efectos)
 ├── shops/                      # aldeanos chef y su comercio
 ├── roulette/                   # ruleta de sucesos (buenos, malos, tareas)
+├── worldevents/                # ruleta de eventos mundiales (pvp libre, luna roja)
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml

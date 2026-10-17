@@ -210,6 +210,53 @@ shops:
       - banderilla_mozzarella
       - banderilla_premium
 
+world-events:
+  # Eventos GLOBALES: afectan a TODO el servidor, no a un jugador puntual. /evento gira
+  # y el resultado se ve en la pantalla de todos los conectados al mismo tiempo. Pensado
+  # para que lo dispare producción/staff en un momento del stream (por eso es admin-only
+  # y no tiene cooldown: lo manejan ustedes a criterio).
+  spin-steps: 16
+  outcomes:
+    pvp_libre:
+      type: PVP_WINDOW
+      display-name: "&c&l¡PVP LIBRE!"
+      weight: 10
+      # Fuerza el PVP activado por este tiempo y lo devuelve a como estaba al terminar.
+      duration-seconds: 300
+    luna_roja:
+      type: RED_MOON
+      display-name: "&4&l¡LUNA ROJA!"
+      weight: 8
+      duration-seconds: 600
+      # Multiplicadores sobre la salud/daño de los mobs que nazcan mientras dura.
+      mob-health-multiplier: 1.5
+      mob-damage-multiplier: 1.3
+      # Ítems extra (independientes de su loot normal) que pueden soltar al morir.
+      bonus-drops:
+        - material: ENDER_PEARL
+          chance: 0.15
+          min: 1
+          max: 1
+        - material: BONE
+          chance: 0.4
+          min: 1
+          max: 3
+        - material: GUNPOWDER
+          chance: 0.3
+          min: 1
+          max: 2
+        - material: ROTTEN_FLESH
+          chance: 0.5
+          min: 1
+          max: 2
+    tormenta:
+      # Ejemplo de "command": cualquier comando de consola al empezar el evento.
+      type: COMMAND
+      display-name: "&9&l¡Tormenta!"
+      weight: 6
+      duration-seconds: 0
+      command: "weather rain"
+
 roulette:
   # La "ruleta de sucesos" al estilo Desafío/Extremo: /ruleta gira y cae en uno de estos
   # sucesos al azar (ponderado por "weight" — más alto = más probable), con una pequeña
@@ -384,3 +431,6 @@ messages:
   roulette-task-assigned: "&e%player% tiene %segundos% segundos para: &f%tarea%"
   roulette-task-completed: "&a%player% completó su tarea de la ruleta."
   roulette-task-failed: "&c%player% falló su tarea de la ruleta."
+  world-event-spinning: "&6&l¡Se está girando la RULETA DE EVENTOS MUNDIALES!"
+  world-event-started: "&d&l¡Comenzó: %evento%!"
+  world-event-ended: "&7El evento %evento% terminó."
