@@ -4,9 +4,9 @@ Plugin de Minecraft (Paper/Spigot) para una serie estilo **Minecraft Extremo / D
 
 ## Requisitos
 
-- Java 21
+- **Java 25** (Minecraft/Paper lo requieren desde que pasaron a versionar por año, la serie 25.x/26.x)
 - Maven 3.9+
-- Servidor Paper (o Spigot) 1.20.4
+- Servidor Paper (o Spigot) **26.3**
 
 ## Compilar
 
@@ -17,6 +17,8 @@ mvn clean package
 El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plugins/` del servidor.
 
 > **Nota:** este proyecto descarga el API de Paper desde `repo.papermc.io`. Si compilas en un entorno con red restringida (como una sesión en la nube sin ese dominio permitido), añade `repo.papermc.io` a los dominios permitidos del entorno o compílalo en tu máquina local.
+
+> **Sobre la versión:** el plugin apunta a Minecraft/Paper **26.3** (`pom.xml` → `paper.version`, rango `[26.3.build,)` para traer siempre el último build de esa versión). Si en algún momento vuelven a 1.20.4 (o cualquier otra), solo hay que cambiar ese rango y el `maven.compiler.release`; el resto del código no depende de la versión. La API usada (`PotionEffectType`, `Attribute`, etc.) está verificada contra la documentación oficial de Paper para 26.3, pero el build real todavía no se corrió en ningún entorno con Java 25 + red a `repo.papermc.io` a la vez — si el primer `mvn package` tira errores de compilación, son esperables y hay que pegarlos para corregirlos puntualmente.
 
 ## Funcionalidades actuales
 
