@@ -39,6 +39,10 @@ commands:
     description: Gira la ruleta de eventos (afecta a todo el servidor, se ve en la pantalla de todos).
     usage: "/<command> [girar|estado|detener]"
     permission: voranixextremo.ruleta.admin
+  ruletacolor:
+    description: Gira la ruleta de colores en pantalla (con resource pack).
+    usage: "/<command> <girar <color|random> [mensaje]|parar|pack|reload>"
+    permission: voranixextremo.ruletacolor.admin
 
 permissions:
   voranixextremo.vidas:
@@ -67,4 +71,7 @@ permissions:
     default: op
   voranixextremo.ruleta.admin:
     description: Permite girar, consultar o detener la ruleta de eventos.
+    default: op
+  voranixextremo.ruletacolor.admin:
+    description: Permite usar /ruletacolor (ruleta de colores en pantalla).
     default: op

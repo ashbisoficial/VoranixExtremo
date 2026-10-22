@@ -1,0 +1,9 @@
+{
+  "pack": {
+    "description": "§6Ruleta §7- SobrinoDev",
+    "pack_format": 46,
+    "supported_formats": [46, 999],
+    "min_format": 46,
+    "max_format": 999
+  }
+}

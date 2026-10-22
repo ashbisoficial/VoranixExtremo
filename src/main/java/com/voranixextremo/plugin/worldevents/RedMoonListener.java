@@ -34,12 +34,12 @@ public class RedMoonListener implements Listener {
     }
 
     private void buffEntity(LivingEntity entity, WorldEventOutcome redMoon) {
-        AttributeInstance health = entity.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+        AttributeInstance health = entity.getAttribute(Attribute.MAX_HEALTH);
         if (health != null) {
             health.setBaseValue(health.getBaseValue() * redMoon.getMobHealthMultiplier());
             entity.setHealth(Math.min(entity.getHealth() * redMoon.getMobHealthMultiplier(), health.getValue()));
         }
-        AttributeInstance damage = entity.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
+        AttributeInstance damage = entity.getAttribute(Attribute.ATTACK_DAMAGE);
         if (damage != null) {
             damage.setBaseValue(damage.getBaseValue() * redMoon.getMobDamageMultiplier());
         }

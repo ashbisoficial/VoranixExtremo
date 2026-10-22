@@ -20,6 +20,9 @@ import com.voranixextremo.plugin.lives.PlayerJoinListener;
 import com.voranixextremo.plugin.pvp.PvpCommand;
 import com.voranixextremo.plugin.pvp.PvpListener;
 import com.voranixextremo.plugin.pvp.PvpManager;
+import com.voranixextremo.plugin.ruleta.RuletaCommand;
+import com.voranixextremo.plugin.ruleta.RuletaManager;
+import com.voranixextremo.plugin.ruleta.RuletaPackManager;
 import com.voranixextremo.plugin.shops.ChefCommand;
 import com.voranixextremo.plugin.shops.ChefVillagerManager;
 import com.voranixextremo.plugin.shops.ShopManager;
@@ -36,6 +39,8 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     private LivesManager livesManager;
     private PvpManager pvpManager;
     private EconomyManager economyManager;
+    private RuletaManager ruletaManager;
+    private RuletaPackManager ruletaPackManager;
 
     @Override
     public void onEnable() {
@@ -87,6 +92,14 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
 
         getCommand("ruleta").setExecutor(new WorldEventCommand(this, worldEventManager));
 
+        this.ruletaManager = new RuletaManager(this);
+        this.ruletaPackManager = new RuletaPackManager(this, ruletaManager);
+        ruletaPackManager.start();
+        getServer().getPluginManager().registerEvents(ruletaPackManager, this);
+        RuletaCommand ruletaCommand = new RuletaCommand(this, ruletaManager, ruletaPackManager);
+        getCommand("ruletacolor").setExecutor(ruletaCommand);
+        getCommand("ruletacolor").setTabCompleter(ruletaCommand);
+
         registerVaultIfPresent();
 
         getLogger().info("VoranixExtremo habilitado. Vidas máximas: " + livesManager.getMaxLives()
@@ -117,6 +130,12 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         }
         if (economyManager != null) {
             economyManager.save();
+        }
+        if (ruletaManager != null) {
+            ruletaManager.stop(false);
+        }
+        if (ruletaPackManager != null) {
+            ruletaPackManager.stop();
         }
     }
 

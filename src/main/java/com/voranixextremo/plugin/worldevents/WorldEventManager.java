@@ -212,7 +212,7 @@ public class WorldEventManager {
         }
 
         if (isFinal) {
-            world.spawnParticle(Particle.TOTEM, center, 40, 0.5, 0.8, 0.5, 0.3);
+            world.spawnParticle(Particle.TOTEM_OF_UNDYING, center, 40, 0.5, 0.8, 0.5, 0.3);
         }
     }
 

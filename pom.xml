@@ -15,11 +15,10 @@
     <properties>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Minecraft/Paper pasaron a versionar por año desde la 25.x (26.3 salió en
-             septiembre de 2026). El rango "[26.3.build,)" trae siempre el último build
-             publicado de esa versión, tal como recomienda la guía oficial de Paper
-             (docs.papermc.io/paper/dev/project-setup). -->
-        <paper.version>[26.3.build,)</paper.version>
+        <!-- Versión fija: el rango "[26.3.build,)" hacía que Maven eligiera
+             26.3-pre-2.build.0-alpha (una pre-release vieja) y el IDE mostraba
+             errores por clases/métodos que no existen en esa API. -->
+        <paper.version>26.3.build.211-stable</paper.version>
     </properties>
 
     <repositories>
@@ -61,6 +60,13 @@
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
+            </resource>
+            <!-- Texturas de la ruleta de colores: van al jar bajo ruleta-pack/ y el plugin
+                 arma el .zip al arrancar. Sin filtering para no romper los PNG. -->
+            <resource>
+                <directory>resourcepack/Ruleta</directory>
+                <targetPath>ruleta-pack</targetPath>
+                <filtering>false</filtering>
             </resource>
         </resources>
         <plugins>

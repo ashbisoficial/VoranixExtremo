@@ -338,6 +338,71 @@ pvp-kill-rewards:
     # (de mayor a menor). Si el inventario está lleno, el sobrante sí cae a sus pies.
     value: 50
 
+# Ruleta de colores en pantalla (la del plugin Ruleta_Custom). Comando /ruletacolor
+# (permiso voranixextremo.ruletacolor.admin):
+#   /ruletacolor girar <color|random> [mensaje]   -> gira y cae en ese color; el mensaje se manda por broadcast
+#   /ruletacolor parar | /ruletacolor pack | /ruletacolor reload
+# Las texturas están en resourcepack/Ruleta y se mandan como un pack aparte del de las monedas.
+# En los mensajes puedes usar MiniMessage (<red>, <gradient:...>) o códigos & (&c, &l).
+# {color} se reemplaza por el nombre del color que salió.
+ruleta-colores:
+  # Duración del giro (20 ticks = 1 segundo)
+  duracion-ticks: 140
+  # Vueltas completas antes de frenar
+  vueltas: 4
+  # Al terminar, la ruleta se tiñe del color ganador, tiembla y desaparece.
+  # Esto es cuánto rato queda teñida y quieta antes de temblar (0 = como en el diseño original)
+  resultado-segundos: 0.5
+
+  sonidos:
+    tick: "minecraft:block.note_block.hat"   # al pasar de un color a otro ("none" para quitarlo)
+    final: "minecraft:entity.player.levelup"
+
+  # Nombre de cada color de la ruleta (el orden de los colores viene en el resource pack).
+  colores:
+    rojo:
+      nombre: "<#ff2b2b><bold>ROJO"
+    naranjo:
+      nombre: "<#ff8a1c><bold>NARANJO"
+    amarillo:
+      nombre: "<#ffe12b><bold>AMARILLO"
+    verde:
+      nombre: "<#2bd94a><bold>VERDE"
+    cian:
+      nombre: "<#2be4ff><bold>CIAN"
+    azul:
+      nombre: "<#2b8cff><bold>AZUL"
+    morado:
+      nombre: "<#6a3bff><bold>MORADO"
+    rosa:
+      nombre: "<#e02bff><bold>ROSA"
+      # mensaje: "<light_purple>¡Salió el rosa! Mensaje propio de este color"
+
+  mensajes:
+    prefijo: "<dark_gray>[<gold>Ruleta<dark_gray>] <gray>"
+    prefijo-broadcast: "<dark_gray>[<gold>Ruleta<dark_gray>] "
+    # Se usa cuando no escribes mensaje en el comando ni el color tiene uno propio
+    broadcast: "<yellow>¡La ruleta cayó en {color}<yellow>!"
+    uso: "Uso: <yellow>/ruletacolor girar <color|random> [mensaje]"
+    ya-girando: "<red>La ruleta ya está girando."
+    no-girando: "<red>La ruleta no está girando."
+    parada: "Ruleta detenida."
+    color-invalido: "<red>El color <white>{color}</white> no existe."
+    pack-enviado: "Resource pack de la ruleta enviado a todos."
+    recargado: "<green>Configuración recargada."
+
+  resource-pack:
+    enviar-al-entrar: true
+    obligatorio: false
+    mensaje: "<gold>Este pack es necesario para ver la ruleta."
+    # Servidor HTTP propio del plugin (abre este puerto en el firewall del VPS)
+    servidor-interno: true
+    puerto: 8165
+    # IP o dominio con el que los jugadores llegan a tu servidor, ej: voranixstudio.tech
+    ip-publica: "127.0.0.1"
+    # Si prefieres subir plugins/VoranixExtremo/ruleta-pack.zip a otro lado, pon aquí el link directo
+    url-externa: ""
+
 messages:
   prefix: "&8[&cVoranix&6Extremo&8] &r"
   life-lost: "&c%player% &7perdió una vida. Le quedan &c%vidas% &7vida(s)."
