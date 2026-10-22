@@ -15,9 +15,6 @@
     <properties>
         <maven.compiler.release>25</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <!-- Versión fija: el rango "[26.3.build,)" hacía que Maven eligiera
-             26.3-pre-2.build.0-alpha (una pre-release vieja) y el IDE mostraba
-             errores por clases/métodos que no existen en esa API. -->
         <paper.version>26.3.build.211-stable</paper.version>
     </properties>
 
