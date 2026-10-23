@@ -359,24 +359,45 @@ ruleta-colores:
     final: "minecraft:entity.player.levelup"
 
   # Nombre de cada color de la ruleta (el orden de los colores viene en el resource pack).
+  # "comandos" (opcional, lista): se ejecutan por CONSOLA -con permisos completos, igual que /ruleta-
+  # en el instante en que la ruleta cae en ese color (antes de que tiemble y desaparezca). Podés poner
+  # cualquier comando de servidor (effect, weather, summon, give, etc.), uno por línea.
   colores:
     rojo:
       nombre: "<#ff2b2b><bold>ROJO"
+      comandos:
+        - "effect give @a minecraft:hunger 300 1"
+        - "effect give @a minecraft:darkness 100 0"
     naranjo:
       nombre: "<#ff8a1c><bold>NARANJO"
+      comandos:
+        - "weather thunder"
     amarillo:
       nombre: "<#ffe12b><bold>AMARILLO"
+      comandos:
+        - "effect give @a minecraft:nausea 100 0"
     verde:
       nombre: "<#2bd94a><bold>VERDE"
+      comandos:
+        - "effect give @a minecraft:regeneration 200 1"
     cian:
       nombre: "<#2be4ff><bold>CIAN"
+      comandos:
+        - "effect give @a minecraft:night_vision 600 0"
     azul:
       nombre: "<#2b8cff><bold>AZUL"
+      comandos:
+        - "weather clear"
+        - "effect give @a minecraft:resistance 200 0"
     morado:
       nombre: "<#6a3bff><bold>MORADO"
+      comandos:
+        - "effect give @a minecraft:levitation 100 0"
     rosa:
       nombre: "<#e02bff><bold>ROSA"
       # mensaje: "<light_purple>¡Salió el rosa! Mensaje propio de este color"
+      comandos:
+        - "effect give @a minecraft:luck 600 1"
 
   mensajes:
     prefijo: "<dark_gray>[<gold>Ruleta<dark_gray>] <gray>"

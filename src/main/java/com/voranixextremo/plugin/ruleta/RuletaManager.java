@@ -51,7 +51,7 @@ public final class RuletaManager {
                           int tinte, int tinteNiveles, int entrada, int entradaFrames, int salida, int salidaFrames,
                           int mover, int juntar, int atras, List<String> segmentos) {}
 
-    private record RuletaColor(String id, String nombre, String mensaje) {}
+    private record RuletaColor(String id, String nombre, String mensaje, List<String> comandos) {}
 
     private final VoranixExtremoPlugin plugin;
     private final Layout layout;
@@ -93,7 +93,8 @@ public final class RuletaManager {
         ConfigurationSection sec = c.getConfigurationSection("colores");
         if (sec != null) {
             for (String id : sec.getKeys(false)) {
-                colores.add(new RuletaColor(id.toLowerCase(), sec.getString(id + ".nombre", id), sec.getString(id + ".mensaje", null)));
+                colores.add(new RuletaColor(id.toLowerCase(), sec.getString(id + ".nombre", id),
+                        sec.getString(id + ".mensaje", null), sec.getStringList(id + ".comandos")));
             }
         }
         segmentos.clear();
@@ -102,7 +103,7 @@ public final class RuletaManager {
             int i = ids.indexOf(s);
             if (i < 0) {
                 // el pack trae un color que la config no tiene: se agrega con su nombre tal cual
-                colores.add(new RuletaColor(s, s.toUpperCase(), null));
+                colores.add(new RuletaColor(s, s.toUpperCase(), null, List.of()));
                 i = colores.size() - 1;
             }
             segmentos.add(i);
@@ -281,6 +282,20 @@ public final class RuletaManager {
         Component broadcast = parse(texto).replaceText(r("{color}", nombre));
         Component prefix = parse(config().getString("mensajes.prefijo-broadcast", ""));
         Bukkit.broadcast(prefix.append(broadcast));
+        ejecutarComandos(color);
+    }
+
+    /** Corre, por consola (permisos completos), los comandos configurados para el color que salió. */
+    private void ejecutarComandos(RuletaColor color) {
+        for (String comando : color.comandos()) {
+            if (comando == null || comando.isBlank()) continue;
+            String cmd = comando.startsWith("/") ? comando.substring(1) : comando;
+            try {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+            } catch (Exception e) {
+                plugin.getLogger().warning("Ruleta color '" + color.id() + "': falló el comando '" + cmd + "': " + e.getMessage());
+            }
+        }
     }
 
     /** Detiene el giro. Devuelve true si estaba girando. */

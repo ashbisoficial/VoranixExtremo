@@ -144,6 +144,31 @@ No se puede girar si ya hay un evento activo (hay que esperar a que termine o us
 - **`buena_racha`** (`BUENO`, `COMMAND`) — le da Velocidad II a todos los jugadores conectados por 5 minutos (`/effect give @a`).
 - **`tormenta`** (`NEUTRAL`, `COMMAND`) — ejemplo del escape genérico: ejecuta cualquier comando de consola al empezar (acá, `/weather rain`) — la forma de agregar eventos nuevos sin tocar código.
 - **`momento_revill`** (`PELIGRO`, `REVILL`) — inspirado en el "Momento Revill" de DEDsafio: tormenta + lluvia de meteoritos (`meteor-interval-ticks`, `meteor-yield`, `meteor-break-blocks`) + un objetivo (`objective-description`) con cuenta regresiva en una boss bar propia. Cuando se acaba el tiempo (`duration-seconds`), se evalúa a cada jugador conectado según `objective-type` (`Y_ABOVE`/`Y_BELOW` contra `objective-y`, ej. "bajá a Y=40"): quien no lo cumple queda **eliminado directo** (no pierde 1 vida, va a 0), el resto sobrevive. Ajustá `objective-y` a algo real de tu mapa antes de usarlo en serio.
+
+### Ruleta de colores animada (`/ruletacolor`)
+
+La ruleta "de verdad" al estilo DEDsafio/Ruleta del Fénix: un disco de colores que **gira con desenfoque, acelera, frena, se tiñe del color ganador, tiembla y desaparece** — todo dibujado con una fuente custom (`resourcepack/Ruleta`) superpuesta en el título, así que no hace falta ningún mod ni ventana externa: **se ve igual, al mismo tiempo, en la pantalla de todos los jugadores conectados**, igual que `/ruleta`. El pack se manda solo (por un mini servidor HTTP interno del plugin) y no reemplaza el pack de monedas/comida, se suma encima.
+
+- `/ruletacolor girar <color|random> [mensaje]` — gira y cae en ese color (o al azar), con un mensaje de resultado opcional.
+- `/ruletacolor parar` — corta el giro en seco.
+- `/ruletacolor pack` — reenvía el resource pack de la ruleta a todos (por si alguien lo rechazó).
+- `/ruletacolor reload` — recarga `config.yml` sin reiniciar el servidor.
+- Permiso: `voranixextremo.ruletacolor.admin`.
+
+**Cada color puede disparar comandos de consola.** En `config.yml` → `ruleta-colores.colores.<color>.comandos` (lista) se ponen los comandos que se ejecutan **por consola, con permisos completos** (exactamente igual a como `/ruleta` ejecuta su `command`), en el instante en que el disco se frena en ese color — antes de que tiemble y desaparezca. Esto es lo que te permite trigguear cualquier evento (efectos, clima, mobs, lo que sea) directamente desde la ruleta visual, sin depender de nada externo:
+
+```yaml
+rojo:
+  nombre: "<#ff2b2b><bold>ROJO"
+  comandos:
+    - "effect give @a minecraft:hunger 300 1"
+    - "effect give @a minecraft:darkness 100 0"
+```
+
+Vienen 8 colores de ejemplo (rojo/naranjo/amarillo/verde/cian/azul/morado/rosa, como el wheel de 8 casillas de DEDsafio 4) cada uno con 1-2 comandos vanilla de muestra — cambialos a gusto, no tocan código.
+
+> **Sobre la idea de "Ruleta del Fénix" (web + RCON):** ese proyecto es una página HTML/WebGL que se abre en el navegador (pensada como overlay de stream) y habla con el servidor por un puente Node.js que usa RCON. Funciona, pero agrega una pieza externa que hay que tener corriendo aparte (el puente), un puerto RCON abierto y una contraseña que proteger. Como la idea de fondo — una ruleta vistosa que al caer dispara comandos — **ya está resuelta dentro del plugin** con `/ruletacolor` (misma animación "de ruleta de verdad", comandos por color, visible a todos a la vez, sin servidor aparte ni RCON), no se portó esa arquitectura: sería redundante y menos seguro que lo que ya tenés corriendo en el propio Paper.
+
 ## Estructura del proyecto
 
 ```
@@ -156,6 +181,7 @@ src/main/java/com/voranixextremo/plugin/
 ├── food/                       # comidas y bebidas (hambre/saturación/efectos)
 ├── shops/                      # aldeanos chef y su comercio
 ├── worldevents/                # ruleta de eventos (afecta a todo el server: pvp libre, luna roja)
+├── ruleta/                     # ruleta de colores animada (fuente custom + comandos por color)
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml
