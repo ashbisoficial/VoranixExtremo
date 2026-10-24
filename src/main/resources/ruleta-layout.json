@@ -1,6 +1,6 @@
 {
-  "disco": 57344, "discoFrames": 64,
-  "borroso": 57760, "borrosoFrames": 64,
+  "disco": 57344, "discoFrames": 56,
+  "borroso": 57760, "borrosoFrames": 56,
   "fijo": 57728,
   "fuego": 57600, "fuegoFrames": 30, "fuegoTicks": 2,
   "flecha": 57732, "flechaFrames": 4,
@@ -8,5 +8,5 @@
   "entrada": 58016, "entradaFrames": 24,
   "salida": 58048, "salidaFrames": 15,
   "mover": 57840, "juntar": 57854, "atras": 57855,
-  "segmentos": ["rojo", "rosa", "morado", "azul", "cian", "verde", "amarillo", "naranjo"]
+  "segmentos": ["rojo", "rosa", "morado", "azul", "verde", "amarillo", "naranjo"]
 }
