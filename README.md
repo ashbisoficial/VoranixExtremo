@@ -165,7 +165,7 @@ rojo:
     - "effect give @a minecraft:darkness 100 0"
 ```
 
-Vienen los 7 colores de la Ruleta del Fénix original (rojo/naranjo/amarillo/verde/azul/morado/rosa — sin cian: quedaba demasiado parecido al azul y al morado en este disco), cada uno con 2-3 comandos vanilla ya pensados como un mini evento temático (rojo/naranjo/morado = peligro, amarillo = neutral/cómico, verde/azul/rosa = bueno) — cambialos a gusto, no tocan código.
+Vienen 8 colores (rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa), cada uno con 2-3 comandos vanilla ya pensados como un mini evento temático (rojo/naranjo/morado = peligro, amarillo = neutral/cómico, verde/celeste/azul/rosa = bueno) — cambialos a gusto, no tocan código.
 
 > **Sobre la idea de "Ruleta del Fénix" (web + RCON):** ese proyecto es una página HTML/WebGL que se abre en el navegador (pensada como overlay de stream) y habla con el servidor por un puente Node.js que usa RCON. Funciona, pero agrega una pieza externa que hay que tener corriendo aparte (el puente), un puerto RCON abierto y una contraseña que proteger. Como la idea de fondo — una ruleta vistosa que al caer dispara comandos — **ya está resuelta dentro del plugin** con `/ruletacolor` (misma animación "de ruleta de verdad", comandos por color, visible a todos a la vez, sin servidor aparte ni RCON), no se portó esa arquitectura: sería redundante y menos seguro que lo que ya tenés corriendo en el propio Paper.
 

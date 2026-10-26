@@ -358,8 +358,8 @@ ruleta-colores:
     tick: "minecraft:block.note_block.hat"   # al pasar de un color a otro ("none" para quitarlo)
     final: "minecraft:entity.player.levelup"
 
-  # Nombre de cada color de la ruleta (el orden de los colores viene en el resource pack: 7 colores,
-  # como la Ruleta del Fénix original - rojo/naranjo/amarillo/verde/azul/morado/rosa, sin cian).
+  # Nombre de cada color de la ruleta (el orden de los colores viene en el resource pack: 8 colores -
+  # rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa).
   # "comandos" (opcional, lista): se ejecutan por CONSOLA -con permisos completos, igual que /ruleta-
   # en el instante en que la ruleta cae en ese color (antes de que tiemble y desaparezca). Podés poner
   # cualquier comando de servidor (effect, weather, summon, give, etc.), uno por línea. El evento de
@@ -394,6 +394,13 @@ ruleta-colores:
       comandos:
         - "effect give @a minecraft:regeneration 300 1"
         - "effect give @a minecraft:saturation 5 0"
+    # BUENO (acuático): respirar bajo el agua y nadar como un delfín un rato.
+    celeste:
+      nombre: "<#2be4ff><bold>CELESTE"
+      mensaje: "<aqua>¡CELESTE! El agua nos protege."
+      comandos:
+        - "effect give @a minecraft:water_breathing 600 0"
+        - "effect give @a minecraft:dolphins_grace 600 0"
     # BUENO (calma): despeja el cielo y da resistencia + visión nocturna.
     azul:
       nombre: "<#2b8cff><bold>AZUL"

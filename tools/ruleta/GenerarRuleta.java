@@ -20,7 +20,7 @@ import java.util.stream.IntStream;
 //   mascara_fija.png  blanco = lo que nunca se deforma (disco, aro y flechas)
 //
 // La ruleta se arma con varias "letras" encimadas en el title:
-//   disco_XX     los colores, girados (4 piezas por fotograma)
+//   disco_XX     los 8 colores, girados (4 piezas por fotograma)
 //   borroso_XX   el disco con desenfoque de movimiento, para cuando gira rápido (1 pieza a media resolución)
 //   fijo         aro y fénix
 //   fuego_XX     llamas, alas, estrellas, brasas y el brillo del fénix, en loop
@@ -47,12 +47,11 @@ public class GenerarRuleta {
     static final double[][] ESTRELLAS = {{101, 341, 34}, {1134, 216, 40}, {103, 817, 34}, {1131, 941, 42}, {281, 1102, 26}};
     static final double FENIX_R = 112;
 
-    // --- la ruleta: 7 colores, uno de cada uno, en sentido horario desde arriba ---
-    // (como la Ruleta del Fénix original: sin cian, que quedaba pegado al azul y al morado)
+    // --- la ruleta: 8 colores, uno de cada uno, en sentido horario desde arriba ---
     // {id, segmento del dibujo del que se copia, giro de tono en grados}
     static final Object[][] COLORES = {
             {"rojo", 9, 0.0}, {"naranjo", 8, 0.0}, {"amarillo", 0, 0.0}, {"verde", 1, 0.0},
-            {"azul", 5, 0.0}, {"morado", 3, 0.0}, {"rosa", 4, 0.0},
+            {"celeste", 2, -22.0}, {"azul", 5, 0.0}, {"morado", 3, 0.0}, {"rosa", 4, 0.0},
     };
 
     // --- salida ---
