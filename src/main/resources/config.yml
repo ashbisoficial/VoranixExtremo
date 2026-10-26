@@ -453,6 +453,7 @@ messages:
   vidas-check: "&7Tienes &c%vidas% &7vida(s) restantes."
   vidas-check-other: "&c%player% &7tiene &c%vidas% &7vida(s) restantes."
   no-permission: "&cNo tienes permiso para usar este comando."
+  reloaded: "&aConfiguración de VoranixExtremo recargada."
   only-players: "&cEste comando solo puede ser usado por jugadores."
   player-not-found: "&cJugador no encontrado."
   pvp-enabled: "&a¡El PVP ha sido ACTIVADO!"

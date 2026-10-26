@@ -34,6 +34,13 @@ public class FoodManager {
         this.plugin = plugin;
         this.foodKey = new NamespacedKey(plugin, "food_id");
         this.drinkKey = new NamespacedKey(plugin, "drink_id");
+        reload();
+    }
+
+    /** Vuelve a leer food.items y food.drinks del config.yml. */
+    public void reload() {
+        foodTypes.clear();
+        drinkTypes.clear();
         loadFoodTypes();
         loadDrinkTypes();
     }

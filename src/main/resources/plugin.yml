@@ -40,3 +40,6 @@ permissions:
   voranixextremo.ruletacolor.admin:
     description: Permite usar /ruletacolor (ruleta de colores en pantalla).
     default: op
+  voranixextremo.admin:
+    description: Permite usar /voranixextremo reload (recargar la configuración).
+    default: op

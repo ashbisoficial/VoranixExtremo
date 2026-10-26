@@ -51,6 +51,12 @@ public class WorldEventManager {
         load();
     }
 
+    /** Vuelve a leer world-events.outcomes. Si hay un evento activo, sigue hasta terminar como estaba. */
+    public void reload() {
+        outcomes.clear();
+        load();
+    }
+
     private void load() {
         ConfigurationSection section = plugin.getConfig().getConfigurationSection("world-events.outcomes");
         if (section == null) {

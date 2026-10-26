@@ -19,17 +19,22 @@ public class LivesManager {
     private final File dataFile;
     private final YamlConfiguration dataConfig;
     private final Map<UUID, Integer> lives = new HashMap<>();
-    private final int maxLives;
-    private final GameMode eliminationGameMode;
+    private int maxLives;
+    private GameMode eliminationGameMode;
 
     public LivesManager(VoranixExtremoPlugin plugin) {
         this.plugin = plugin;
-        this.maxLives = Math.max(1, plugin.getConfig().getInt("lives.max", 5));
-        this.eliminationGameMode = parseGameMode(plugin.getConfig().getString("lives.elimination-gamemode", "SPECTATOR"));
+        reloadSettings();
 
         this.dataFile = new File(plugin.getDataFolder(), "lives.yml");
         this.dataConfig = YamlConfiguration.loadConfiguration(dataFile);
         load();
+    }
+
+    /** Vuelve a leer lives.max y lives.elimination-gamemode (las vidas guardadas no se tocan). */
+    public void reloadSettings() {
+        this.maxLives = Math.max(1, plugin.getConfig().getInt("lives.max", 5));
+        this.eliminationGameMode = parseGameMode(plugin.getConfig().getString("lives.elimination-gamemode", "SPECTATOR"));
     }
 
     private static GameMode parseGameMode(String name) {

@@ -34,6 +34,7 @@ import com.voranixextremo.plugin.shops.ShopManager;
 import com.voranixextremo.plugin.totem.TotemPop;
 import com.voranixextremo.plugin.util.Messages;
 import com.voranixextremo.plugin.util.ResourcePackListener;
+import com.voranixextremo.plugin.voranixextremo.VoranixExtremoCommand;
 import com.voranixextremo.plugin.worldevents.RedMoonListener;
 import com.voranixextremo.plugin.worldevents.WorldEventCommand;
 import com.voranixextremo.plugin.worldevents.WorldEventManager;
@@ -52,6 +53,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     private EconomyManager economyManager;
     private RuletaManager ruletaManager;
     private RuletaPackManager ruletaPackManager;
+    private FoodManager foodManager;
+    private ShopManager shopManager;
+    private WorldEventManager worldEventManager;
     private BukkitCommandManager commandManager;
 
     @Override
@@ -65,10 +69,10 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         CoinItemFactory coinItemFactory = new CoinItemFactory(this);
         BankService bankService = new BankService(economyManager, coinItemFactory);
         PvpKillRewards pvpKillRewards = new PvpKillRewards(this, bankService);
-        FoodManager foodManager = new FoodManager(this);
-        ShopManager shopManager = new ShopManager(this);
+        this.foodManager = new FoodManager(this);
+        this.shopManager = new ShopManager(this);
         ChefVillagerManager chefVillagerManager = new ChefVillagerManager(this, economyManager, coinItemFactory, foodManager);
-        WorldEventManager worldEventManager = new WorldEventManager(this, pvpManager, livesManager);
+        this.worldEventManager = new WorldEventManager(this, pvpManager, livesManager);
 
         getServer().getPluginManager().registerEvents(
                 new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);
@@ -110,6 +114,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         commandManager.registerCommand(new ChefCommand(this, shopManager, chefVillagerManager));
         commandManager.registerCommand(new WorldEventCommand(this, worldEventManager));
         commandManager.registerCommand(new RuletaCommand(this, ruletaManager, ruletaPackManager));
+        commandManager.registerCommand(new VoranixExtremoCommand(this));
 
         registerVaultIfPresent();
 
@@ -133,6 +138,24 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         commandManager.getLocales().addMessage(es, MinecraftMessageKeys.NO_PLAYER_FOUND, noEncontrado);
         commandManager.getLocales().addMessage(es, MinecraftMessageKeys.NO_PLAYER_FOUND_OFFLINE, noEncontrado);
         commandManager.getLocales().addMessage(es, MinecraftMessageKeys.NO_PLAYER_FOUND_SERVER, noEncontrado);
+    }
+
+    /**
+     * /voranixextremo reload: vuelve a leer config.yml y se lo pasa a todo lo que lo guarda al arrancar.
+     * Lo demás (mensajes, efectos de muerte, recompensas PVP, tótem) ya lee la config en el momento.
+     * Las vidas y los balances de los jugadores son datos guardados aparte: no se tocan.
+     */
+    public void recargar() {
+        reloadConfig();
+        livesManager.reloadSettings();
+        economyManager.reloadSettings();
+        foodManager.reload();
+        shopManager.reload();
+        worldEventManager.reload();
+        ruletaManager.load();
+        ruletaPackManager.stop();
+        ruletaPackManager.start();
+        configurarMensajesComandos();
     }
 
     private void registerVaultIfPresent() {
