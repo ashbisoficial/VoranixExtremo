@@ -1,18 +1,23 @@
 package com.voranixextremo.plugin.economy;
 
+import co.aikar.commands.BaseCommand;
+import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandCompletion;
+import co.aikar.commands.annotation.CommandPermission;
+import co.aikar.commands.annotation.Default;
+import co.aikar.commands.annotation.Description;
+import co.aikar.commands.annotation.Subcommand;
+import co.aikar.commands.annotation.Syntax;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
-import com.voranixextremo.plugin.util.Messages;
-import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-/**
- * /dinero [pagar|dar|quitar|set] — balance (banco) de cada jugador.
- */
-public class EconomyCommand implements CommandExecutor {
+/** /dinero | /dinero pagar <jugador> <cantidad> | /dinero dar|quitar|set <jugador> <cantidad> */
+@CommandAlias("dinero")
+@CommandPermission("voranixextremo.economia")
+@Description("Consulta o administra el balance (banco) de los jugadores.")
+public class EconomyCommand extends BaseCommand {
 
     private final VoranixExtremoPlugin plugin;
     private final EconomyManager economyManager;
@@ -22,93 +27,70 @@ public class EconomyCommand implements CommandExecutor {
         this.economyManager = economyManager;
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length == 0) {
-            if (!(sender instanceof Player player)) {
-                Messages.send(sender, plugin, "only-players");
-                return true;
-            }
-            sender.sendMessage("Tu balance: " + format(economyManager.getBalance(player)));
-            return true;
-        }
+    @Default
+    public void onBalance(Player player) {
+        player.sendMessage("Tu balance: " + format(economyManager.getBalance(player)));
+    }
 
-        String sub = args[0].toLowerCase();
-        switch (sub) {
-            case "pagar" -> handlePay(sender, args);
-            case "dar", "quitar", "set" -> handleAdmin(sender, sub, args);
-            default -> sender.sendMessage("Uso: /dinero [pagar <jugador> <cantidad>]");
+    @Subcommand("pagar")
+    @CommandCompletion("@players @nothing")
+    @Syntax("<jugador> <cantidad>")
+    public void onPay(Player payer, OfflinePlayer target, double cantidad) {
+        if (cantidad <= 0) {
+            payer.sendMessage("La cantidad debe ser mayor que 0.");
+            return;
+        }
+        if (!economyManager.withdraw(payer, cantidad)) {
+            payer.sendMessage("No tenés suficiente dinero.");
+            return;
+        }
+        economyManager.deposit(target, cantidad);
+        payer.sendMessage("Le pagaste " + format(cantidad) + " a " + target.getName() + ".");
+    }
+
+    @Subcommand("dar")
+    @CommandPermission("voranixextremo.dinero.admin")
+    @CommandCompletion("@players @nothing")
+    @Syntax("<jugador> <cantidad>")
+    public void onGive(CommandSender sender, OfflinePlayer target, double cantidad) {
+        if (cantidadValida(sender, cantidad)) {
+            economyManager.deposit(target, cantidad);
+            mostrarBalance(sender, target);
+        }
+    }
+
+    @Subcommand("quitar")
+    @CommandPermission("voranixextremo.dinero.admin")
+    @CommandCompletion("@players @nothing")
+    @Syntax("<jugador> <cantidad>")
+    public void onTake(CommandSender sender, OfflinePlayer target, double cantidad) {
+        if (cantidadValida(sender, cantidad)) {
+            economyManager.withdraw(target, cantidad);
+            mostrarBalance(sender, target);
+        }
+    }
+
+    @Subcommand("set")
+    @CommandPermission("voranixextremo.dinero.admin")
+    @CommandCompletion("@players @nothing")
+    @Syntax("<jugador> <cantidad>")
+    public void onSet(CommandSender sender, OfflinePlayer target, double cantidad) {
+        if (cantidadValida(sender, cantidad)) {
+            economyManager.setBalance(target, cantidad);
+            mostrarBalance(sender, target);
+        }
+    }
+
+    private boolean cantidadValida(CommandSender sender, double cantidad) {
+        if (cantidad < 0) {
+            sender.sendMessage("La cantidad no puede ser negativa.");
+            return false;
         }
         return true;
     }
 
-    private void handlePay(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player payer)) {
-            Messages.send(sender, plugin, "only-players");
-            return;
-        }
-        if (args.length < 3) {
-            sender.sendMessage("Uso: /dinero pagar <jugador> <cantidad>");
-            return;
-        }
-
-        OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
-        if (!target.hasPlayedBefore() && !target.isOnline()) {
-            Messages.send(sender, plugin, "player-not-found");
-            return;
-        }
-
-        double amount = parseAmount(sender, args[2]);
-        if (Double.isNaN(amount) || amount <= 0) {
-            return;
-        }
-
-        if (!economyManager.withdraw(payer, amount)) {
-            sender.sendMessage("No tenés suficiente dinero.");
-            return;
-        }
-
-        economyManager.deposit(target, amount);
-        sender.sendMessage("Le pagaste " + format(amount) + " a " + target.getName() + ".");
-    }
-
-    private void handleAdmin(CommandSender sender, String sub, String[] args) {
-        if (!sender.hasPermission("voranixextremo.dinero.admin")) {
-            Messages.send(sender, plugin, "no-permission");
-            return;
-        }
-        if (args.length < 3) {
-            sender.sendMessage("Uso: /dinero " + sub + " <jugador> <cantidad>");
-            return;
-        }
-
-        OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
-        if (!target.hasPlayedBefore() && !target.isOnline()) {
-            Messages.send(sender, plugin, "player-not-found");
-            return;
-        }
-
-        double amount = parseAmount(sender, args[2]);
-        if (Double.isNaN(amount) || amount < 0) {
-            return;
-        }
-
-        switch (sub) {
-            case "dar" -> economyManager.deposit(target, amount);
-            case "quitar" -> economyManager.withdraw(target, amount);
-            case "set" -> economyManager.setBalance(target, amount);
-            default -> { /* no alcanzable */ }
-        }
+    private void mostrarBalance(CommandSender sender, OfflinePlayer target) {
         sender.sendMessage("Balance de " + target.getName() + " ahora: " + format(economyManager.getBalance(target)));
-    }
-
-    private double parseAmount(CommandSender sender, String raw) {
-        try {
-            return Double.parseDouble(raw);
-        } catch (NumberFormatException e) {
-            sender.sendMessage("La cantidad debe ser un número.");
-            return Double.NaN;
-        }
     }
 
     private String format(double amount) {

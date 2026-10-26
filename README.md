@@ -4,9 +4,9 @@ Plugin de Minecraft (Paper/Spigot) para una serie estilo **Minecraft Extremo / D
 
 ## Requisitos
 
-- **Java 25** (Minecraft/Paper lo requieren desde que pasaron a versionar por año, la serie 25.x/26.x)
+- **Java 17** o más nuevo para compilar (el plugin se compila para Java 17, que es lo que usa la 1.20.1)
 - Maven 3.9+
-- Servidor Paper (o Spigot) **26.3**
+- Servidor **Spigot 1.20.1** (también corre en Paper 1.20.1)
 
 ## Compilar
 
@@ -16,9 +16,9 @@ mvn clean package
 
 El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plugins/` del servidor.
 
-> **Nota:** este proyecto descarga el API de Paper desde `repo.papermc.io`. Si compilas en un entorno con red restringida (como una sesión en la nube sin ese dominio permitido), añade `repo.papermc.io` a los dominios permitidos del entorno o compílalo en tu máquina local.
+> **Nota:** este proyecto descarga el API de Spigot desde `hub.spigotmc.org`. Si compilas en un entorno con red restringida (como una sesión en la nube sin ese dominio permitido), añade `hub.spigotmc.org` a los dominios permitidos del entorno o compílalo en tu máquina local.
 
-> **Sobre la versión:** el plugin apunta a Minecraft/Paper **26.3** (`pom.xml` → `paper.version`, rango `[26.3.build,)` para traer siempre el último build de esa versión). Si en algún momento vuelven a 1.20.4 (o cualquier otra), solo hay que cambiar ese rango y el `maven.compiler.release`; el resto del código no depende de la versión. La API usada (`PotionEffectType`, `Attribute`, etc.) está verificada contra la documentación oficial de Paper para 26.3, pero el build real todavía no se corrió en ningún entorno con Java 25 + red a `repo.papermc.io` a la vez — si el primer `mvn package` tira errores de compilación, son esperables y hay que pegarlos para corregirlos puntualmente.
+> **Sobre la versión:** el plugin apunta a **Spigot 1.20.1** (`pom.xml` → `spigot.version`, Java 17). Antes apuntaba a Paper 26.3; al bajarlo se volvió a los nombres de la 1.20.1 (`Attribute.GENERIC_MAX_HEALTH`, `Particle.REDSTONE`, `Particle.TOTEM`, `setBasePotionData`), los títulos usan `Player#sendTitle` de Spigot, y la ruleta de colores trae Adventure metido dentro del jar (Spigot no lo incluye) para mandar su title con fuente propia. Como la 1.20.1 acepta **un solo resource pack del servidor**, el pack que sirve el plugin junta la ruleta (`resourcepack/Ruleta`) con las monedas y la comida (`resourcepack/assets`), e incluye un shader (`resourcepack/Ruleta/assets/minecraft/shaders/core/rendertype_text.vsh`) que le quita la sombra al title de la ruleta.
 
 ## Funcionalidades actuales
 

@@ -1,11 +1,15 @@
 # Configuración de VoranixExtremo
 
 resourcepack:
-  # URL pública y directa al .zip del resource pack (ver carpeta resourcepack/ en el
-  # repo para armarlo). Si está vacío, no se le ofrece resource pack a nadie y las
-  # monedas se ven como un ítem genérico (sin la textura). Lo tienen que subir a algún
-  # lado (ej. un Release de GitHub) para tener una URL directa de descarga.
+  # Déjalo vacío: el plugin ya manda su propio pack (ruleta de colores + monedas + comida),
+  # configurado en ruleta-colores.resource-pack. La 1.20.1 acepta un solo pack del servidor,
+  # así que si pones aquí la URL de otro pack, se manda ese en vez del del plugin (y para que
+  # se vea la ruleta ese pack tiene que incluir plugins/VoranixExtremo/ruleta-pack.zip).
   url: ""
+
+# Mensaje que sale en el chat cuando un jugador usa (popea) un tótem.
+# %usuario% = nombre del jugador. Déjalo vacío ("") para que no salga nada.
+totempop: "&6&L%usuario% a utilizado un tótem"
 
 lives:
   # Vidas con las que empieza cada jugador.

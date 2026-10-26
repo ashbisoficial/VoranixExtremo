@@ -13,27 +13,38 @@
     <description>Plugin de Minecraft para la serie Voranix Extremo (vidas, PVP y futuras mecánicas de evento).</description>
 
     <properties>
-        <maven.compiler.release>25</maven.compiler.release>
+        <!-- Spigot 1.20.1 corre con Java 17 -->
+        <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <paper.version>26.3.build.211-stable</paper.version>
+        <spigot.version>1.20.1-R0.1-SNAPSHOT</spigot.version>
+        <adventure.version>4.17.0</adventure.version>
+        <adventure.platform.version>4.3.4</adventure.platform.version>
     </properties>
 
     <repositories>
         <repository>
-            <id>papermc</id>
-            <url>https://repo.papermc.io/repository/maven-public/</url>
+            <id>spigotmc-repo</id>
+            <url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
+        </repository>
+        <repository>
+            <id>sonatype</id>
+            <url>https://oss.sonatype.org/content/groups/public/</url>
         </repository>
         <repository>
             <id>jitpack.io</id>
             <url>https://jitpack.io</url>
         </repository>
+        <repository>
+            <id>aikar</id>
+            <url>https://repo.aikar.co/content/groups/aikar/</url>
+        </repository>
     </repositories>
 
     <dependencies>
         <dependency>
-            <groupId>io.papermc.paper</groupId>
-            <artifactId>paper-api</artifactId>
-            <version>${paper.version}</version>
+            <groupId>org.spigotmc</groupId>
+            <artifactId>spigot-api</artifactId>
+            <version>${spigot.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -48,6 +59,36 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- Spigot no trae Adventure (lo trae Paper). La ruleta de colores lo necesita para mandar
+             el title con su fuente propia, así que va metido dentro del jar (ver maven-shade-plugin). -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <version>${adventure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-minimessage</artifactId>
+            <version>${adventure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-text-serializer-legacy</artifactId>
+            <version>${adventure.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-platform-bukkit</artifactId>
+            <version>${adventure.platform.version}</version>
+        </dependency>
+        <!-- ACF (Annotation Command Framework): los comandos se arman con anotaciones
+             (@CommandAlias, @Subcommand...) y ACF valida permisos, argumentos y autocompletado.
+             También va metido dentro del jar. -->
+        <dependency>
+            <groupId>co.aikar</groupId>
+            <artifactId>acf-bukkit</artifactId>
+            <version>0.5.1-SNAPSHOT</version>
+        </dependency>
     </dependencies>
 
     <build>
@@ -58,12 +99,22 @@
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
             </resource>
-            <!-- Texturas de la ruleta de colores: van al jar bajo ruleta-pack/ y el plugin
-                 arma el .zip al arrancar. Sin filtering para no romper los PNG. -->
+            <!-- Resource pack del plugin: la ruleta de colores (resourcepack/Ruleta) + las texturas de
+                 monedas y comida (resourcepack/assets). La 1.20.1 acepta un solo pack del servidor,
+                 así que van juntos: entran al jar bajo ruleta-pack/ y el plugin arma el .zip al arrancar.
+                 Sin filtering para no romper los PNG. -->
             <resource>
                 <directory>resourcepack/Ruleta</directory>
                 <targetPath>ruleta-pack</targetPath>
                 <filtering>false</filtering>
+            </resource>
+            <resource>
+                <directory>resourcepack</directory>
+                <targetPath>ruleta-pack</targetPath>
+                <filtering>false</filtering>
+                <includes>
+                    <include>assets/**</include>
+                </includes>
             </resource>
         </resources>
         <plugins>
@@ -71,6 +122,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.13.0</version>
+                <configuration>
+                    <!-- ACF usa los nombres de los parámetros para armar el "Uso: /comando <jugador>" -->
+                    <parameters>true</parameters>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -79,6 +134,57 @@
                 <configuration>
                     <encoding>UTF-8</encoding>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.0</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <artifactSet>
+                                <excludes>
+                                    <!-- ya vienen con Spigot -->
+                                    <exclude>com.google.code.gson:gson</exclude>
+                                    <exclude>org.jetbrains:annotations</exclude>
+                                </excludes>
+                            </artifactSet>
+                            <relocations>
+                                <!-- movido a nuestro paquete, así no choca con otro plugin que traiga Adventure -->
+                                <relocation>
+                                    <pattern>net.kyori</pattern>
+                                    <shadedPattern>com.voranixextremo.libs.kyori</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>co.aikar.commands</pattern>
+                                    <shadedPattern>com.voranixextremo.libs.acf</shadedPattern>
+                                </relocation>
+                                <relocation>
+                                    <pattern>co.aikar.locales</pattern>
+                                    <shadedPattern>com.voranixextremo.libs.locales</shadedPattern>
+                                </relocation>
+                            </relocations>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <exclude>META-INF/versions/**</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

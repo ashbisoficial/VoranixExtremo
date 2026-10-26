@@ -1,5 +1,10 @@
 package com.voranixextremo.plugin;
 
+import co.aikar.commands.BukkitCommandCompletionContext;
+import co.aikar.commands.BukkitCommandManager;
+import co.aikar.commands.CommandCompletions;
+import co.aikar.commands.MessageKeys;
+import co.aikar.commands.MinecraftMessageKeys;
 import com.voranixextremo.plugin.economy.BankCommand;
 import com.voranixextremo.plugin.economy.BankService;
 import com.voranixextremo.plugin.economy.CoinCommand;
@@ -26,6 +31,8 @@ import com.voranixextremo.plugin.ruleta.RuletaPackManager;
 import com.voranixextremo.plugin.shops.ChefCommand;
 import com.voranixextremo.plugin.shops.ChefVillagerManager;
 import com.voranixextremo.plugin.shops.ShopManager;
+import com.voranixextremo.plugin.totem.TotemPop;
+import com.voranixextremo.plugin.util.Messages;
 import com.voranixextremo.plugin.util.ResourcePackListener;
 import com.voranixextremo.plugin.worldevents.RedMoonListener;
 import com.voranixextremo.plugin.worldevents.WorldEventCommand;
@@ -34,6 +41,10 @@ import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
 public final class VoranixExtremoPlugin extends JavaPlugin {
 
     private LivesManager livesManager;
@@ -41,6 +52,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     private EconomyManager economyManager;
     private RuletaManager ruletaManager;
     private RuletaPackManager ruletaPackManager;
+    private BukkitCommandManager commandManager;
 
     @Override
     public void onEnable() {
@@ -66,45 +78,61 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ResourcePackListener(this), this);
         getServer().getPluginManager().registerEvents(new FoodConsumeListener(this, foodManager), this);
         getServer().getPluginManager().registerEvents(new RedMoonListener(worldEventManager), this);
-
-        LivesCommand livesCommand = new LivesCommand(this, livesManager);
-        getCommand("vidas").setExecutor(livesCommand);
-        getCommand("vidas").setTabCompleter(livesCommand);
-
-        PvpCommand pvpCommand = new PvpCommand(this, pvpManager);
-        getCommand("pvp").setExecutor(pvpCommand);
-        getCommand("pvp").setTabCompleter(pvpCommand);
-
-        getCommand("dinero").setExecutor(new EconomyCommand(this, economyManager));
-        getCommand("banco").setExecutor(new BankCommand(this, bankService));
-
-        CoinCommand coinCommand = new CoinCommand(this, economyManager, coinItemFactory);
-        getCommand("moneda").setExecutor(coinCommand);
-        getCommand("moneda").setTabCompleter(coinCommand);
-
-        FoodCommand foodCommand = new FoodCommand(this, foodManager);
-        getCommand("comida").setExecutor(foodCommand);
-        getCommand("comida").setTabCompleter(foodCommand);
-
-        ChefCommand chefCommand = new ChefCommand(this, shopManager, chefVillagerManager);
-        getCommand("chef").setExecutor(chefCommand);
-        getCommand("chef").setTabCompleter(chefCommand);
-
-        getCommand("ruleta").setExecutor(new WorldEventCommand(this, worldEventManager));
+        getServer().getPluginManager().registerEvents(new TotemPop(this), this);
 
         this.ruletaManager = new RuletaManager(this);
         this.ruletaPackManager = new RuletaPackManager(this, ruletaManager);
         ruletaPackManager.start();
         getServer().getPluginManager().registerEvents(ruletaPackManager, this);
-        RuletaCommand ruletaCommand = new RuletaCommand(this, ruletaManager, ruletaPackManager);
-        getCommand("ruletacolor").setExecutor(ruletaCommand);
-        getCommand("ruletacolor").setTabCompleter(ruletaCommand);
+
+        // Comandos con ACF: cada clase *Command declara su comando con anotaciones
+        this.commandManager = new BukkitCommandManager(this);
+        configurarMensajesComandos();
+        CommandCompletions<BukkitCommandCompletionContext> completions = commandManager.getCommandCompletions();
+        completions.registerCompletion("monedas", c -> economyManager.getCoinTypes().keySet());
+        completions.registerCompletion("comidas", c -> {
+            List<String> ids = new ArrayList<>(foodManager.getFoodTypes().keySet());
+            ids.addAll(foodManager.getDrinkTypes().keySet());
+            return ids;
+        });
+        completions.registerCompletion("tiendas", c -> shopManager.getShopTypes().keySet());
+        completions.registerCompletion("colores-ruleta", c -> {
+            List<String> colores = new ArrayList<>(ruletaManager.coloresEnRuleta());
+            colores.add("random");
+            return colores;
+        });
+        commandManager.registerCommand(new LivesCommand(this, livesManager));
+        commandManager.registerCommand(new PvpCommand(this, pvpManager));
+        commandManager.registerCommand(new EconomyCommand(this, economyManager));
+        commandManager.registerCommand(new BankCommand(this, bankService));
+        commandManager.registerCommand(new CoinCommand(this, economyManager, coinItemFactory));
+        commandManager.registerCommand(new FoodCommand(this, foodManager));
+        commandManager.registerCommand(new ChefCommand(this, shopManager, chefVillagerManager));
+        commandManager.registerCommand(new WorldEventCommand(this, worldEventManager));
+        commandManager.registerCommand(new RuletaCommand(this, ruletaManager, ruletaPackManager));
 
         registerVaultIfPresent();
 
         getLogger().info("VoranixExtremo habilitado. Vidas máximas: " + livesManager.getMaxLives()
                 + " | PVP inicial: " + (pvpManager.isPvpEnabled() ? "activado" : "desactivado")
                 + " | Monedas: " + economyManager.getCoinTypes().size());
+    }
+
+    /**
+     * ACF en español, y los errores comunes (sin permiso, solo jugadores, jugador no encontrado)
+     * con los mismos mensajes de config.yml → messages que usaba el plugin antes.
+     */
+    private void configurarMensajesComandos() {
+        Locale es = new Locale("es");
+        commandManager.getLocales().setDefaultLocale(es);
+        commandManager.getLocales().addMessage(es, MessageKeys.ERROR_PREFIX, "{message}");
+        commandManager.getLocales().addMessage(es, MessageKeys.PERMISSION_DENIED, Messages.get(this, "no-permission"));
+        commandManager.getLocales().addMessage(es, MessageKeys.PERMISSION_DENIED_PARAMETER, Messages.get(this, "no-permission"));
+        commandManager.getLocales().addMessage(es, MessageKeys.NOT_ALLOWED_ON_CONSOLE, Messages.get(this, "only-players"));
+        String noEncontrado = Messages.get(this, "player-not-found");
+        commandManager.getLocales().addMessage(es, MinecraftMessageKeys.NO_PLAYER_FOUND, noEncontrado);
+        commandManager.getLocales().addMessage(es, MinecraftMessageKeys.NO_PLAYER_FOUND_OFFLINE, noEncontrado);
+        commandManager.getLocales().addMessage(es, MinecraftMessageKeys.NO_PLAYER_FOUND_SERVER, noEncontrado);
     }
 
     private void registerVaultIfPresent() {
@@ -125,6 +153,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (commandManager != null) {
+            commandManager.unregisterCommands();
+        }
         if (livesManager != null) {
             livesManager.save();
         }
@@ -132,7 +163,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
             economyManager.save();
         }
         if (ruletaManager != null) {
-            ruletaManager.stop(false);
+            ruletaManager.close();
         }
         if (ruletaPackManager != null) {
             ruletaPackManager.stop();

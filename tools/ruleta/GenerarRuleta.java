@@ -202,11 +202,8 @@ public class GenerarRuleta {
         Files.writeString(root.resolve("pack.mcmeta"), """
                 {
                   "pack": {
-                    "description": "§6Ruleta §7- SobrinoDev",
-                    "pack_format": 46,
-                    "supported_formats": [46, 999],
-                    "min_format": 46,
-                    "max_format": 999
+                    "description": "§6VoranixExtremo §7- ruleta, monedas y comida",
+                    "pack_format": 15
                   }
                 }
                 """);
