@@ -1,23 +1,25 @@
 package com.voranixextremo.plugin.shops;
 
+import co.aikar.commands.BaseCommand;
+import co.aikar.commands.annotation.CatchUnknown;
+import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandCompletion;
+import co.aikar.commands.annotation.CommandPermission;
+import co.aikar.commands.annotation.Default;
+import co.aikar.commands.annotation.Description;
+import co.aikar.commands.annotation.Subcommand;
+import co.aikar.commands.annotation.Syntax;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
-import com.voranixextremo.plugin.util.Messages;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * /chef spawn <tienda> — aparece un aldeano chef en la posición del jugador.
- * /chef remove — elimina el chef más cercano (8 bloques).
- */
-public class ChefCommand implements CommandExecutor, TabCompleter {
+/** /chef spawn <tienda> | /chef remove — aparece o elimina un aldeano chef. */
+@CommandAlias("chef")
+@CommandPermission("voranixextremo.chef.admin")
+@Description("Aparece o elimina un aldeano chef que vende comida por monedas.")
+public class ChefCommand extends BaseCommand {
 
     private final VoranixExtremoPlugin plugin;
     private final ShopManager shopManager;
@@ -29,51 +31,34 @@ public class ChefCommand implements CommandExecutor, TabCompleter {
         this.chefVillagerManager = chefVillagerManager;
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (!sender.hasPermission("voranixextremo.chef.admin")) {
-            Messages.send(sender, plugin, "no-permission");
-            return true;
-        }
-        if (!(sender instanceof Player player)) {
-            Messages.send(sender, plugin, "only-players");
-            return true;
-        }
-        if (args.length < 1) {
-            sender.sendMessage("Uso: /chef <spawn <tienda>|remove>");
-            return true;
-        }
-
-        String sub = args[0].toLowerCase();
-
-        if (sub.equals("spawn")) {
-            if (args.length < 2) {
-                sender.sendMessage("Uso: /chef spawn <tienda>. Disponibles: " + String.join(", ", shopManager.getShopTypes().keySet()));
-                return true;
-            }
-            ShopType shop = shopManager.getShopType(args[1]);
-            if (shop == null) {
-                sender.sendMessage("Tienda desconocida. Disponibles: " + String.join(", ", shopManager.getShopTypes().keySet()));
-                return true;
-            }
-            chefVillagerManager.spawn(shop, player.getLocation());
-            sender.sendMessage("Apareció " + shop.getDisplayName() + ".");
-            return true;
-        }
-
-        if (sub.equals("remove")) {
-            Entity nearest = findNearestChef(player);
-            if (nearest == null) {
-                sender.sendMessage("No hay ningún chef cerca (8 bloques).");
-                return true;
-            }
-            nearest.remove();
-            sender.sendMessage("Chef eliminado.");
-            return true;
-        }
-
+    @Default
+    @CatchUnknown
+    public void onUsage(CommandSender sender) {
         sender.sendMessage("Uso: /chef <spawn <tienda>|remove>");
-        return true;
+    }
+
+    @Subcommand("spawn")
+    @CommandCompletion("@tiendas")
+    @Syntax("<tienda>")
+    public void onSpawn(Player player, String tienda) {
+        ShopType shop = shopManager.getShopType(tienda);
+        if (shop == null) {
+            player.sendMessage("Tienda desconocida. Disponibles: " + String.join(", ", shopManager.getShopTypes().keySet()));
+            return;
+        }
+        chefVillagerManager.spawn(shop, player.getLocation());
+        player.sendMessage("Apareció " + shop.getDisplayName() + ".");
+    }
+
+    @Subcommand("remove")
+    public void onRemove(Player player) {
+        Entity nearest = findNearestChef(player);
+        if (nearest == null) {
+            player.sendMessage("No hay ningún chef cerca (8 bloques).");
+            return;
+        }
+        nearest.remove();
+        player.sendMessage("Chef eliminado.");
     }
 
     private Entity findNearestChef(Player player) {
@@ -90,16 +75,5 @@ public class ChefCommand implements CommandExecutor, TabCompleter {
             }
         }
         return nearest;
-    }
-
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) {
-            return List.of("spawn", "remove");
-        }
-        if (args.length == 2 && args[0].equalsIgnoreCase("spawn")) {
-            return new ArrayList<>(shopManager.getShopTypes().keySet());
-        }
-        return List.of();
     }
 }

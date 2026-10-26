@@ -1,26 +1,31 @@
 package com.voranixextremo.plugin.ruleta;
 
+import co.aikar.commands.BaseCommand;
+import co.aikar.commands.annotation.CatchUnknown;
+import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandCompletion;
+import co.aikar.commands.annotation.CommandPermission;
+import co.aikar.commands.annotation.Default;
+import co.aikar.commands.annotation.Description;
+import co.aikar.commands.annotation.Optional;
+import co.aikar.commands.annotation.Subcommand;
+import co.aikar.commands.annotation.Syntax;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Locale;
 
 /**
  * /ruletacolor girar <color|random> [mensaje] | parar | pack | reload
  * (no es /ruleta porque ese ya es la ruleta de eventos).
  */
-public class RuletaCommand implements CommandExecutor, TabCompleter {
-
-    private static final List<String> SUBCOMANDOS = List.of("girar", "parar", "pack", "reload");
+@CommandAlias("ruletacolor")
+@CommandPermission("voranixextremo.ruletacolor.admin")
+@Description("Gira la ruleta de colores en pantalla (con resource pack).")
+public class RuletaCommand extends BaseCommand {
 
     private final VoranixExtremoPlugin plugin;
     private final RuletaManager ruleta;
@@ -32,51 +37,38 @@ public class RuletaCommand implements CommandExecutor, TabCompleter {
         this.pack = pack;
     }
 
-    @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length == 0) {
-            sender.sendMessage(ruleta.msg("uso"));
-            return true;
-        }
-
-        switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "girar" -> {
-                if (args.length < 2) {
-                    sender.sendMessage(ruleta.msg("uso"));
-                    return true;
-                }
-                String id = args[1].toLowerCase(Locale.ROOT);
-                String mensaje = args.length > 2 ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : null;
-                Component error = ruleta.spin(id, mensaje);
-                if (error != null) sender.sendMessage(error);
-            }
-            case "parar" -> sender.sendMessage(ruleta.msg(ruleta.stop(true) ? "parada" : "no-girando"));
-            case "pack" -> {
-                for (Player p : Bukkit.getOnlinePlayers()) pack.send(p);
-                sender.sendMessage(ruleta.msg("pack-enviado"));
-            }
-            case "reload" -> {
-                plugin.reloadConfig();
-                ruleta.load();
-                pack.stop();
-                pack.start();
-                sender.sendMessage(ruleta.msg("recargado"));
-            }
-            default -> sender.sendMessage(ruleta.msg("uso"));
-        }
-        return true;
+    @Default
+    @CatchUnknown
+    public void onUsage(CommandSender sender) {
+        ruleta.enviar(sender, ruleta.msg("uso"));
     }
 
-    @Override
-    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        List<String> opciones = new ArrayList<>();
-        if (args.length == 1) {
-            opciones.addAll(SUBCOMANDOS);
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("girar")) {
-            opciones.addAll(ruleta.coloresEnRuleta());
-            opciones.add("random");
-        }
-        String typed = args[args.length - 1].toLowerCase(Locale.ROOT);
-        return opciones.stream().filter(o -> o.startsWith(typed)).toList();
+    // el último String se queda con todo lo que venga después, así el mensaje puede tener espacios
+    @Subcommand("girar")
+    @CommandCompletion("@colores-ruleta @nothing")
+    @Syntax("<color|random> [mensaje]")
+    public void onSpin(CommandSender sender, String color, @Optional String mensaje) {
+        Component error = ruleta.spin(color.toLowerCase(Locale.ROOT), mensaje);
+        if (error != null) ruleta.enviar(sender, error);
+    }
+
+    @Subcommand("parar")
+    public void onStop(CommandSender sender) {
+        ruleta.enviar(sender, ruleta.msg(ruleta.stop(true) ? "parada" : "no-girando"));
+    }
+
+    @Subcommand("pack")
+    public void onPack(CommandSender sender) {
+        for (Player p : Bukkit.getOnlinePlayers()) pack.send(p);
+        ruleta.enviar(sender, ruleta.msg("pack-enviado"));
+    }
+
+    @Subcommand("reload")
+    public void onReload(CommandSender sender) {
+        plugin.reloadConfig();
+        ruleta.load();
+        pack.stop();
+        pack.start();
+        ruleta.enviar(sender, ruleta.msg("recargado"));
     }
 }

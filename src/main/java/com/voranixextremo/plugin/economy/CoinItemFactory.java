@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.economy;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
@@ -25,7 +26,7 @@ public class CoinItemFactory {
         ItemStack item = new ItemStack(type.getMaterial(), Math.max(1, amount));
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', type.getDisplayName()));
+            meta.setDisplayName(ColorUtils.color(type.getDisplayName()));
             if (type.getCustomModelData() != null) {
                 meta.setCustomModelData(type.getCustomModelData());
             }

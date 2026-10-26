@@ -2,8 +2,7 @@ package com.voranixextremo.plugin.ruleta;
 
 import com.sun.net.httpserver.HttpServer;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
-import net.kyori.adventure.resource.ResourcePackInfo;
-import net.kyori.adventure.resource.ResourcePackRequest;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.Player;
@@ -16,13 +15,11 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.jar.JarEntry;
@@ -32,13 +29,13 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 /**
- * Arma el resource pack de la ruleta (resourcepack/Ruleta, que Maven mete en el jar bajo
- * ruleta-pack/) y, si se quiere, lo sirve por HTTP para mandarlo a los jugadores. Se manda
- * como un pack aparte, sin reemplazar el pack de las monedas (resourcepack.url).
+ * Arma el resource pack del plugin (Maven mete en el jar, bajo ruleta-pack/, la ruleta de
+ * resourcepack/Ruleta y las monedas y comida de resourcepack/assets) y, si se quiere, lo sirve
+ * por HTTP para mandarlo a los jugadores. La 1.20.1 acepta un solo pack del servidor, por eso
+ * va todo junto. Si en config.yml → resourcepack.url hay un pack propio, se manda ese y este no.
  */
 public final class RuletaPackManager implements Listener {
 
-    private static final UUID PACK_ID = UUID.nameUUIDFromBytes("voranixextremo:ruleta".getBytes(StandardCharsets.UTF_8));
     private static final String CARPETA = "ruleta-pack/";
 
     private final VoranixExtremoPlugin plugin;
@@ -88,7 +85,11 @@ public final class RuletaPackManager implements Listener {
             } else {
                 uri = null;
             }
-            plugin.getLogger().info("Resource pack de la ruleta listo (sha1 " + sha1 + ")" + (uri != null ? " -> " + uri : ", sin envío automático"));
+            plugin.getLogger().info("Resource pack del plugin listo (sha1 " + sha1 + ")" + (uri != null ? " -> " + uri : ", sin envío automático"));
+            if (hayPackPropio()) {
+                plugin.getLogger().warning("resourcepack.url tiene un pack propio: se manda ese y no el del plugin. "
+                        + "Para que se vea la ruleta, ese pack tiene que incluir plugins/VoranixExtremo/ruleta-pack.zip.");
+            }
         } catch (Exception e) {
             uri = null;
             plugin.getLogger().log(Level.SEVERE, "No se pudo preparar el resource pack de la ruleta", e);
@@ -133,18 +134,22 @@ public final class RuletaPackManager implements Listener {
     public void send(Player player) {
         if (uri == null || !player.isOnline()) return;
         ConfigurationSection c = ruleta.config();
-        player.sendResourcePacks(ResourcePackRequest.resourcePackRequest()
-                .packs(ResourcePackInfo.resourcePackInfo(PACK_ID, uri, sha1))
-                .required(c.getBoolean("resource-pack.obligatorio", false))
-                .prompt(RuletaManager.parse(c.getString("resource-pack.mensaje", "")))
-                .replace(false));
+        String prompt = LegacyComponentSerializer.legacySection().serialize(RuletaManager.parse(c.getString("resource-pack.mensaje", "")));
+        player.setResourcePack(uri.toString(), HexFormat.of().parseHex(sha1), prompt.isEmpty() ? null : prompt,
+                c.getBoolean("resource-pack.obligatorio", false));
+    }
+
+    /** Hay un pack propio en resourcepack.url (lo manda ResourcePackListener): ese reemplazaría a este. */
+    private boolean hayPackPropio() {
+        String url = plugin.getConfig().getString("resourcepack.url", "");
+        return url != null && !url.isBlank();
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
+        if (hayPackPropio()) return;
         if (ruleta.config().getBoolean("resource-pack.enviar-al-entrar", true)) {
-            // un pequeño retraso para que el cliente termine de cargar el mundo (y llegue
-            // después del pack de las monedas, que sí reemplaza los packs anteriores)
+            // un pequeño retraso para que el cliente termine de cargar el mundo
             Bukkit.getScheduler().runTaskLater(plugin, () -> send(e.getPlayer()), 20L);
         }
     }

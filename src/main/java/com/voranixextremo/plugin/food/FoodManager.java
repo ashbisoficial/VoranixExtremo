@@ -1,7 +1,7 @@
 package com.voranixextremo.plugin.food;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionType;
 
 import java.util.Collections;
@@ -33,6 +34,13 @@ public class FoodManager {
         this.plugin = plugin;
         this.foodKey = new NamespacedKey(plugin, "food_id");
         this.drinkKey = new NamespacedKey(plugin, "drink_id");
+        reload();
+    }
+
+    /** Vuelve a leer food.items y food.drinks del config.yml. */
+    public void reload() {
+        foodTypes.clear();
+        drinkTypes.clear();
         loadFoodTypes();
         loadDrinkTypes();
     }
@@ -93,7 +101,7 @@ public class FoodManager {
         ItemStack item = new ItemStack(type.getBaseMaterial());
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', type.getDisplayName()));
+            meta.setDisplayName(ColorUtils.color(type.getDisplayName()));
             if (type.getCustomModelData() != null) {
                 meta.setCustomModelData(type.getCustomModelData());
             }
@@ -107,11 +115,11 @@ public class FoodManager {
         ItemStack item = new ItemStack(Material.POTION);
         PotionMeta meta = (PotionMeta) item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', type.getDisplayName()));
+            meta.setDisplayName(ColorUtils.color(type.getDisplayName()));
             if (type.getCustomModelData() != null) {
                 meta.setCustomModelData(type.getCustomModelData());
             }
-            meta.setBasePotionType(PotionType.WATER);
+            meta.setBasePotionData(new PotionData(PotionType.WATER));
             meta.setColor(type.getColor());
             meta.clearCustomEffects();
             for (ConfiguredEffect effect : type.getEffects()) {

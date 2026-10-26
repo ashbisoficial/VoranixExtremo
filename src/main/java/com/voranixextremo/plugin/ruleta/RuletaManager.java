@@ -1,19 +1,21 @@
 package com.voranixextremo.plugin.ruleta;
 
 import com.google.gson.Gson;
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import net.kyori.adventure.key.Key;
+import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
-import net.kyori.adventure.text.format.ShadowColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.MemoryConfiguration;
-import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.InputStreamReader;
@@ -35,6 +37,12 @@ public final class RuletaManager {
     private static final Key FONT = Key.key("ruleta", "ruleta");
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final Title.Times SEGUIR = Title.Times.times(Duration.ZERO, Duration.ofMillis(500), Duration.ZERO);
+    /**
+     * En 1.20.1 los titles siempre llevan sombra (un fantasma oscuro detrás de la ruleta). El shader
+     * del pack (assets/minecraft/shaders/core/rendertype_text.vsh) reconoce este color: al texto lo
+     * dibuja blanco (sin teñir) y a su sombra, que sale de este color x 0,25, no la dibuja.
+     */
+    private static final TextColor SIN_SOMBRA = TextColor.color(76, 92, 36);
     /** Duración de cada fase del final, en ticks (como en el HTML: 0,8 s, 1,1 s y 0,75 s). */
     private static final int TENIR = 16, TEMBLOR = 22, SALIDA = 15;
     /** Lo que dura la entrada (1,2 s), en ticks. */
@@ -54,6 +62,8 @@ public final class RuletaManager {
     private record RuletaColor(String id, String nombre, String mensaje, List<String> comandos) {}
 
     private final VoranixExtremoPlugin plugin;
+    /** Spigot no trae Adventure: esto manda titles, sonidos y mensajes de Adventure a los jugadores. */
+    private final BukkitAudiences audiences;
     private final Layout layout;
     private final List<RuletaColor> colores = new ArrayList<>();
     /** Color de cada segmento, en el orden en que pasan bajo la flecha. */
@@ -67,6 +77,7 @@ public final class RuletaManager {
 
     public RuletaManager(VoranixExtremoPlugin plugin) {
         this.plugin = plugin;
+        this.audiences = BukkitAudiences.create(plugin);
         try (var in = new InputStreamReader(plugin.getResource("ruleta-layout.json"), StandardCharsets.UTF_8)) {
             this.layout = new Gson().fromJson(in, Layout.class);
         } catch (Exception e) {
@@ -158,7 +169,7 @@ public final class RuletaManager {
                     if (c != ultimoCruce) {
                         ultimoCruce = c;
                         flecha = layout.flechaFrames() - 1;
-                        if (sonidoTick != null) Bukkit.getOnlinePlayers().forEach(pl -> pl.playSound(sonidoTick, Sound.Emitter.self()));
+                        if (sonidoTick != null) audiences.players().playSound(sonidoTick);
                     } else if (flecha > 0) flecha--;
 
                     // rápido se usa el disco desenfocado (va a media resolución, pero el desenfoque lo disimula)
@@ -204,7 +215,9 @@ public final class RuletaManager {
 
     /** Fotograma actual de las llamas (es un loop que corre solo, gire o no la ruleta). */
     private int fuego() {
-        int f = (int) ((Bukkit.getCurrentTick() / layout.fuegoTicks()) % layout.fuegoFrames());
+        // Spigot no tiene getCurrentTick: se cuenta en ticks de 50 ms desde el reloj
+        long tick = System.currentTimeMillis() / 50;
+        int f = (int) ((tick / layout.fuegoTicks()) % layout.fuegoFrames());
         return layout.fuego() + 4 * f;
     }
 
@@ -275,13 +288,13 @@ public final class RuletaManager {
 
     private void anunciar(RuletaColor color, String mensaje) {
         Component nombre = parse(color.nombre());
-        if (sonidoFinal != null) Bukkit.getOnlinePlayers().forEach(p -> p.playSound(sonidoFinal, Sound.Emitter.self()));
+        if (sonidoFinal != null) audiences.players().playSound(sonidoFinal);
         String texto = mensaje != null ? mensaje
                 : color.mensaje() != null ? color.mensaje()
                 : config().getString("mensajes.broadcast", "{color}");
         Component broadcast = parse(texto).replaceText(r("{color}", nombre));
         Component prefix = parse(config().getString("mensajes.prefijo-broadcast", ""));
-        Bukkit.broadcast(prefix.append(broadcast));
+        audiences.all().sendMessage(prefix.append(broadcast));
         ejecutarComandos(color);
     }
 
@@ -303,15 +316,25 @@ public final class RuletaManager {
         if (task == null) return false;
         task.cancel();
         task = null;
-        if (clearTitle) Bukkit.getOnlinePlayers().forEach(Player::clearTitle);
+        if (clearTitle) audiences.players().clearTitle();
         return true;
     }
 
-    /** Muestra la ruleta en el title (sin sombra). */
+    /** Para al apagar el plugin: detiene el giro y suelta lo de Adventure. */
+    public void close() {
+        stop(false);
+        audiences.close();
+    }
+
+    /** Manda un mensaje de Adventure (MiniMessage, colores) a un jugador o a la consola. */
+    public void enviar(CommandSender sender, Component mensaje) {
+        audiences.sender(sender).sendMessage(mensaje);
+    }
+
+    /** Muestra la ruleta en el title (sin sombra, ver SIN_SOMBRA). */
     private void show(Capas capas, int mover) {
-        Component wheel = Component.text(capas.texto(mover)).font(FONT).shadowColor(ShadowColor.none());
-        Title title = Title.title(wheel, Component.empty(), SEGUIR);
-        for (Player p : Bukkit.getOnlinePlayers()) p.showTitle(title);
+        Component wheel = Component.text(capas.texto(mover)).font(FONT).color(SIN_SOMBRA);
+        audiences.players().showTitle(Title.title(wheel, Component.empty(), SEGUIR));
     }
 
     public Component msg(String key) {
@@ -319,10 +342,14 @@ public final class RuletaManager {
         return parse(prefix + config().getString("mensajes." + key, key));
     }
 
-    /** Acepta MiniMessage (<red>) o códigos clásicos (&c). */
+    /** Lee los §x§r§r§g§g§b§b que deja ColorUtils para los colores hex. */
+    private static final LegacyComponentSerializer LEGACY_HEX = LegacyComponentSerializer.builder()
+            .character(LegacyComponentSerializer.SECTION_CHAR).hexColors().useUnusualXRepeatedCharacterHexFormat().build();
+
+    /** Acepta MiniMessage (<red>) o códigos clásicos con & y hex (&c, &#ff8a1c, {#ff8a1c}) vía ColorUtils. */
     static Component parse(String s) {
         if (s == null || s.isEmpty()) return Component.empty();
-        if (s.indexOf('&') >= 0 && s.indexOf('<') < 0) return LegacyComponentSerializer.legacyAmpersand().deserialize(s);
+        if ((s.indexOf('&') >= 0 || s.contains("{#")) && s.indexOf('<') < 0) return LEGACY_HEX.deserialize(ColorUtils.color(s));
         return MM.deserialize(s);
     }
 

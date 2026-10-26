@@ -21,19 +21,24 @@ public class EconomyManager {
     private final YamlConfiguration dataConfig;
     private final Map<UUID, Double> balances = new HashMap<>();
     private final Map<String, CoinType> coinTypes = new LinkedHashMap<>();
-    private final String currencySingular;
-    private final String currencyPlural;
+    private String currencySingular;
+    private String currencyPlural;
 
     public EconomyManager(VoranixExtremoPlugin plugin) {
         this.plugin = plugin;
-        this.currencySingular = plugin.getConfig().getString("economy.currency.singular", "Moneda");
-        this.currencyPlural = plugin.getConfig().getString("economy.currency.plural", "Monedas");
-
         this.dataFile = new File(plugin.getDataFolder(), "economy.yml");
         this.dataConfig = YamlConfiguration.loadConfiguration(dataFile);
 
-        loadCoinTypes();
+        reloadSettings();
         loadBalances();
+    }
+
+    /** Vuelve a leer el nombre de la moneda y economy.coins (los balances guardados no se tocan). */
+    public void reloadSettings() {
+        this.currencySingular = plugin.getConfig().getString("economy.currency.singular", "Moneda");
+        this.currencyPlural = plugin.getConfig().getString("economy.currency.plural", "Monedas");
+        coinTypes.clear();
+        loadCoinTypes();
     }
 
     private void loadCoinTypes() {

@@ -1,14 +1,11 @@
 package com.voranixextremo.plugin.worldevents;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import com.voranixextremo.plugin.lives.LivesManager;
 import com.voranixextremo.plugin.pvp.PvpManager;
 import com.voranixextremo.plugin.util.Messages;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -21,7 +18,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,6 +48,12 @@ public class WorldEventManager {
         this.plugin = plugin;
         this.pvpManager = pvpManager;
         this.livesManager = livesManager;
+        load();
+    }
+
+    /** Vuelve a leer world-events.outcomes. Si hay un evento activo, sigue hasta terminar como estaba. */
+    public void reload() {
+        outcomes.clear();
         load();
     }
 
@@ -171,7 +173,7 @@ public class WorldEventManager {
 
         int nextElapsed = elapsedTicks + SPIN_INTERVALS_TICKS[stepIndex];
         bossBar.setColor(flash.getCategory().getBarColor());
-        bossBar.setTitle(ChatColor.translateAlternateColorCodes('&', flash.getCategory().getChatColorCode() + flash.getDisplayName()));
+        bossBar.setTitle(ColorUtils.color(flash.getCategory().getChatColorCode() + flash.getDisplayName()));
         bossBar.setProgress(Math.max(0.0, 1.0 - (double) nextElapsed / totalTicks));
 
         plugin.getServer().getScheduler().runTaskLater(plugin,
@@ -180,16 +182,13 @@ public class WorldEventManager {
     }
 
     private void showFrameToEveryone(WorldEventOutcome outcome, boolean isFinal) {
-        String colored = ChatColor.translateAlternateColorCodes('&', outcome.getCategory().getChatColorCode() + outcome.getDisplayName());
-        Component component = LegacyComponentSerializer.legacySection().deserialize(colored);
-        Title.Times times = isFinal
-                ? Title.Times.times(Duration.ZERO, Duration.ofMillis(1600), Duration.ofMillis(500))
-                : Title.Times.times(Duration.ZERO, Duration.ofMillis(300), Duration.ZERO);
-        Title title = Title.title(component, Component.empty(), times);
+        String colored = ColorUtils.color(outcome.getCategory().getChatColorCode() + outcome.getDisplayName());
+        // tiempos en ticks: el resultado queda 1,6 s y se va en 0,5 s; cada "tic" dura 0,3 s
+        int stay = isFinal ? 32 : 6, fadeOut = isFinal ? 10 : 0;
         Sound sound = isFinal ? Sound.ENTITY_PLAYER_LEVELUP : Sound.UI_BUTTON_CLICK;
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.showTitle(title);
+            player.sendTitle(colored, "", 0, stay, fadeOut);
             player.playSound(player.getLocation(), sound, 1.0F, 1.0F);
             spawnSpinAura(player, outcome.getCategory(), isFinal);
         }
@@ -208,11 +207,11 @@ public class WorldEventManager {
         for (int i = 0; i < points; i++) {
             double angle = 2 * Math.PI * i / points;
             Location point = center.clone().add(Math.cos(angle) * radius, 0, Math.sin(angle) * radius);
-            world.spawnParticle(Particle.DUST, point, 1, 0, 0, 0, 0, dustOptions);
+            world.spawnParticle(Particle.REDSTONE, point, 1, 0, 0, 0, 0, dustOptions);
         }
 
         if (isFinal) {
-            world.spawnParticle(Particle.TOTEM_OF_UNDYING, center, 40, 0.5, 0.8, 0.5, 0.3);
+            world.spawnParticle(Particle.TOTEM, center, 40, 0.5, 0.8, 0.5, 0.3);
         }
     }
 
@@ -301,15 +300,11 @@ public class WorldEventManager {
     private void announceRevillStart(WorldEventOutcome outcome) {
         Messages.broadcast(plugin, "revill-objective", "%objetivo%", outcome.getObjectiveDescription());
 
-        Component titleText = LegacyComponentSerializer.legacySection()
-                .deserialize(ChatColor.translateAlternateColorCodes('&', "&4&l¡MOMENTO REVILL!"));
-        Component subtitleText = LegacyComponentSerializer.legacySection()
-                .deserialize(ChatColor.translateAlternateColorCodes('&', "&c" + outcome.getObjectiveDescription()));
-        Title title = Title.title(titleText, subtitleText,
-                Title.Times.times(Duration.ofMillis(300), Duration.ofSeconds(3), Duration.ofMillis(500)));
+        String titleText = ColorUtils.color("&4&l¡MOMENTO REVILL!");
+        String subtitleText = ColorUtils.color("&c" + outcome.getObjectiveDescription());
 
         for (Player player : Bukkit.getOnlinePlayers()) {
-            player.showTitle(title);
+            player.sendTitle(titleText, subtitleText, 6, 60, 10);
             player.playSound(player.getLocation(), Sound.ENTITY_WITHER_SPAWN, 1.0F, 1.0F);
         }
     }
@@ -340,7 +335,7 @@ public class WorldEventManager {
         if (revillCountdownBar == null) {
             return;
         }
-        String title = ChatColor.translateAlternateColorCodes('&',
+        String title = ColorUtils.color(
                 "&c&l¡REVILL! &r&f" + outcome.getObjectiveDescription() + " &7(" + remainingSeconds + "s)");
         revillCountdownBar.setTitle(title);
         revillCountdownBar.setProgress(Math.max(0.0, (double) remainingSeconds / totalSeconds));

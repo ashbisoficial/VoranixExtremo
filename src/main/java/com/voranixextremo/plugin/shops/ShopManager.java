@@ -10,9 +10,17 @@ import java.util.logging.Level;
 
 public class ShopManager {
 
+    private final VoranixExtremoPlugin plugin;
     private final Map<String, ShopType> shopTypes = new LinkedHashMap<>();
 
     public ShopManager(VoranixExtremoPlugin plugin) {
+        this.plugin = plugin;
+        reload();
+    }
+
+    /** Vuelve a leer las tiendas de shops en config.yml (los chefs que ya están aparecidos mantienen sus precios). */
+    public void reload() {
+        shopTypes.clear();
         ConfigurationSection section = plugin.getConfig().getConfigurationSection("shops");
         if (section == null) {
             return;

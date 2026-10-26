@@ -1,0 +1,15 @@
+# Formato del chat de VoranixExtremo
+#
+# Variables:
+#   %player%   nombre del jugador (su display name, así respeta los plugins de nicks)
+#   %message%  lo que escribió
+#   Si PlaceholderAPI está instalado, también sirven sus placeholders, ej. %luckperms_prefix%.
+#
+# Colores: &c, &l... y hex con &#a855f7 o {#a855f7}.
+# Los jugadores con el permiso voranixextremo.chat.color pueden usar colores en sus mensajes.
+# Después de editar, usa /voranixextremo reload.
+
+chat:
+  # false = el plugin no toca el chat (queda el formato vanilla o el de otro plugin)
+  enabled: true
+  format: "&f%player%&7: &f%message%"

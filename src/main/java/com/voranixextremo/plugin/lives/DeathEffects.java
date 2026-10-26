@@ -1,18 +1,14 @@
 package com.voranixextremo.plugin.lives;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-import java.time.Duration;
 import java.util.logging.Level;
 
 /**
@@ -22,8 +18,8 @@ import java.util.logging.Level;
  */
 public class DeathEffects {
 
-    private static final Title.Times DEFAULT_TIMES = Title.Times.times(
-            Duration.ofMillis(300), Duration.ofSeconds(2), Duration.ofMillis(500));
+    // Tiempos del título en ticks (20 = 1 segundo): aparece en 0,3 s, dura 2 s y se va en 0,5 s
+    private static final int TITLE_FADE_IN = 6, TITLE_STAY = 40, TITLE_FADE_OUT = 10;
 
     private final VoranixExtremoPlugin plugin;
 
@@ -88,13 +84,10 @@ public class DeathEffects {
         String path = eliminated ? "death-effects.title.eliminated-text" : "death-effects.title.death-text";
         String defaultText = eliminated ? "&4☠ %player% ELIMINADO ☠" : "&c%player% ha muerto";
         String raw = plugin.getConfig().getString(path, defaultText).replace("%player%", deadPlayer.getName());
-        String colored = ChatColor.translateAlternateColorCodes('&', raw);
-
-        Component titleText = LegacyComponentSerializer.legacySection().deserialize(colored);
-        Title title = Title.title(titleText, Component.empty(), DEFAULT_TIMES);
+        String colored = ColorUtils.color(raw);
 
         for (Player online : Bukkit.getOnlinePlayers()) {
-            online.showTitle(title);
+            online.sendTitle(colored, "", TITLE_FADE_IN, TITLE_STAY, TITLE_FADE_OUT);
         }
     }
 }

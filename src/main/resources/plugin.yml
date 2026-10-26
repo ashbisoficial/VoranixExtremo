@@ -4,45 +4,10 @@ main: com.voranixextremo.plugin.VoranixExtremoPlugin
 api-version: '1.20'
 author: ashbisoficial
 description: Plugin base para la serie Voranix Extremo (vidas, PVP, economía y futuras mecánicas de evento).
-softdepend: [Vault]
+softdepend: [Vault, PlaceholderAPI]
 
-commands:
-  vidas:
-    description: Consulta o administra las vidas de los jugadores.
-    usage: "/<command> [jugador|set <jugador> <cantidad>|reset <jugador>]"
-    permission: voranixextremo.vidas
-  pvp:
-    description: Activa o desactiva el PVP del servidor.
-    usage: "/<command> [on|off|toggle]"
-    permission: voranixextremo.pvp
-  dinero:
-    description: Consulta o administra el balance (banco) de los jugadores.
-    usage: "/<command> [pagar <jugador> <cantidad>|dar|quitar|set <jugador> <cantidad>]"
-    permission: voranixextremo.economia
-  banco:
-    description: Convierte monedas físicas en balance y viceversa.
-    usage: "/<command> <depositar|retirar> [cantidad]"
-    permission: voranixextremo.economia
-  moneda:
-    description: Entrega monedas físicas a un jugador.
-    usage: "/<command> dar <jugador> <tipo> [cantidad]"
-    permission: voranixextremo.moneda.admin
-  comida:
-    description: Entrega comida o bebidas a un jugador.
-    usage: "/<command> dar <jugador> <id> [cantidad]"
-    permission: voranixextremo.comida.admin
-  chef:
-    description: Aparece o elimina un aldeano chef que vende comida por monedas.
-    usage: "/<command> <spawn <tienda>|remove>"
-    permission: voranixextremo.chef.admin
-  ruleta:
-    description: Gira la ruleta de eventos (afecta a todo el servidor, se ve en la pantalla de todos).
-    usage: "/<command> [girar|estado|detener]"
-    permission: voranixextremo.ruleta.admin
-  ruletacolor:
-    description: Gira la ruleta de colores en pantalla (con resource pack).
-    usage: "/<command> <girar <color|random> [mensaje]|parar|pack|reload>"
-    permission: voranixextremo.ruletacolor.admin
+# Los comandos (/vidas, /pvp, /dinero, /banco, /moneda, /comida, /chef, /ruleta, /ruletacolor)
+# no van aquí: los registra ACF desde las clases *Command del código.
 
 permissions:
   voranixextremo.vidas:
@@ -74,4 +39,10 @@ permissions:
     default: op
   voranixextremo.ruletacolor.admin:
     description: Permite usar /ruletacolor (ruleta de colores en pantalla).
+    default: op
+  voranixextremo.chat.color:
+    description: Permite usar colores (&c, &#a855f7...) en los mensajes del chat.
+    default: op
+  voranixextremo.admin:
+    description: Permite usar /voranixextremo reload (recargar la configuración).
     default: op
