@@ -369,14 +369,13 @@ ruleta-colores:
   # cualquier comando de servidor (effect, weather, summon, give, etc.), uno por línea. El evento de
   # cada color dura lo que dura el efecto que le pusiste (no hay que "revertirlo" a mano).
   colores:
-    # PELIGRO (fuerte): oscurece y debilita a todo el server.
+    # PVP: si el PVP está activado lo desactiva, y si está desactivado lo activa
+    # (/pvp toggle ya avisa en el chat cómo quedó y toca el sonido de pvp.sound).
     rojo:
       nombre: "<#ff2b2b><bold>ROJO"
-      mensaje: "<red>¡ROJO! La noche se pone en nuestra contra..."
+      mensaje: "<red>¡ROJO! El PVP cambia de estado..."
       comandos:
-        - "effect give @a minecraft:hunger 600 1"
-        - "effect give @a minecraft:darkness 200 0"
-        - "effect give @a minecraft:weakness 400 1"
+        - "pvp toggle"
     # PELIGRO (leve): tormenta eléctrica y a todos les cuesta moverse.
     naranjo:
       nombre: "<#ff8a1c><bold>NARANJO"
