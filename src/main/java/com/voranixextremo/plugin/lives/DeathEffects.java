@@ -1,8 +1,8 @@
 package com.voranixextremo.plugin.lives;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -84,7 +84,7 @@ public class DeathEffects {
         String path = eliminated ? "death-effects.title.eliminated-text" : "death-effects.title.death-text";
         String defaultText = eliminated ? "&4☠ %player% ELIMINADO ☠" : "&c%player% ha muerto";
         String raw = plugin.getConfig().getString(path, defaultText).replace("%player%", deadPlayer.getName());
-        String colored = ChatColor.translateAlternateColorCodes('&', raw);
+        String colored = ColorUtils.color(raw);
 
         for (Player online : Bukkit.getOnlinePlayers()) {
             online.sendTitle(colored, "", TITLE_FADE_IN, TITLE_STAY, TITLE_FADE_OUT);

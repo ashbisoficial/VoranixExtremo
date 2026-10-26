@@ -1,7 +1,7 @@
 package com.voranixextremo.plugin.food;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.ConfigurationSection;
@@ -101,7 +101,7 @@ public class FoodManager {
         ItemStack item = new ItemStack(type.getBaseMaterial());
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', type.getDisplayName()));
+            meta.setDisplayName(ColorUtils.color(type.getDisplayName()));
             if (type.getCustomModelData() != null) {
                 meta.setCustomModelData(type.getCustomModelData());
             }
@@ -115,7 +115,7 @@ public class FoodManager {
         ItemStack item = new ItemStack(Material.POTION);
         PotionMeta meta = (PotionMeta) item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(ChatColor.translateAlternateColorCodes('&', type.getDisplayName()));
+            meta.setDisplayName(ColorUtils.color(type.getDisplayName()));
             if (type.getCustomModelData() != null) {
                 meta.setCustomModelData(type.getCustomModelData());
             }

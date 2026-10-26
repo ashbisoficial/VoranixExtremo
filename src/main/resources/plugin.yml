@@ -4,7 +4,7 @@ main: com.voranixextremo.plugin.VoranixExtremoPlugin
 api-version: '1.20'
 author: ashbisoficial
 description: Plugin base para la serie Voranix Extremo (vidas, PVP, economía y futuras mecánicas de evento).
-softdepend: [Vault]
+softdepend: [Vault, PlaceholderAPI]
 
 # Los comandos (/vidas, /pvp, /dinero, /banco, /moneda, /comida, /chef, /ruleta, /ruletacolor)
 # no van aquí: los registra ACF desde las clases *Command del código.
@@ -39,6 +39,9 @@ permissions:
     default: op
   voranixextremo.ruletacolor.admin:
     description: Permite usar /ruletacolor (ruleta de colores en pantalla).
+    default: op
+  voranixextremo.chat.color:
+    description: Permite usar colores (&c, &#a855f7...) en los mensajes del chat.
     default: op
   voranixextremo.admin:
     description: Permite usar /voranixextremo reload (recargar la configuración).

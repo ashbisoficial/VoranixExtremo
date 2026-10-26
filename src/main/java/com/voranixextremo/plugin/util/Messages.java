@@ -1,7 +1,7 @@
 package com.voranixextremo.plugin.util;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -20,7 +20,7 @@ public final class Messages {
         for (int i = 0; i + 1 < replacements.length; i += 2) {
             message = message.replace(replacements[i], replacements[i + 1]);
         }
-        return ChatColor.translateAlternateColorCodes('&', message);
+        return ColorUtils.color(message);
     }
 
     public static void send(CommandSender sender, Plugin plugin, String path, String... replacements) {

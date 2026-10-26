@@ -5,6 +5,7 @@ import co.aikar.commands.BukkitCommandManager;
 import co.aikar.commands.CommandCompletions;
 import co.aikar.commands.MessageKeys;
 import co.aikar.commands.MinecraftMessageKeys;
+import com.voranixextremo.plugin.chatsystem.Chat;
 import com.voranixextremo.plugin.economy.BankCommand;
 import com.voranixextremo.plugin.economy.BankService;
 import com.voranixextremo.plugin.economy.CoinCommand;
@@ -56,6 +57,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     private FoodManager foodManager;
     private ShopManager shopManager;
     private WorldEventManager worldEventManager;
+    private Chat chat;
     private BukkitCommandManager commandManager;
 
     @Override
@@ -83,6 +85,8 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new FoodConsumeListener(this, foodManager), this);
         getServer().getPluginManager().registerEvents(new RedMoonListener(worldEventManager), this);
         getServer().getPluginManager().registerEvents(new TotemPop(this), this);
+        this.chat = new Chat(this);
+        getServer().getPluginManager().registerEvents(chat, this);
 
         this.ruletaManager = new RuletaManager(this);
         this.ruletaPackManager = new RuletaPackManager(this, ruletaManager);
@@ -156,6 +160,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         ruletaPackManager.stop();
         ruletaPackManager.start();
         configurarMensajesComandos();
+        chat.load();
     }
 
     private void registerVaultIfPresent() {

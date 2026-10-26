@@ -1,8 +1,8 @@
 package com.voranixextremo.plugin.totem;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -31,6 +31,6 @@ public class TotemPop implements Listener {
         if (mensaje == null || mensaje.isBlank()) {
             return;
         }
-        Bukkit.broadcastMessage(ChatColor.translateAlternateColorCodes('&', mensaje.replace("%usuario%", player.getName())));
+        Bukkit.broadcastMessage(ColorUtils.color(mensaje.replace("%usuario%", player.getName())));
     }
 }

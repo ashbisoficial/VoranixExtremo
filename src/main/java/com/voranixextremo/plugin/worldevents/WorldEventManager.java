@@ -1,11 +1,11 @@
 package com.voranixextremo.plugin.worldevents;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import com.voranixextremo.plugin.lives.LivesManager;
 import com.voranixextremo.plugin.pvp.PvpManager;
 import com.voranixextremo.plugin.util.Messages;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -173,7 +173,7 @@ public class WorldEventManager {
 
         int nextElapsed = elapsedTicks + SPIN_INTERVALS_TICKS[stepIndex];
         bossBar.setColor(flash.getCategory().getBarColor());
-        bossBar.setTitle(ChatColor.translateAlternateColorCodes('&', flash.getCategory().getChatColorCode() + flash.getDisplayName()));
+        bossBar.setTitle(ColorUtils.color(flash.getCategory().getChatColorCode() + flash.getDisplayName()));
         bossBar.setProgress(Math.max(0.0, 1.0 - (double) nextElapsed / totalTicks));
 
         plugin.getServer().getScheduler().runTaskLater(plugin,
@@ -182,7 +182,7 @@ public class WorldEventManager {
     }
 
     private void showFrameToEveryone(WorldEventOutcome outcome, boolean isFinal) {
-        String colored = ChatColor.translateAlternateColorCodes('&', outcome.getCategory().getChatColorCode() + outcome.getDisplayName());
+        String colored = ColorUtils.color(outcome.getCategory().getChatColorCode() + outcome.getDisplayName());
         // tiempos en ticks: el resultado queda 1,6 s y se va en 0,5 s; cada "tic" dura 0,3 s
         int stay = isFinal ? 32 : 6, fadeOut = isFinal ? 10 : 0;
         Sound sound = isFinal ? Sound.ENTITY_PLAYER_LEVELUP : Sound.UI_BUTTON_CLICK;
@@ -300,8 +300,8 @@ public class WorldEventManager {
     private void announceRevillStart(WorldEventOutcome outcome) {
         Messages.broadcast(plugin, "revill-objective", "%objetivo%", outcome.getObjectiveDescription());
 
-        String titleText = ChatColor.translateAlternateColorCodes('&', "&4&l¡MOMENTO REVILL!");
-        String subtitleText = ChatColor.translateAlternateColorCodes('&', "&c" + outcome.getObjectiveDescription());
+        String titleText = ColorUtils.color("&4&l¡MOMENTO REVILL!");
+        String subtitleText = ColorUtils.color("&c" + outcome.getObjectiveDescription());
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.sendTitle(titleText, subtitleText, 6, 60, 10);
@@ -335,7 +335,7 @@ public class WorldEventManager {
         if (revillCountdownBar == null) {
             return;
         }
-        String title = ChatColor.translateAlternateColorCodes('&',
+        String title = ColorUtils.color(
                 "&c&l¡REVILL! &r&f" + outcome.getObjectiveDescription() + " &7(" + remainingSeconds + "s)");
         revillCountdownBar.setTitle(title);
         revillCountdownBar.setProgress(Math.max(0.0, (double) remainingSeconds / totalSeconds));

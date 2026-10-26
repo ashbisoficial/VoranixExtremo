@@ -1,6 +1,7 @@
 package com.voranixextremo.plugin.ruleta;
 
 import com.google.gson.Gson;
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
@@ -341,10 +342,14 @@ public final class RuletaManager {
         return parse(prefix + config().getString("mensajes." + key, key));
     }
 
-    /** Acepta MiniMessage (<red>) o códigos clásicos (&c). */
+    /** Lee los §x§r§r§g§g§b§b que deja ColorUtils para los colores hex. */
+    private static final LegacyComponentSerializer LEGACY_HEX = LegacyComponentSerializer.builder()
+            .character(LegacyComponentSerializer.SECTION_CHAR).hexColors().useUnusualXRepeatedCharacterHexFormat().build();
+
+    /** Acepta MiniMessage (<red>) o códigos clásicos con & y hex (&c, &#ff8a1c, {#ff8a1c}) vía ColorUtils. */
     static Component parse(String s) {
         if (s == null || s.isEmpty()) return Component.empty();
-        if (s.indexOf('&') >= 0 && s.indexOf('<') < 0) return LegacyComponentSerializer.legacyAmpersand().deserialize(s);
+        if ((s.indexOf('&') >= 0 || s.contains("{#")) && s.indexOf('<') < 0) return LEGACY_HEX.deserialize(ColorUtils.color(s));
         return MM.deserialize(s);
     }
 

@@ -38,6 +38,10 @@
             <id>aikar</id>
             <url>https://repo.aikar.co/content/groups/aikar/</url>
         </repository>
+        <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.extendedclip.com/releases/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -61,6 +65,14 @@
         </dependency>
         <!-- Spigot no trae Adventure (lo trae Paper). La ruleta de colores lo necesita para mandar
              el title con su fuente propia, así que va metido dentro del jar (ver maven-shade-plugin). -->
+        <!-- PlaceholderAPI: opcional. Si está instalado en el servidor, el formato del chat
+             (chat.yml) acepta sus placeholders, ej. %luckperms_prefix%. -->
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.6</version>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-api</artifactId>

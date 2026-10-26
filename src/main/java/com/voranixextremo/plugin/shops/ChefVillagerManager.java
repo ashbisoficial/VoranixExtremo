@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.shops;
 
+import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import com.voranixextremo.plugin.economy.CoinEconomy;
 import com.voranixextremo.plugin.economy.CoinItemFactory;
@@ -7,7 +8,6 @@ import com.voranixextremo.plugin.economy.CoinType;
 import com.voranixextremo.plugin.economy.EconomyManager;
 import com.voranixextremo.plugin.food.FoodManager;
 import com.voranixextremo.plugin.food.FoodType;
-import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Entity;
@@ -43,7 +43,7 @@ public class ChefVillagerManager {
     public Villager spawn(ShopType shop, Location location) {
         Villager villager = location.getWorld().spawn(location, Villager.class);
         villager.setProfession(shop.getProfession());
-        villager.setCustomName(ChatColor.translateAlternateColorCodes('&', shop.getDisplayName()));
+        villager.setCustomName(ColorUtils.color(shop.getDisplayName()));
         villager.setCustomNameVisible(true);
         villager.setInvulnerable(true);
         villager.setPersistent(true);
