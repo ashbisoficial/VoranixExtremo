@@ -43,6 +43,9 @@ permissions:
   voranixextremo.chat.color:
     description: Permite usar colores (&c, &#a855f7...) en los mensajes del chat.
     default: op
+  voranixextremo.team:
+    description: Permite usar /team (crear y unirse a teams).
+    default: true
   voranixextremo.admin:
     description: Permite usar /voranixextremo reload (recargar la configuración).
     default: op

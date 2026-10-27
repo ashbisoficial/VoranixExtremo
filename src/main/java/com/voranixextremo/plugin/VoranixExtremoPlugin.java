@@ -5,7 +5,12 @@ import co.aikar.commands.BukkitCommandManager;
 import co.aikar.commands.CommandCompletions;
 import co.aikar.commands.MessageKeys;
 import co.aikar.commands.MinecraftMessageKeys;
+import com.github.retrooper.packetevents.PacketEvents;
 import com.voranixextremo.plugin.chatsystem.Chat;
+import com.voranixextremo.plugin.teamsystem.TeamCommand;
+import com.voranixextremo.plugin.teamsystem.TeamManager;
+import com.voranixextremo.plugin.teamsystem.TeamNametag;
+import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
 import com.voranixextremo.plugin.economy.BankCommand;
 import com.voranixextremo.plugin.economy.BankService;
 import com.voranixextremo.plugin.economy.CoinCommand;
@@ -58,11 +63,24 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     private ShopManager shopManager;
     private WorldEventManager worldEventManager;
     private Chat chat;
+    private TeamManager teamManager;
+    private TeamNametag teamNametag;
     private BukkitCommandManager commandManager;
+
+    @Override
+    public void onLoad() {
+        // PacketEvents (metido dentro del jar) se prepara en onLoad, antes que el resto
+        PacketEvents.setAPI(SpigotPacketEventsBuilder.build(this));
+        // reEncodeByDefault(false): un paquete que solo se lee no se vuelve a escribir. Si no, cualquier
+        // entidad que PacketEvents no reconozca al leerla rompía la conexión del jugador al reescribirla.
+        PacketEvents.getAPI().getSettings().checkForUpdates(false).bStats(false).reEncodeByDefault(false);
+        PacketEvents.getAPI().load();
+    }
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        PacketEvents.getAPI().init();
 
         this.livesManager = new LivesManager(this);
         this.pvpManager = new PvpManager(this);
@@ -87,6 +105,13 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TotemPop(this), this);
         this.chat = new Chat(this);
         getServer().getPluginManager().registerEvents(chat, this);
+
+        // Teams: datos y config (team.yml), el nombre bajo el nametag y el chat del team
+        this.teamManager = new TeamManager(this);
+        this.teamNametag = new TeamNametag(this, teamManager);
+        teamManager.setAlCambiar(teamNametag::actualizar);
+        teamNametag.start();
+        chat.setTeams(teamManager);
 
         this.ruletaManager = new RuletaManager(this);
         this.ruletaPackManager = new RuletaPackManager(this, ruletaManager);
@@ -119,6 +144,8 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         commandManager.registerCommand(new WorldEventCommand(this, worldEventManager));
         commandManager.registerCommand(new RuletaCommand(this, ruletaManager, ruletaPackManager));
         commandManager.registerCommand(new VoranixExtremoCommand(this));
+        completions.registerCompletion("teams", c -> teamManager.getNombres());
+        commandManager.registerCommand(new TeamCommand(teamManager));
 
         registerVaultIfPresent();
 
@@ -161,6 +188,8 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         ruletaPackManager.start();
         configurarMensajesComandos();
         chat.load();
+        teamManager.reloadConfig();
+        teamNametag.refrescarTodo();
     }
 
     private void registerVaultIfPresent() {
@@ -196,6 +225,13 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         if (ruletaPackManager != null) {
             ruletaPackManager.stop();
         }
+        if (teamNametag != null) {
+            teamNametag.stop();
+        }
+        if (teamManager != null) {
+            teamManager.save();
+        }
+        PacketEvents.getAPI().terminate();
     }
 
     public LivesManager getLivesManager() {

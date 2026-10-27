@@ -1,0 +1,89 @@
+# Sistema de teams de VoranixExtremo
+#
+# Comandos:
+#   /team create <nombre>     crea un team (quedas como líder)
+#   /team invite <jugador>    invita a alguien (solo el líder)
+#   /team accept <team>       acepta una invitación
+#   /team leave               sales del team
+#   /team kick <jugador>      expulsa a alguien (solo el líder)
+#   /team disband             disuelve el team (solo el líder)
+#   /team info [team]         muestra los integrantes
+#   /team list                lista todos los teams
+#   /team chat join|leave     entras o sales del chat del team
+#   /team help                muestra la ayuda (se edita abajo, en "ayuda")
+#
+# Colores: &c, &l... y hex con &#a855f7 o {#a855f7}.
+# Después de editar, usa /voranixextremo reload.
+
+team:
+  # Cuántos jugadores entran en un team, contando al líder
+  capacidad: 3
+  # Segundos que dura una invitación antes de expirar
+  invitacion-segundos: 60
+  # Largo permitido del nombre (solo letras, números y _)
+  nombre-min: 3
+  nombre-max: 16
+
+nametag:
+  # Muestra el nombre del team debajo del nombre de cada integrante
+  enabled: true
+  # %team% = nombre del team
+  formato: "&b%team%"
+  # Altura del texto respecto al jugador: súbela o bájala si queda pegado o separado del nombre
+  altura: 0.6
+
+chat:
+  # Formato del chat del team (/team chat join). %team%, %player% y %message%.
+  # Si PlaceholderAPI está instalado, también sirven sus placeholders.
+  formato: "&8[&bTeam &f%team%&8] &f%player%&7: &f%message%"
+
+# Lo que muestra /team help (y /team solo). Una línea por renglón; "" deja una línea en blanco.
+ayuda:
+  - "&8&m                                                    "
+  - "  &b&lTEAMS &8» &7Comandos disponibles"
+  - ""
+  - " &b/team create &f<nombre> &8- &7Crea tu propio team"
+  - " &b/team invite &f<jugador> &8- &7Invita a alguien &8(líder)"
+  - " &b/team accept &f<team> &8- &7Acepta una invitación"
+  - " &b/team leave &8- &7Sales de tu team"
+  - " &b/team kick &f<jugador> &8- &7Expulsa a alguien &8(líder)"
+  - " &b/team disband &8- &7Disuelve el team &8(líder)"
+  - " &b/team info &f[team] &8- &7Muestra los integrantes"
+  - " &b/team list &8- &7Lista todos los teams"
+  - " &b/team chat &fjoin&7/&fleave &8- &7Entra o sale del chat del team"
+  - ""
+  - "  &7Capacidad por team: &f%max% &7jugadores"
+  - "&8&m                                                    "
+
+mensajes:
+  prefijo: "&8[&bTeam&8] &7"
+  creado: "&aCreaste el team &f%team%&a."
+  ya-en-team: "&cYa estás en un team. Sal con &f/team leave&c."
+  nombre-invalido: "&cEl nombre debe tener entre %min% y %max% caracteres (letras, números o _)."
+  nombre-usado: "&cYa existe un team llamado &f%team%&c."
+  sin-team: "&cNo estás en ningún team."
+  solo-lider: "&cSolo el líder del team puede hacer eso."
+  jugador-ya-en-team: "&f%player% &cya está en un team."
+  team-lleno: "&cEl team está lleno (máximo %max% jugadores)."
+  no-a-ti: "&cNo puedes hacerte eso a ti mismo."
+  invitacion-enviada: "&aInvitaste a &f%player%&a. Tiene %segundos% segundos para aceptar."
+  invitacion-recibida: "&f%player% &7te invitó al team &b%team%&7. Usa &f/team accept %team% &7para unirte."
+  ya-invitado: "&f%player% &cya tiene una invitación de tu team."
+  sin-invitacion: "&cNo tienes una invitación del team &f%team% &c(o ya expiró)."
+  team-no-existe: "&cNo existe el team &f%team%&c."
+  unido: "&f%player% &ase unió al team."
+  saliste: "&7Saliste del team &f%team%&7."
+  salio: "&f%player% &7salió del team."
+  nuevo-lider: "&f%player% &7es el nuevo líder del team."
+  expulsado: "&cFuiste expulsado del team &f%team%&c."
+  expulsaste: "&7Expulsaste a &f%player% &7del team."
+  no-miembro: "&f%player% &cno es de tu team."
+  disuelto: "&cEl team &f%team% &cfue disuelto."
+  chat-join: "&aAhora hablas en el chat del team. Usa &f/team chat leave &apara volver al chat general."
+  chat-leave: "&7Volviste al chat general."
+  info-titulo: "&bTeam &f%team% &8(%cantidad%/%max%)"
+  info-lider: "&7Líder: &f%player%"
+  info-miembros: "&7Integrantes: &f%miembros%"
+  lista-titulo: "&bTeams del servidor &8(%cantidad%)&b:"
+  lista-vacia: "&7Todavía no hay teams."
+  lista-linea: "&8- &f%team% &7(%cantidad%/%max%)"
