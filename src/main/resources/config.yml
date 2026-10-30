@@ -363,69 +363,32 @@ ruleta-colores:
     final: "minecraft:entity.player.levelup"
 
   # Nombre de cada color de la ruleta (el orden de los colores viene en el resource pack: 8 colores -
-  # rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa).
+  # rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa). Quedan SIN mensaje y SIN comandos a propósito:
+  # la idea es que producción los cargue/cambie cada día antes del stream (ver "Cómo cargar los eventos
+  # del día" en el README), no que queden fijos en el código. Mientras estén vacíos, /ruletacolor girar
+  # <color> solo gira y muestra el nombre, sin ejecutar nada ni mandar un mensaje especial.
+  #
+  # "mensaje" (opcional): texto de broadcast propio de ese color (si no está, usa mensajes.broadcast).
   # "comandos" (opcional, lista): se ejecutan por CONSOLA -con permisos completos, igual que /ruleta-
   # en el instante en que la ruleta cae en ese color (antes de que tiemble y desaparezca). Podés poner
-  # cualquier comando de servidor (effect, weather, summon, give, etc.), uno por línea. El evento de
-  # cada color dura lo que dura el efecto que le pusiste (no hay que "revertirlo" a mano).
+  # cualquier comando de servidor (effect, weather, summon, give, pvp toggle, etc.), uno por línea.
   colores:
-    # PVP: si el PVP está activado lo desactiva, y si está desactivado lo activa
-    # (/pvp toggle ya avisa en el chat cómo quedó y toca el sonido de pvp.sound).
     rojo:
       nombre: "<#ff2b2b><bold>ROJO"
-      mensaje: "<red>¡ROJO! El PVP cambia de estado..."
-      comandos:
-        - "pvp toggle"
-    # PELIGRO (leve): tormenta eléctrica y a todos les cuesta moverse.
     naranjo:
       nombre: "<#ff8a1c><bold>NARANJO"
-      mensaje: "<gold>¡NARANJO! Se viene tormenta."
-      comandos:
-        - "weather thunder"
-        - "effect give @a minecraft:slowness 200 0"
-    # NEUTRAL: solo caos cómico, no hace daño de verdad.
     amarillo:
       nombre: "<#ffe12b><bold>AMARILLO"
-      mensaje: "<yellow>¡AMARILLO! Un poco de mareo para todos."
-      comandos:
-        - "effect give @a minecraft:nausea 200 0"
-        - "effect give @a minecraft:jump_boost 200 1"
-    # BUENO: regeneración y saciedad para todo el server.
     verde:
       nombre: "<#2bd94a><bold>VERDE"
-      mensaje: "<green>¡VERDE! El bosque nos cura."
-      comandos:
-        - "effect give @a minecraft:regeneration 300 1"
-        - "effect give @a minecraft:saturation 5 0"
-    # BUENO (acuático): respirar bajo el agua y nadar como un delfín un rato.
     celeste:
       nombre: "<#2be4ff><bold>CELESTE"
-      mensaje: "<aqua>¡CELESTE! El agua nos protege."
-      comandos:
-        - "effect give @a minecraft:water_breathing 600 0"
-        - "effect give @a minecraft:dolphins_grace 600 0"
-    # BUENO (calma): despeja el cielo y da resistencia + visión nocturna.
     azul:
       nombre: "<#2b8cff><bold>AZUL"
-      mensaje: "<blue>¡AZUL! Calma y claridad."
-      comandos:
-        - "weather clear"
-        - "effect give @a minecraft:resistance 300 0"
-        - "effect give @a minecraft:night_vision 300 0"
-    # PELIGRO (raro): flotás sin control un rato (sin caída letal al terminar).
     morado:
       nombre: "<#6a3bff><bold>MORADO"
-      mensaje: "<dark_purple>¡MORADO! Algo tira de todos hacia arriba..."
-      comandos:
-        - "effect give @a minecraft:levitation 100 0"
-        - "effect give @a minecraft:slow_falling 200 0"
-    # BUENO (suerte): buena suerte + mejores precios con los aldeanos (Héroe de la Aldea).
     rosa:
       nombre: "<#e02bff><bold>ROSA"
-      mensaje: "<light_purple>¡ROSA! La suerte está de nuestro lado."
-      comandos:
-        - "effect give @a minecraft:luck 600 1"
-        - "effect give @a minecraft:hero_of_the_village 600 0"
 
   mensajes:
     prefijo: "<dark_gray>[<gold>Ruleta<dark_gray>] <gray>"
