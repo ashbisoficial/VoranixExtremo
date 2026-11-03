@@ -14,7 +14,10 @@ public final class Messages {
     public static String get(Plugin plugin, String path, String... replacements) {
         FileConfiguration config = plugin.getConfig();
         String prefix = config.getString("messages.prefix", "");
-        String raw = config.getString("messages." + path, path);
+        // sin valor por defecto explícito: así un mensaje que falte en un config.yml viejo se toma del
+        // config.yml que trae el plugin (con getString(path, path) se mostraba el nombre del mensaje)
+        String raw = config.getString("messages." + path);
+        if (raw == null) raw = path;
 
         String message = prefix + raw;
         for (int i = 0; i + 1 < replacements.length; i += 2) {

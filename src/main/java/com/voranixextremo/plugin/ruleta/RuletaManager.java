@@ -56,8 +56,9 @@ public final class RuletaManager {
     /** Lo que trae el resource pack; lo escribe tools/ruleta/GenerarRuleta.java. */
     private record Layout(int disco, int discoFrames, int borroso, int borrosoFrames, int fijo,
                           int fuego, int fuegoFrames, int fuegoTicks, int flecha, int flechaFrames,
-                          int tinte, int tinteNiveles, int entrada, int entradaFrames, int salida, int salidaFrames,
-                          int mover, int juntar, int atras, List<String> segmentos) {}
+                          int tinte, int tinteNiveles, int entrada, int entradaFrames, List<Integer> entradaPiezas,
+                          int salida, int salidaFrames, List<Integer> salidaPiezas,
+                          int mover, int juntar, int atras, int atrasAmplio, List<String> segmentos) {}
 
     private record RuletaColor(String id, String nombre, String mensaje, List<String> comandos) {}
 
@@ -157,7 +158,8 @@ public final class RuletaManager {
             public void run() {
                 if (tick < entrada) {
                     // aparece chica, se pasa un poco de tamaño y se endereza
-                    show(new Capas().una(layout.entrada() + tick * layout.entradaFrames() / ENTRADA), 0);
+                    int f = tick * layout.entradaFrames() / ENTRADA;
+                    show(new Capas().amplia(layout.entrada() + 4 * f, layout.entradaPiezas().get(f)), 0);
                 } else if (tick - entrada < pos.length) {
                     int s = tick - entrada;
                     double p = pos[s];
@@ -191,7 +193,8 @@ public final class RuletaManager {
                     if (r >= salida) {
                         // se achica girando y se desvanece
                         int f = Math.min(layout.salidaFrames() - 1, (r - salida) * layout.salidaFrames() / SALIDA);
-                        show(new Capas().una(layout.salida() + segmento * layout.salidaFrames() + f), 0);
+                        int i = segmento * layout.salidaFrames() + f;
+                        show(new Capas().amplia(layout.salida() + 4 * i, layout.salidaPiezas().get(i)), 0);
                     } else {
                         // se tiñe del color ganador; después tiembla latiendo, cada vez más fuerte
                         int nivel = Math.min(layout.tinteNiveles() - 2, r * (layout.tinteNiveles() - 1) / TENIR);
@@ -239,6 +242,20 @@ public final class RuletaManager {
         Capas una(int c) {
             if (!sb.isEmpty()) sb.appendCodePoint(layout.atras());
             sb.appendCodePoint(c);
+            return this;
+        }
+
+        /**
+         * Un fotograma de la entrada o la salida (va solo, sin otras capas): en 1 pieza si es chico, o
+         * en 4 piezas a resolución completa (su recuadro es más grande, por eso vuelve con atrasAmplio).
+         */
+        Capas amplia(int c, int piezas) {
+            if (piezas == 1) {
+                sb.appendCodePoint(c);
+            } else {
+                sb.appendCodePoint(c).appendCodePoint(layout.juntar()).appendCodePoint(c + 1).appendCodePoint(layout.atrasAmplio())
+                        .appendCodePoint(c + 2).appendCodePoint(layout.juntar()).appendCodePoint(c + 3);
+            }
             return this;
         }
 

@@ -97,15 +97,30 @@ public class TeamManager {
     }
 
     public double getAlturaNametag() {
-        return config.getDouble("nametag.altura", 0.6);
+        // el texto queda montado a 1,35 bloques (3/4 del alto del jugador) y el nombre ocupa de 2,07 a 2,3:
+        // con 0,45 el texto (0,25 de alto) va de 1,80 a 2,05, justo debajo del nombre
+        return config.getDouble("nametag.altura", 0.45);
+    }
+
+    /** Separación entre líneas del texto sobre el jugador (cada línea es un texto con su propio fondo). */
+    public double getEspacioLineas() {
+        return config.getDouble("nametag.espacio-lineas", 0.26);
     }
 
     /** Texto bajo el nombre para un team (ya con colores), o null si está desactivado. */
-    public String getTextoNametag(Team team) {
+    public String getTextoNametag(Player player, Team team) {
         if (!isNametagEnabled()) {
             return null;
         }
-        return ColorUtils.color(config.getString("nametag.formato", "&b%team%").replace("%team%", team.getName()));
+        // el cliente no dibuja el nombre de un jugador que lleva algo montado (el texto del team),
+        // así que el texto trae las dos líneas: el nombre del jugador y debajo el team
+        List<String> lineas = config.getStringList("nametag.lineas");
+        if (lineas.isEmpty()) lineas = List.of("&f%player%", "&b%team%");
+        List<String> coloreadas = new ArrayList<>();
+        for (String linea : lineas) {
+            coloreadas.add(ColorUtils.color(linea.replace("%player%", player.getName()).replace("%team%", team.getName())));
+        }
+        return String.join("\n", coloreadas);
     }
 
     public String getFormatoChat() {

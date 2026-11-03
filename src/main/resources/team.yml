@@ -25,12 +25,21 @@ team:
   nombre-max: 16
 
 nametag:
-  # Muestra el nombre del team debajo del nombre de cada integrante
+  # Muestra el nombre del team debajo del nombre de cada integrante:
+  #   NombreJugador
+  #   NombreDelTeam
+  # Minecraft esconde el nombre normal de un jugador que lleva algo montado (y el texto del team
+  # va montado sobre él), por eso el plugin dibuja las dos líneas. %player% = jugador, %team% = team.
   enabled: true
-  # %team% = nombre del team
-  formato: "&b%team%"
-  # Altura del texto respecto al jugador: súbela o bájala si queda pegado o separado del nombre
-  altura: 0.6
+  lineas:
+    - "&f%player%"
+    - "&b%team%"
+  # Cada línea va con su propio fondo, a la medida de su texto (como nametags apilados).
+  # Altura de la última línea: con 0.45 el nombre queda justo donde va el nametag normal y el team
+  # debajo. Súbela (0.5) o bájala (0.4) si lo quieres más arriba o más abajo.
+  altura: 0.45
+  # Separación entre líneas: más alto = más separadas, más bajo = más juntas
+  espacio-lineas: 0.26
 
 chat:
   # Formato del chat del team (/team chat join). %team%, %player% y %message%.

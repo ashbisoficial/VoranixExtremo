@@ -39,7 +39,6 @@ import com.voranixextremo.plugin.shops.ChefVillagerManager;
 import com.voranixextremo.plugin.shops.ShopManager;
 import com.voranixextremo.plugin.totem.TotemPop;
 import com.voranixextremo.plugin.util.Messages;
-import com.voranixextremo.plugin.util.ResourcePackListener;
 import com.voranixextremo.plugin.voranixextremo.VoranixExtremoCommand;
 import com.voranixextremo.plugin.worldevents.RedMoonListener;
 import com.voranixextremo.plugin.worldevents.WorldEventCommand;
@@ -99,7 +98,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager), this);
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);
-        getServer().getPluginManager().registerEvents(new ResourcePackListener(this), this);
         getServer().getPluginManager().registerEvents(new FoodConsumeListener(this, foodManager), this);
         getServer().getPluginManager().registerEvents(new RedMoonListener(worldEventManager), this);
         getServer().getPluginManager().registerEvents(new TotemPop(this), this);
@@ -232,6 +230,10 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
             teamManager.save();
         }
         PacketEvents.getAPI().terminate();
+    }
+
+    public RuletaPackManager getRuletaPackManager() {
+        return ruletaPackManager;
     }
 
     public LivesManager getLivesManager() {

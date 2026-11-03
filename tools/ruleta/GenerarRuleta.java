@@ -4,7 +4,9 @@ import java.awt.geom.Path2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.nio.file.*;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
 
@@ -74,17 +76,18 @@ public class GenerarRuleta {
     static final int ALTO_AMPLIO = 82;
     static final double AMPLIO = ALTO_AMPLIO / (2.0 * GenerarRuleta.PIEZA);
     static final int ENTRADA = 24;               // uno por tick: 1,2 s como en el HTML
-    static final int SALIDA = 15;                // uno por tick: 0,75 s
+    static final int SALIDA = 10;                // 0,75 s (15 ticks): a resolución completa ocupan mucho, así que 10 alcanzan
     // Cada pieza mide PIEZA de alto; el title la dibuja a 4x, así la ruleta completa mide 2 * 32 * 4 = 256 px de GUI.
     // Con escala de GUI 2 eso son 512 px de pantalla: justo la resolución de las capas (se ve nítida, 1 a 1).
     // La fila de arriba usa ascent = alto (el máximo que acepta Minecraft) y la de abajo 0.
     static final int PIEZA = 32;
     // Caracteres: los de 4 piezas usan 4 seguidos (arriba-izq, arriba-der, abajo-izq, abajo-der)
     static final int CH_DISCO = 0xE000, CH_FUEGO = 0xE100, CH_FIJO = 0xE180, CH_FLECHA = 0xE184, CH_BORROSO = 0xE1A0,
-            CH_TINTE = 0xE200, CH_ENTRADA = 0xE2A0, CH_SALIDA = 0xE2C0;
+            CH_TINTE = 0xE200, CH_ENTRADA = 0xE2A0, CH_SALIDA = 0xE300;
     static final int CH_MOVER = 0xE1F0;          // 5 espacios: corren la ruleta -2, -1, 0, 1 y 2 (para el temblor)
     static final int CH_JUNTAR = 0xE1FE;         // -1: pega la pieza derecha a la izquierda (sin el espacio de 1 px)
     static final int CH_ATRAS = 0xE1FF;          // vuelve al inicio de la fila: -(2 * PIEZA + 1)
+    static final int CH_ATRAS_AMPLIO = 0xE1FD;   // lo mismo para la entrada/salida en 4 piezas: -(ALTO_AMPLIO + 1)
 
     static BufferedImage src, plate, mascara, mascaraFija;
     static double[] radio = new double[3600];    // borde del disco cada 0,1 grados
@@ -112,6 +115,7 @@ public class GenerarRuleta {
         StringBuilder json = new StringBuilder("{\n  \"providers\": [\n");
         json.append(String.format("    {\"type\": \"space\", \"advances\": {\"\\u%04X\": %d, \"\\u%04X\": %d, \"\\u%04X\": -2, \"\\u%04X\": -1, \"\\u%04X\": 0, \"\\u%04X\": 1, \"\\u%04X\": 2}}",
                 CH_JUNTAR, -1, CH_ATRAS, -(2 * PIEZA + 1), CH_MOVER, CH_MOVER + 1, CH_MOVER + 2, CH_MOVER + 3, CH_MOVER + 4));
+        json.append(String.format(",\n    {\"type\": \"space\", \"advances\": {\"\\u%04X\": %d}}", CH_ATRAS_AMPLIO, -(ALTO_AMPLIO + 1)));
 
         // disco nítido
         BufferedImage disco0 = null;
@@ -167,24 +171,28 @@ public class GenerarRuleta {
         }
         log("tinte");
 
-        // entrada: aparece chica, se pasa un poco de tamaño y se endereza
+        // entrada: aparece chica, se pasa un poco de tamaño y se endereza (a resolución completa)
         BufferedImage[] entradas = new BufferedImage[ENTRADA];
+        List<Integer> piezasEntrada = new ArrayList<>();
         for (int i = 0; i < ENTRADA; i++) {
             double e = (i + 0.5) / 20.0, p = clamp(e / 1.2);
             double s = 0.15 + 0.85 * easeBack(p), o = clamp(e / 0.4), rz = (1 - inOut(p)) * -14;
-            entradas[i] = render(MEDIA, transformar((x, y) -> completa(x, y, -1), s, rz, o), AMPLIO);
-            json.append(glifoRecortado(tex, String.format("entrada_%02d", i), entradas[i], CH_ENTRADA + i, ALTO_AMPLIO));
+            entradas[i] = render(SIZE, transformar((x, y) -> completa(x, y, -1), s, rz, o), AMPLIO);
+            piezasEntrada.add(glifoAmplio(json, tex, String.format("entrada_%02d", i), entradas[i], CH_ENTRADA + 4 * i));
         }
         log("entrada");
 
-        // salida: teñida del color ganador, se achica girando y se desvanece
+        // salida: teñida del color ganador, se achica girando y se desvanece (a resolución completa)
         BufferedImage[][] salidas = new BufferedImage[SEG][SALIDA];
+        List<Integer> piezasSalida = new ArrayList<>();
         for (int k = 0; k < SEG; k++) for (int i = 0; i < SALIDA; i++) {
             int kk = k;
-            double e = (i + 0.5) / 20.0, p = clamp(e / 0.75);
+            double e = (i + 0.5) * 15.0 / SALIDA / 20.0, p = clamp(e / 0.75);
             double s = Math.max(0.03, 1 - 0.97 * easeInBack(p)), o = 1 - inOut(p * 1.15), rz = p * 18;
-            salidas[k][i] = render(MEDIA, transformar((x, y) -> completa(x, y, kk), s, rz, o), AMPLIO);
-            json.append(glifoRecortado(tex, String.format("salida_%d_%02d", k, i), salidas[k][i], CH_SALIDA + k * SALIDA + i, ALTO_AMPLIO));
+            // lo que ya casi no se ve (menos de 10 %) queda vacío: así no gasta 4 piezas de memoria
+            salidas[k][i] = o < 0.1 ? new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB)
+                    : render(SIZE, transformar((x, y) -> completa(x, y, kk), s, rz, o), AMPLIO);
+            piezasSalida.add(glifoAmplio(json, tex, String.format("salida_%d_%02d", k, i), salidas[k][i], CH_SALIDA + 4 * (k * SALIDA + i)));
         }
         log("salida");
 
@@ -215,13 +223,14 @@ public class GenerarRuleta {
                   "fuego": %d, "fuegoFrames": %d, "fuegoTicks": %d,
                   "flecha": %d, "flechaFrames": %d,
                   "tinte": %d, "tinteNiveles": %d,
-                  "entrada": %d, "entradaFrames": %d,
-                  "salida": %d, "salidaFrames": %d,
-                  "mover": %d, "juntar": %d, "atras": %d,
+                  "entrada": %d, "entradaFrames": %d, "entradaPiezas": %s,
+                  "salida": %d, "salidaFrames": %d, "salidaPiezas": %s,
+                  "mover": %d, "juntar": %d, "atras": %d, "atrasAmplio": %d,
                   "segmentos": [%s]
                 }
                 """, CH_DISCO, DISCO, CH_BORROSO, BORROSO, CH_FIJO, CH_FUEGO, FUEGO, FUEGO_TICKS, CH_FLECHA, FLECHA_ANG.length,
-                CH_TINTE, TINTE.length, CH_ENTRADA, ENTRADA, CH_SALIDA, SALIDA, CH_MOVER, CH_JUNTAR, CH_ATRAS, orden()));
+                CH_TINTE, TINTE.length, CH_ENTRADA, ENTRADA, piezasEntrada, CH_SALIDA, SALIDA, piezasSalida,
+                CH_MOVER, CH_JUNTAR, CH_ATRAS, CH_ATRAS_AMPLIO, orden()));
 
         if (vista != null) vistaPrevia(vista, disco0, borroso0, fijo0, fuegos, flechas, tintes, entradas, salidas);
         System.out.println("Pack listo -> " + root.toAbsolutePath());
@@ -581,6 +590,38 @@ public class GenerarRuleta {
         guardar(img, tex.resolve(name + ".png"));
         return String.format(",\n    {\"type\": \"bitmap\", \"file\": \"ruleta:font/%s.png\", \"height\": %d, \"ascent\": %d, \"chars\": [\"\\u%04X\"]}",
                 name, alto, alto / 2, ch);
+    }
+
+    /**
+     * Un fotograma de la entrada o la salida (dibujado a 512 px en el recuadro amplio) a resolución
+     * completa. Si recortando el borde transparente cabe en 256 px, va en 1 pieza; si no, en 4 piezas
+     * de 256 px, igual que el giro. Usa 4 caracteres seguidos desde ch y devuelve cuántas piezas usó.
+     */
+    static int glifoAmplio(StringBuilder json, Path tex, String name, BufferedImage img, int ch) throws Exception {
+        int n = img.getWidth(), c = n / 2, mitad = 0;
+        for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
+            if ((img.getRGB(x, y) >>> 24) > 2) mitad = Math.max(mitad, Math.max(Math.abs(x - c), Math.abs(y - c)) + 1);
+        int u = Math.max(2, (int) Math.ceil((double) ALTO_AMPLIO * 2 * (mitad + 1) / n));
+        if (u % 2 == 1) u++;                      // par: el ascent (la mitad) queda exacto y la ruleta centrada
+        int lado = (int) Math.round((double) u * n / ALTO_AMPLIO);
+        if (lado <= TILE) {
+            int x0 = c - lado / 2;
+            BufferedImage recorte = new BufferedImage(lado, lado, BufferedImage.TYPE_INT_ARGB);
+            recorte.setRGB(0, 0, lado, lado, img.getRGB(x0, x0, lado, lado, null, 0, lado), 0, lado);
+            guardar(recorte, tex.resolve(name + ".png"));
+            json.append(String.format(",\n    {\"type\": \"bitmap\", \"file\": \"ruleta:font/%s.png\", \"height\": %d, \"ascent\": %d, \"chars\": [\"\\u%04X\"]}",
+                    name, u, u / 2, ch));
+            return 1;
+        }
+        int alto = ALTO_AMPLIO / 2;
+        for (int q = 0; q < 4; q++) {
+            BufferedImage pieza = new BufferedImage(TILE, TILE, BufferedImage.TYPE_INT_ARGB);
+            pieza.setRGB(0, 0, TILE, TILE, img.getRGB((q % 2) * TILE, (q / 2) * TILE, TILE, TILE, null, 0, TILE), 0, TILE);
+            guardar(pieza, tex.resolve(name + "_" + q + ".png"));
+            json.append(String.format(",\n    {\"type\": \"bitmap\", \"file\": \"ruleta:font/%s_%d.png\", \"height\": %d, \"ascent\": %d, \"chars\": [\"\\u%04X\"]}",
+                    name, q, alto, q < 2 ? alto : 0, ch + q));
+        }
+        return 4;
     }
 
     /**

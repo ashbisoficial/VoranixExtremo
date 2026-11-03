@@ -1,10 +1,11 @@
 # Configuración de VoranixExtremo
 
 resourcepack:
-  # Déjalo vacío: el plugin ya manda su propio pack (ruleta de colores + monedas + comida),
-  # configurado en ruleta-colores.resource-pack. La 1.20.1 acepta un solo pack del servidor,
-  # así que si pones aquí la URL de otro pack, se manda ese en vez del del plugin (y para que
-  # se vea la ruleta ese pack tiene que incluir plugins/VoranixExtremo/ruleta-pack.zip).
+  # Link de un resource pack propio (por ejemplo el del VPS, que junta varios packs). Es lo mismo
+  # que ruleta-colores.resource-pack.url-externa: se usa el que tenga algo (primero url-externa).
+  # El plugin lo descarga al arrancar para sacar su sha1, así cuando lo actualizas los jugadores
+  # bajan el nuevo (usa /voranixextremo texturepackreload). Vacío = se manda el pack del plugin.
+  # El pack tiene que incluir lo de plugins/VoranixExtremo/ruleta-pack.zip para que se vea la ruleta.
   url: ""
 
 # Mensaje que sale en el chat cuando un jugador usa (popea) un tótem.
@@ -460,6 +461,8 @@ messages:
   vidas-check-other: "&c%player% &7tiene &c%vidas% &7vida(s) restantes."
   no-permission: "&cNo tienes permiso para usar este comando."
   reloaded: "&aConfiguración de VoranixExtremo recargada."
+  texturepack-reloading: "&7Revisando el resource pack..."
+  texturepack-reloaded: "&aResource pack actualizado y enviado a &f%jugadores% &ajugador(es)."
   only-players: "&cEste comando solo puede ser usado por jugadores."
   player-not-found: "&cJugador no encontrado."
   pvp-enabled: "&a¡El PVP ha sido ACTIVADO!"

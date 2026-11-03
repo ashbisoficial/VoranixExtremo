@@ -25,12 +25,23 @@ public class VoranixExtremoCommand extends BaseCommand {
     @Default
     @CatchUnknown
     public void onUsage(CommandSender sender) {
-        sender.sendMessage("Uso: /voranixextremo reload");
+        sender.sendMessage("Uso: /voranixextremo <reload|texturepackreload>");
     }
 
     @Subcommand("reload")
     public void onReload(CommandSender sender) {
         plugin.recargar();
         Messages.send(sender, plugin, "reloaded");
+    }
+
+    /**
+     * Después de actualizar el resource pack (por ejemplo el del VPS): lo vuelve a revisar y se lo
+     * manda de nuevo a todos los conectados, que lo descargan otra vez porque cambió su sha1.
+     */
+    @Subcommand("texturepackreload")
+    public void onTexturePackReload(CommandSender sender) {
+        Messages.send(sender, plugin, "texturepack-reloading");
+        plugin.getRuletaPackManager().recargarYEnviar(enviados ->
+                Messages.send(sender, plugin, "texturepack-reloaded", "%jugadores%", String.valueOf(enviados)));
     }
 }

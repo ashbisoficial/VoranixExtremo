@@ -26,6 +26,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -58,9 +59,12 @@ public class TeamNametag implements Listener, PacketListener {
     /** En 1.20.2 se agregó un campo antes de los del texto: desde ahí los índices corren uno. */
     private final int desfase;
 
+    /** Cada línea es un texto aparte (así cada una tiene su fondo a la medida); máximo de líneas. */
+    private static final int MAX_LINEAS = 4;
+
     private final AtomicInteger siguienteId = new AtomicInteger(1_900_000_000);
-    /** id de la entidad falsa de cada jugador */
-    private final Map<UUID, Integer> idFalso = new ConcurrentHashMap<>();
+    /** ids de las entidades falsas de cada jugador, una por línea */
+    private final Map<UUID, int[]> idFalso = new ConcurrentHashMap<>();
     /** entity id real → jugador */
     private final Map<Integer, UUID> jugadorPorId = new ConcurrentHashMap<>();
     /** texto que hay que mostrar bajo cada jugador (si no está, no se muestra nada) */
@@ -113,18 +117,23 @@ public class TeamNametag implements Listener, PacketListener {
         int idReal = dueño.getEntityId();
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             if (viewer.equals(dueño) || !cargadosDe(viewer).contains(idReal)) continue;
-            if (viejo != null) enviar(viewer, new WrapperPlayServerDestroyEntities(idFalsoDe(uuid)));
+            if (viejo != null) enviar(viewer, new WrapperPlayServerDestroyEntities(idsFalsosDe(uuid)));
             if (nuevo != null) mostrar(viewer, dueño, idReal, nuevo);
         }
     }
 
+    /**
+     * Lo que hay que mostrar sobre el jugador, o null si nada. El primer carácter dice si está
+     * agachado ('1') o no ('0'), así un cambio de agacharse también cuenta como cambio.
+     */
     private String textoPara(Player p) {
         Team team = teams.getTeam(p.getUniqueId());
         if (team == null || p.isDead() || p.getGameMode() == GameMode.SPECTATOR
                 || p.hasPotionEffect(PotionEffectType.INVISIBILITY)) {
             return null;
         }
-        return teams.getTextoNametag(team);
+        String texto = teams.getTextoNametag(p, team);
+        return texto == null ? null : (p.isSneaking() ? "1" : "0") + texto;
     }
 
     // ------------------------------------------------------------------ paquetes
@@ -165,7 +174,9 @@ public class TeamNametag implements Listener, PacketListener {
         for (int id : destroy.getEntityIds()) {
             if (!suyos.remove(id)) continue;
             UUID dueño = jugadorPorId.get(id);
-            if (dueño != null && textos.containsKey(dueño)) falsos.add(idFalsoDe(dueño));
+            if (dueño != null && textos.containsKey(dueño)) {
+                for (int falso : idsFalsosDe(dueño)) falsos.add(falso);
+            }
         }
         if (falsos.isEmpty()) return;
         int[] ids = Arrays.copyOf(destroy.getEntityIds(), destroy.getEntityIds().length + falsos.size());
@@ -179,29 +190,48 @@ public class TeamNametag implements Listener, PacketListener {
         WrapperPlayServerSetPassengers pasajeros = new WrapperPlayServerSetPassengers(event);
         UUID dueño = jugadorPorId.get(pasajeros.getEntityId());
         if (dueño == null || !textos.containsKey(dueño) || !cargadosDe(viewer).contains(pasajeros.getEntityId())) return;
-        int falso = idFalsoDe(dueño);
         int[] actuales = pasajeros.getPassengers();
-        for (int id : actuales) if (id == falso) return;
-        int[] nuevos = Arrays.copyOf(actuales, actuales.length + 1);
-        nuevos[actuales.length] = falso;
+        List<Integer> faltan = new ArrayList<>();
+        for (int falso : idsFalsosDe(dueño)) {
+            if (Arrays.stream(actuales).noneMatch(id -> id == falso)) faltan.add(falso);
+        }
+        if (faltan.isEmpty()) return;
+        // los ids de líneas que no existen en el cliente se ignoran, así que se pueden sumar todos
+        int[] nuevos = Arrays.copyOf(actuales, actuales.length + faltan.size());
+        for (int i = 0; i < faltan.size(); i++) nuevos[actuales.length + i] = faltan.get(i);
         pasajeros.setPassengers(nuevos);
         event.markForReEncode(true);
     }
 
-    /** Crea el texto en el cliente de viewer y lo monta sobre el jugador. */
-    private void mostrar(Player viewer, Player dueño, int idReal, String texto) {
-        int falso = idFalsoDe(dueño.getUniqueId());
+    /**
+     * Crea los textos en el cliente de viewer y los monta sobre el jugador: uno por línea, cada uno
+     * con su fondo a la medida de su texto (como dos nametags apilados). estado = '0'/'1' (agachado) + texto.
+     */
+    private void mostrar(Player viewer, Player dueño, int idReal, String estado) {
+        boolean agachado = estado.charAt(0) == '1';
+        String[] lineas = estado.substring(1).split("\n", -1);
+        int n = Math.min(lineas.length, MAX_LINEAS);
+        int[] ids = idsFalsosDe(dueño.getUniqueId());
         Location loc = dueño.getLocation();
-        enviar(viewer, new WrapperPlayServerSpawnEntity(falso, Optional.of(UUID.randomUUID()), EntityTypes.TEXT_DISPLAY,
-                new Vector3d(loc.getX(), loc.getY(), loc.getZ()), 0f, 0f, 0f, 0, Optional.of(ORIGEN)));
-        List<EntityData<?>> datos = new ArrayList<>();
-        datos.add(new EntityData<>(10 + desfase, EntityDataTypes.VECTOR3F, new Vector3f(0f, (float) teams.getAlturaNametag(), 0f)));
-        datos.add(new EntityData<>(14 + desfase, EntityDataTypes.BYTE, (byte) 3)); // siempre de frente (billboard CENTER)
-        datos.add(new EntityData<>(22 + desfase, EntityDataTypes.ADV_COMPONENT,
-                LegacyComponentSerializer.legacySection().deserialize(texto)));
-        datos.add(new EntityData<>(24 + desfase, EntityDataTypes.INT, 0x40000000)); // fondo como el del nametag
-        enviar(viewer, new WrapperPlayServerEntityMetadata(falso, datos));
-        enviar(viewer, new WrapperPlayServerSetPassengers(idReal, new int[]{falso}));
+        List<Integer> montados = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            if (lineas[i].isBlank()) continue; // una línea vacía deja el espacio, pero sin fondo
+            // la última línea va abajo (en "altura") y cada una de arriba sube un renglón
+            float y = (float) (teams.getAlturaNametag() + (n - 1 - i) * teams.getEspacioLineas());
+            enviar(viewer, new WrapperPlayServerSpawnEntity(ids[i], Optional.of(UUID.randomUUID()), EntityTypes.TEXT_DISPLAY,
+                    new Vector3d(loc.getX(), loc.getY(), loc.getZ()), 0f, 0f, 0f, 0, Optional.of(ORIGEN)));
+            List<EntityData<?>> datos = new ArrayList<>();
+            datos.add(new EntityData<>(10 + desfase, EntityDataTypes.VECTOR3F, new Vector3f(0f, y, 0f)));
+            datos.add(new EntityData<>(14 + desfase, EntityDataTypes.BYTE, (byte) 3)); // siempre de frente (billboard CENTER)
+            datos.add(new EntityData<>(22 + desfase, EntityDataTypes.ADV_COMPONENT,
+                    LegacyComponentSerializer.legacySection().deserialize(lineas[i])));
+            datos.add(new EntityData<>(24 + desfase, EntityDataTypes.INT, 0x40000000)); // fondo como el del nametag
+            // como el nametag vanilla: se ve a través de las paredes, salvo cuando el jugador está agachado
+            datos.add(new EntityData<>(26 + desfase, EntityDataTypes.BYTE, agachado ? (byte) 0 : (byte) 0x02));
+            enviar(viewer, new WrapperPlayServerEntityMetadata(ids[i], datos));
+            montados.add(ids[i]);
+        }
+        enviar(viewer, new WrapperPlayServerSetPassengers(idReal, montados.stream().mapToInt(Integer::intValue).toArray()));
     }
 
     private void ocultarAnteTodos(UUID dueño) {
@@ -209,7 +239,7 @@ public class TeamNametag implements Listener, PacketListener {
         if (jugador == null) return;
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             if (cargadosDe(viewer).contains(jugador.getEntityId())) {
-                enviar(viewer, new WrapperPlayServerDestroyEntities(idFalsoDe(dueño)));
+                enviar(viewer, new WrapperPlayServerDestroyEntities(idsFalsosDe(dueño)));
             }
         }
     }
@@ -218,8 +248,13 @@ public class TeamNametag implements Listener, PacketListener {
         if (viewer.isOnline()) PacketEvents.getAPI().getPlayerManager().sendPacket(viewer, paquete);
     }
 
-    private int idFalsoDe(UUID uuid) {
-        return idFalso.computeIfAbsent(uuid, k -> siguienteId.getAndIncrement());
+    private int[] idsFalsosDe(UUID uuid) {
+        return idFalso.computeIfAbsent(uuid, k -> {
+            int primero = siguienteId.getAndAdd(MAX_LINEAS);
+            int[] ids = new int[MAX_LINEAS];
+            for (int i = 0; i < MAX_LINEAS; i++) ids[i] = primero + i;
+            return ids;
+        });
     }
 
     private Set<Integer> cargadosDe(Player viewer) {
@@ -233,6 +268,13 @@ public class TeamNametag implements Listener, PacketListener {
         Player p = event.getPlayer();
         jugadorPorId.put(p.getEntityId(), p.getUniqueId());
         Bukkit.getScheduler().runTask(plugin, () -> actualizar(p.getUniqueId()));
+    }
+
+    @EventHandler
+    public void onSneak(PlayerToggleSneakEvent event) {
+        // al tick siguiente ya está agachado (o parado): ahí se actualiza el texto
+        UUID uuid = event.getPlayer().getUniqueId();
+        Bukkit.getScheduler().runTask(plugin, () -> actualizar(uuid));
     }
 
     @EventHandler
