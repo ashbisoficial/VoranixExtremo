@@ -40,6 +40,8 @@ import com.voranixextremo.plugin.shops.ChefVillagerManager;
 import com.voranixextremo.plugin.shops.ShopManager;
 import com.voranixextremo.plugin.totem.TotemPop;
 import com.voranixextremo.plugin.util.Messages;
+import com.voranixextremo.plugin.visualfx.FxCommand;
+import com.voranixextremo.plugin.visualfx.VisualFxBridge;
 import com.voranixextremo.plugin.voranixextremo.VoranixExtremoCommand;
 import com.voranixextremo.plugin.worldevents.RedMoonListener;
 import com.voranixextremo.plugin.worldevents.WorldEventCommand;
@@ -56,6 +58,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
 
     private LivesManager livesManager;
     private LivesScoreboard livesScoreboard;
+    private VisualFxBridge visualFxBridge;
     private PvpManager pvpManager;
     private EconomyManager economyManager;
     private RuletaManager ruletaManager;
@@ -121,6 +124,11 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         ruletaPackManager.start();
         getServer().getPluginManager().registerEvents(ruletaPackManager, this);
 
+        // Efectos visuales (cielo de color, etc.) para quien tenga el mod cliente VoranixVisualFX.
+        // Repo aparte: https://github.com/ashbisoficial/VoranixVisualFX
+        this.visualFxBridge = new VisualFxBridge(this);
+        visualFxBridge.start();
+
         // Comandos con ACF: cada clase *Command declara su comando con anotaciones
         this.commandManager = new BukkitCommandManager(this);
         configurarMensajesComandos();
@@ -149,6 +157,8 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         commandManager.registerCommand(new VoranixExtremoCommand(this));
         completions.registerCompletion("teams", c -> teamManager.getNombres());
         commandManager.registerCommand(new TeamCommand(teamManager));
+        completions.registerCompletion("colores-fx", c -> VisualFxBridge.COLORES.keySet());
+        commandManager.registerCommand(new FxCommand(visualFxBridge));
 
         registerVaultIfPresent();
 
@@ -222,6 +232,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         }
         if (livesScoreboard != null) {
             livesScoreboard.stop();
+        }
+        if (visualFxBridge != null) {
+            visualFxBridge.stop();
         }
         if (economyManager != null) {
             economyManager.save();

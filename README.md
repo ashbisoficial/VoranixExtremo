@@ -192,6 +192,27 @@ Si un color se queda sin `mensaje`/`comandos` (como vienen todos ahora), `/rulet
 
 > **Sobre la idea de "Ruleta del Fénix" (web + RCON):** ese proyecto es una página HTML/WebGL que se abre en el navegador (pensada como overlay de stream) y habla con el servidor por un puente Node.js que usa RCON. Funciona, pero agrega una pieza externa que hay que tener corriendo aparte (el puente), un puerto RCON abierto y una contraseña que proteger. Como la idea de fondo — una ruleta vistosa que al caer dispara comandos — **ya está resuelta dentro del plugin** con `/ruletacolor` (misma animación "de ruleta de verdad", comandos por color, visible a todos a la vez, sin servidor aparte ni RCON), no se portó esa arquitectura: sería redundante y menos seguro que lo que ya tenés corriendo en el propio Paper.
 
+### Efectos visuales de cielo (`/fx`) — necesita el mod VoranixVisualFX
+
+Minecraft no deja recolorear el cielo de verdad (el degradado por bioma) desde comandos de servidor — eso es render del cliente. Como el server es **híbrido** (Mohist/Arclight/Magma: carga mods Forge y plugins Paper a la vez) y ya hay un instalador que mantiene actualizado un mod Forge en las máquinas de quienes participan, el efecto de cielo vive en un mod chiquito aparte: **[VoranixVisualFX](https://github.com/ashbisoficial/VoranixVisualFX)** (Forge 47.2.0 / MC 1.20.1, mismo toolchain que `voranixmod`). Ese mod **solo** hace efectos visuales — no agrega bloques, items ni mecánicas.
+
+- `/fx cielo <color|#rrggbb> [segundos] [fundido]` — manda el color a todos los conectados (por defecto 10s, con un fundido de entrada/salida de hasta 2s). Usa los mismos 8 nombres de color que `/ruletacolor` (`rojo`, `naranjo`, `amarillo`, `verde`, `celeste`, `azul`, `morado`, `rosa`), o un hex (`#9b30ff`).
+- `/fx parar` — corta el efecto ya mismo en todos.
+- Permiso: `voranixextremo.fx.admin`.
+
+**A quien no tenga el mod instalado no le pasa nada** — el plugin le manda el paquete igual, pero Minecraft lo descarta en silencio porque ese cliente nunca registró el canal. No hace falta chequear quién lo tiene puesto.
+
+Como `/fx` es un comando más, se puede meter directo en los `comandos:` de un color de `/ruletacolor` (ver la sección de arriba) para que el cielo cambie solo cuando toque ese color:
+
+```yaml
+morado:
+  nombre: "<#6a3bff><bold>MORADO"
+  comandos:
+    - "fx cielo morado 15"
+```
+
+El protocolo exacto entre el plugin y el mod (qué bytes manda `VisualFxBridge.java` de acá) está documentado en el README de `VoranixVisualFX` — si alguna vez se cambia el formato, hay que tocar los dos repos a la vez.
+
 ## Estructura del proyecto
 
 ```
@@ -205,6 +226,7 @@ src/main/java/com/voranixextremo/plugin/
 ├── shops/                      # aldeanos chef y su comercio
 ├── worldevents/                # ruleta de eventos (afecta a todo el server: pvp libre, luna roja)
 ├── ruleta/                     # ruleta de colores animada (fuente custom + comandos por color)
+├── visualfx/                   # puente de red hacia el mod VoranixVisualFX (/fx, cielo de color)
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml
