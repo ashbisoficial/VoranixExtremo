@@ -105,8 +105,11 @@ public final class RuletaManager {
         ConfigurationSection sec = c.getConfigurationSection("colores");
         if (sec != null) {
             for (String id : sec.getKeys(false)) {
-                colores.add(new RuletaColor(id.toLowerCase(), sec.getString(id + ".nombre", id),
-                        sec.getString(id + ".mensaje", null), sec.getStringList(id + ".comandos")));
+                // mensaje y comandos solo si están en el config.yml del servidor: si no, Bukkit los sacaría
+                // del config.yml que trae el jar y un color sin comandos igual lanzaría efectos
+                String mensaje = sec.contains(id + ".mensaje", true) ? sec.getString(id + ".mensaje") : null;
+                List<String> comandos = sec.contains(id + ".comandos", true) ? sec.getStringList(id + ".comandos") : List.of();
+                colores.add(new RuletaColor(id.toLowerCase(), sec.getString(id + ".nombre", id), mensaje, comandos));
             }
         }
         segmentos.clear();

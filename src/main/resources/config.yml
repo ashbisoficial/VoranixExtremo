@@ -10,7 +10,7 @@ resourcepack:
 
 # Mensaje que sale en el chat cuando un jugador usa (popea) un tótem.
 # %usuario% = nombre del jugador. Déjalo vacío ("") para que no salga nada.
-totempop: "&6&L%usuario% a utilizado un tótem"
+totempop: "&6⏳ &6&L%usuario% &6a utilizado un tótem"
 
 lives:
   # Vidas con las que empieza cada jugador.
