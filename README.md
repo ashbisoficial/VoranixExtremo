@@ -160,12 +160,34 @@ La ruleta "de verdad" al estilo DEDsafio/Ruleta del Fénix: un disco de colores 
 ```yaml
 rojo:
   nombre: "<#ff2b2b><bold>ROJO"
+  mensaje: "<red>¡ROJO! El PVP cambia de estado..."
   comandos:
-    - "effect give @a minecraft:hunger 300 1"
-    - "effect give @a minecraft:darkness 100 0"
+    - "pvp toggle"
 ```
 
-Vienen 8 colores (rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa), cada uno con 2-3 comandos vanilla ya pensados como un mini evento temático (rojo/naranjo/morado = peligro, amarillo = neutral/cómico, verde/celeste/azul/rosa = bueno) — cambialos a gusto, no tocan código.
+Vienen los 8 colores (rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa) **sin `mensaje` ni `comandos` por defecto** — a propósito: son el esqueleto, pero qué hace cada color es decisión de producción, no algo fijo en el código.
+
+#### Cómo cargar los eventos del día (sin tocar código, sin recompilar)
+
+Como los efectos/mensajes/comandos de cada color van a cambiar todos los días (distinto evento cada stream), esto se hace 100% editando `config.yml` en el servidor y recargando — nunca hay que tocar Java ni volver a compilar el plugin:
+
+1. En el servidor, abrí `plugins/VoranixExtremo/config.yml` con el editor que uses para administrar el server (el editor de archivos del panel de hosting, FTP/SFTP, o directamente en la consola/terminal del server con `nano`/`vim` si tenés acceso por SSH).
+2. Buscá `ruleta-colores:` → `colores:` y completá el/los color(es) del día, por ejemplo:
+   ```yaml
+   naranjo:
+     nombre: "<#ff8a1c><bold>NARANJO"
+     mensaje: "<gold>¡NARANJO! Se viene tormenta."
+     comandos:
+       - "weather thunder"
+       - "effect give @a minecraft:slowness 200 0"
+   ```
+   - `mensaje` es opcional (si lo dejás vacío, usa el genérico de `mensajes.broadcast`).
+   - `comandos` es una lista: podés poner uno o varios, cualquier comando de servidor (`effect`, `weather`, `summon`, `give`, comandos del propio plugin como `pvp toggle`, etc.), uno por línea con `-`.
+3. Guardá el archivo.
+4. Ejecutá `reload` de la ruleta: en la consola del servidor escribís `ruletacolor reload` (sin barra); en el juego, como admin, `/ruletacolor reload`. Recarga `config.yml` al vuelo — **no hace falta reiniciar el servidor**.
+5. Probá el color antes del stream con `/ruletacolor girar <color>` para confirmar que el mensaje y los comandos quedaron como querías.
+
+Si un color se queda sin `mensaje`/`comandos` (como vienen todos ahora), `/ruletacolor girar` igual gira y anuncia el nombre del color — simplemente no dispara nada extra ni manda un mensaje especial.
 
 > **Sobre la idea de "Ruleta del Fénix" (web + RCON):** ese proyecto es una página HTML/WebGL que se abre en el navegador (pensada como overlay de stream) y habla con el servidor por un puente Node.js que usa RCON. Funciona, pero agrega una pieza externa que hay que tener corriendo aparte (el puente), un puerto RCON abierto y una contraseña que proteger. Como la idea de fondo — una ruleta vistosa que al caer dispara comandos — **ya está resuelta dentro del plugin** con `/ruletacolor` (misma animación "de ruleta de verdad", comandos por color, visible a todos a la vez, sin servidor aparte ni RCON), no se portó esa arquitectura: sería redundante y menos seguro que lo que ya tenés corriendo en el propio Paper.
 
