@@ -17,6 +17,11 @@ lives:
   max: 5
   # Gamemode al que pasa un jugador cuando se queda sin vidas.
   elimination-gamemode: SPECTATOR
+  # Tabla fija arriba a la derecha de la pantalla con las vidas de todos los conectados
+  # (se ordena sola, de más a menos vidas). Colores: &c, &l... y hex con &#a855f7 o {#a855f7}.
+  scoreboard:
+    enabled: true
+    titulo: "&c❤ &lVIDAS"
 
 pvp:
   # Estado del PVP cuando el plugin se activa por primera vez.

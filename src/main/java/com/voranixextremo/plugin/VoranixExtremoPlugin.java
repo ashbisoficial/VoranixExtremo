@@ -26,6 +26,7 @@ import com.voranixextremo.plugin.kills.PvpKillRewards;
 import com.voranixextremo.plugin.lives.DeathEffects;
 import com.voranixextremo.plugin.lives.LivesCommand;
 import com.voranixextremo.plugin.lives.LivesManager;
+import com.voranixextremo.plugin.lives.LivesScoreboard;
 import com.voranixextremo.plugin.lives.PlayerDeathListener;
 import com.voranixextremo.plugin.lives.PlayerJoinListener;
 import com.voranixextremo.plugin.pvp.PvpCommand;
@@ -54,6 +55,7 @@ import java.util.Locale;
 public final class VoranixExtremoPlugin extends JavaPlugin {
 
     private LivesManager livesManager;
+    private LivesScoreboard livesScoreboard;
     private PvpManager pvpManager;
     private EconomyManager economyManager;
     private RuletaManager ruletaManager;
@@ -96,6 +98,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager), this);
+        this.livesScoreboard = new LivesScoreboard(this, livesManager);
+        getServer().getPluginManager().registerEvents(livesScoreboard, this);
+        livesScoreboard.start();
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);
         getServer().getPluginManager().registerEvents(new FoodConsumeListener(this, foodManager), this);
@@ -177,6 +182,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     public void recargar() {
         reloadConfig();
         livesManager.reloadSettings();
+        livesScoreboard.reload();
         economyManager.reloadSettings();
         foodManager.reload();
         shopManager.reload();
@@ -213,6 +219,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         }
         if (livesManager != null) {
             livesManager.save();
+        }
+        if (livesScoreboard != null) {
+            livesScoreboard.stop();
         }
         if (economyManager != null) {
             economyManager.save();

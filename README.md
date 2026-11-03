@@ -34,6 +34,7 @@ El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plu
   - `/vidas reset <jugador>` — (admin) restablece las vidas al máximo y lo saca de espectador si estaba eliminado.
 - Permisos: `voranixextremo.vidas` (todos) y `voranixextremo.vidas.admin` (operadores).
 - Los datos se guardan en `plugins/VoranixExtremo/lives.yml` y persisten entre reinicios.
+- **Tabla de vidas en pantalla:** arriba a la derecha (el sidebar de Minecraft) se ve siempre, para todos, una lista con las vidas de cada jugador conectado — se ordena sola, de más a menos vidas, y se actualiza cada segundo. Se puede apagar o cambiarle el título en `config.yml` → `lives.scoreboard` (`enabled`, `titulo`).
 
 ### Control de PVP (`/pvp`)
 
