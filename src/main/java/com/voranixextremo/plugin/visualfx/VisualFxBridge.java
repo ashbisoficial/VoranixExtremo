@@ -77,9 +77,14 @@ public final class VisualFxBridge {
         return null;
     }
 
-    /** Manda el cielo de ese color a todos los conectados. segundos/fundidoSegundos en segundos reales. */
-    public void cielo(int[] colorRgb, double segundos, double fundidoSegundos) {
-        byte[] datos = armarPaquete(colorRgb, (int) Math.round(segundos * 20), (int) Math.round(fundidoSegundos * 20));
+    /**
+     * Manda el cielo a todos los conectados. colorCenit es lo que se ve mirando para arriba;
+     * si es null se usa el mismo colorHorizonte (cielo parejo, sin degradado). segundos/
+     * fundidoSegundos en segundos reales.
+     */
+    public void cielo(int[] colorHorizonte, int[] colorCenit, double segundos, double fundidoSegundos) {
+        int[] cenit = colorCenit != null ? colorCenit : colorHorizonte;
+        byte[] datos = armarPaquete(colorHorizonte, cenit, (int) Math.round(segundos * 20), (int) Math.round(fundidoSegundos * 20));
         for (Player jugador : Bukkit.getOnlinePlayers()) {
             jugador.sendPluginMessage(plugin, CANAL, datos);
         }
@@ -87,17 +92,21 @@ public final class VisualFxBridge {
 
     /** Apaga el efecto ya mismo en todos los conectados. */
     public void detener() {
-        cielo(new int[]{0, 0, 0}, 0, 0);
+        int[] negro = {0, 0, 0};
+        cielo(negro, negro, 0, 0);
     }
 
-    private static byte[] armarPaquete(int[] colorRgb, int duracionTicks, int fundidoTicks) {
+    private static byte[] armarPaquete(int[] horizonte, int[] cenit, int duracionTicks, int fundidoTicks) {
         try {
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             DataOutputStream datos = new DataOutputStream(buffer);
             datos.writeByte(ID_CIELO);
-            datos.writeByte(colorRgb[0]);
-            datos.writeByte(colorRgb[1]);
-            datos.writeByte(colorRgb[2]);
+            datos.writeByte(horizonte[0]);
+            datos.writeByte(horizonte[1]);
+            datos.writeByte(horizonte[2]);
+            datos.writeByte(cenit[0]);
+            datos.writeByte(cenit[1]);
+            datos.writeByte(cenit[2]);
             datos.writeInt(duracionTicks);
             datos.writeInt(fundidoTicks);
             return buffer.toByteArray();

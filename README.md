@@ -196,7 +196,7 @@ Si un color se queda sin `mensaje`/`comandos` (como vienen todos ahora), `/rulet
 
 Minecraft no deja recolorear el cielo de verdad (el degradado por bioma) desde comandos de servidor — eso es render del cliente. Como el server es **híbrido** (Mohist/Arclight/Magma: carga mods Forge y plugins Paper a la vez) y ya hay un instalador que mantiene actualizado un mod Forge en las máquinas de quienes participan, el efecto de cielo vive en un mod chiquito aparte: **[VoranixVisualFX](https://github.com/ashbisoficial/VoranixVisualFX)** (Forge 47.2.0 / MC 1.20.1, mismo toolchain que `voranixmod`). Ese mod **solo** hace efectos visuales — no agrega bloques, items ni mecánicas.
 
-- `/fx cielo <color|#rrggbb> [segundos] [fundido]` — manda el color a todos los conectados (por defecto 10s, con un fundido de entrada/salida de hasta 2s). Usa los mismos 8 nombres de color que `/ruletacolor` (`rojo`, `naranjo`, `amarillo`, `verde`, `celeste`, `azul`, `morado`, `rosa`), o un hex (`#9b30ff`).
+- `/fx cielo <color|#rrggbb> [segundos] [fundido] [colorCenit]` — manda el color a todos los conectados (por defecto 10s, con un fundido de entrada/salida de hasta 2s). Cambia **todo el cielo**, no solo la niebla del horizonte: también lo que se ve mirando derecho para arriba. `colorCenit` es opcional — si no se pone, el cielo queda parejo con el primer color; si se pone uno distinto, queda un degradado (el primer color en el horizonte, `colorCenit` arriba de todo). Usa los mismos 8 nombres de color que `/ruletacolor` (`rojo`, `naranjo`, `amarillo`, `verde`, `celeste`, `azul`, `morado`, `rosa`), o un hex (`#9b30ff`), para cualquiera de los dos colores.
 - `/fx parar` — corta el efecto ya mismo en todos.
 - Permiso: `voranixextremo.fx.admin`.
 
@@ -208,7 +208,8 @@ Como `/fx` es un comando más, se puede meter directo en los `comandos:` de un c
 morado:
   nombre: "<#6a3bff><bold>MORADO"
   comandos:
-    - "fx cielo morado 15"
+    - "fx cielo morado 15"              # cielo morado parejo, 15s
+    # - "fx cielo morado 15 2 rosa"      # ejemplo con degradado: morado en el horizonte, rosa arriba
 ```
 
 El protocolo exacto entre el plugin y el mod (qué bytes manda `VisualFxBridge.java` de acá) está documentado en el README de `VoranixVisualFX` — si alguna vez se cambia el formato, hay que tocar los dos repos a la vez.
