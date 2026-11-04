@@ -7,21 +7,18 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 
-import java.util.HashSet;
-import java.util.Set;
-
 /**
- * Tabla lateral (arriba a la derecha de la pantalla) con las vidas de todos los jugadores
- * conectados, ordenadas solas de mayor a menor (así funciona el sidebar de Minecraft).
- * Usa el scoreboard principal del servidor: no pisa nada del team system (ese va por paquetes
- * de PacketEvents, no toca Scoreboard).
+ * Tabla fija arriba a la derecha de la pantalla (el sidebar nativo de Minecraft: el cliente
+ * SIEMPRE lo dibuja ahí, no hay forma de moverlo a otra esquina desde el server - si en algún
+ * screenshot se ve más al centro es la captura/el GUI scale, no esto) con las vidas de cada
+ * jugador, SOLO las suyas: cada uno tiene su propio Scoreboard (no el compartido del server),
+ * así nadie ve la lista de todos.
  */
 public final class LivesScoreboard implements Listener {
 
@@ -32,6 +29,7 @@ public final class LivesScoreboard implements Listener {
     private BukkitTask tarea;
     private boolean activo;
     private String titulo;
+    private String linea;
 
     public LivesScoreboard(VoranixExtremoPlugin plugin, LivesManager livesManager) {
         this.plugin = plugin;
@@ -46,7 +44,7 @@ public final class LivesScoreboard implements Listener {
         // cada 20 ticks (1 s) alcanza: las vidas no cambian más seguido que eso y así se
         // refleja cualquier cambio (muerte, /vidas set, Momento Revill...) sin enganchar
         // esta clase a cada lugar del código que pueda tocar una vida.
-        tarea = Bukkit.getScheduler().runTaskTimer(plugin, this::actualizar, 0L, 20L);
+        tarea = Bukkit.getScheduler().runTaskTimer(plugin, this::actualizarTodos, 0L, 20L);
     }
 
     public void stop() {
@@ -54,29 +52,39 @@ public final class LivesScoreboard implements Listener {
             tarea.cancel();
             tarea = null;
         }
-        Objective objetivo = Bukkit.getScoreboardManager().getMainScoreboard().getObjective(OBJETIVO);
-        if (objetivo != null) {
-            objetivo.unregister();
+        for (Player jugador : Bukkit.getOnlinePlayers()) {
+            quitar(jugador);
         }
     }
 
-    /** Vuelve a leer lives.scoreboard del config.yml. */
+    /** Vuelve a leer lives.scoreboard del config.yml y refresca a todos los conectados ya mismo. */
     public void reload() {
         this.activo = plugin.getConfig().getBoolean("lives.scoreboard.enabled", true);
         this.titulo = ColorUtils.color(plugin.getConfig().getString("lives.scoreboard.titulo", "&c❤ &lVIDAS"));
-        if (!activo) {
-            Objective objetivo = Bukkit.getScoreboardManager().getMainScoreboard().getObjective(OBJETIVO);
-            if (objetivo != null) {
-                objetivo.unregister();
+        this.linea = ColorUtils.color(plugin.getConfig().getString("lives.scoreboard.linea", "&fVidas"));
+        for (Player jugador : Bukkit.getOnlinePlayers()) {
+            quitar(jugador);
+            if (activo) {
+                actualizar(jugador);
             }
         }
     }
 
-    private void actualizar() {
+    private void actualizarTodos() {
         if (!activo) {
             return;
         }
-        Scoreboard board = Bukkit.getScoreboardManager().getMainScoreboard();
+        for (Player jugador : Bukkit.getOnlinePlayers()) {
+            actualizar(jugador);
+        }
+    }
+
+    private void actualizar(Player jugador) {
+        Scoreboard board = jugador.getScoreboard();
+        if (board == null || board.equals(Bukkit.getScoreboardManager().getMainScoreboard())) {
+            board = Bukkit.getScoreboardManager().getNewScoreboard();
+            jugador.setScoreboard(board);
+        }
         Objective objetivo = board.getObjective(OBJETIVO);
         if (objetivo == null) {
             objetivo = board.registerNewObjective(OBJETIVO, Criteria.DUMMY, titulo);
@@ -84,32 +92,24 @@ public final class LivesScoreboard implements Listener {
         } else if (!objetivo.getDisplayName().equals(titulo)) {
             objetivo.setDisplayName(titulo);
         }
+        objetivo.getScore(linea).setScore(livesManager.getLives(jugador));
+    }
 
-        Set<String> vigentes = new HashSet<>();
-        for (Player jugador : Bukkit.getOnlinePlayers()) {
-            String nombre = jugador.getName();
-            vigentes.add(nombre);
-            objetivo.getScore(nombre).setScore(livesManager.getLives(jugador));
+    private void quitar(Player jugador) {
+        Scoreboard board = jugador.getScoreboard();
+        if (board == null) {
+            return;
         }
-        // saca del scoreboard a quien ya no está conectado
-        for (String entrada : board.getEntries()) {
-            if (!vigentes.contains(entrada)) {
-                board.resetScores(entrada);
-            }
+        Objective objetivo = board.getObjective(OBJETIVO);
+        if (objetivo != null) {
+            objetivo.unregister();
         }
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         if (activo) {
-            actualizar();
-        }
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-        if (activo) {
-            Bukkit.getScoreboardManager().getMainScoreboard().resetScores(event.getPlayer().getName());
+            actualizar(event.getPlayer());
         }
     }
 }

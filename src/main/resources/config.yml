@@ -22,6 +22,7 @@ lives:
   scoreboard:
     enabled: true
     titulo: "&c❤ &lVIDAS"
+    linea: "&fVidas"
 
 pvp:
   # Estado del PVP cuando el plugin se activa por primera vez.
