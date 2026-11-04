@@ -192,7 +192,7 @@ Si un color se queda sin `mensaje`/`comandos` (como vienen todos ahora), `/rulet
 
 > **Sobre la idea de "Ruleta del Fénix" (web + RCON):** ese proyecto es una página HTML/WebGL que se abre en el navegador (pensada como overlay de stream) y habla con el servidor por un puente Node.js que usa RCON. Funciona, pero agrega una pieza externa que hay que tener corriendo aparte (el puente), un puerto RCON abierto y una contraseña que proteger. Como la idea de fondo — una ruleta vistosa que al caer dispara comandos — **ya está resuelta dentro del plugin** con `/ruletacolor` (misma animación "de ruleta de verdad", comandos por color, visible a todos a la vez, sin servidor aparte ni RCON), no se portó esa arquitectura: sería redundante y menos seguro que lo que ya tenés corriendo en el propio Paper.
 
-### Efectos visuales de cielo (`/fx`) — necesita el mod VoranixVisualFX
+### Efectos visuales: cielo y niebla por zonas (`/fx`) — necesita el mod VoranixVisualFX
 
 Minecraft no deja recolorear el cielo de verdad (el degradado por bioma) desde comandos de servidor — eso es render del cliente. Como el server es **híbrido** (Mohist/Arclight/Magma: carga mods Forge y plugins Paper a la vez) y ya hay un instalador que mantiene actualizado un mod Forge en las máquinas de quienes participan, el efecto de cielo vive en un mod chiquito aparte: **[VoranixVisualFX](https://github.com/ashbisoficial/VoranixVisualFX)** (Forge 47.2.0 / MC 1.20.1, mismo toolchain que `voranixmod`). Ese mod **solo** hace efectos visuales — no agrega bloques, items ni mecánicas.
 
@@ -212,7 +212,18 @@ morado:
     # - "fx cielo morado 15 2 rosa"      # ejemplo con degradado: morado en el horizonte, rosa arriba
 ```
 
-El protocolo exacto entre el plugin y el mod (qué bytes manda `VisualFxBridge.java` de acá) está documentado en el README de `VoranixVisualFX` — si alguna vez se cambia el formato, hay que tocar los dos repos a la vez.
+#### Niebla por zonas (`/fx niebla`)
+
+A diferencia de `/fx cielo` (que es siempre para todo el server), esto es **por ubicación**: se define una zona esférica del mapa, y mientras un jugador esté caminando adentro tiene niebla de verdad (se ve menos lejos, no solo cambia de color) — al cruzar el borde hacia adentro o afuera, la transición es gradual, no un salto. Pensado para un pantano, una cueva, la entrada a una estructura, etc.
+
+- `/fx niebla crear <nombre> <radio> [color] [cercana] [lejana] [fundido]` — crea una zona esférica centrada en donde estás parado ahora mismo. `color` son los mismos 8 nombres de `/ruletacolor` o un hex (por defecto, gris). `cercana`/`lejana` son las distancias en bloques donde arranca y donde ya no se ve nada (por defecto 2 y 18 — niebla bastante cerrada). `fundido` son los segundos que tarda la transición al cruzar el borde (por defecto 2).
+- `/fx niebla borrar <nombre>` — la borra (a quien esté adentro en ese momento se le saca la niebla).
+- `/fx niebla lista` — las lista todas.
+- Mismo permiso que `/fx cielo`: `voranixextremo.fx.admin`.
+
+Las zonas quedan guardadas en `plugins/VoranixExtremo/fogzones.yml` y sobreviven un reinicio del servidor — el plugin revisa cada medio segundo en qué zona está cada jugador conectado (si en alguna) y solo manda un paquete nuevo cuando cambia de zona, no todo el rato.
+
+El protocolo exacto entre el plugin y el mod (qué bytes manda `VisualFxBridge.java` de acá, para cielo y para niebla) está documentado en el README de `VoranixVisualFX` — si alguna vez se cambia alguno de los dos formatos, hay que tocar los dos repos a la vez.
 
 ## Estructura del proyecto
 
@@ -227,7 +238,7 @@ src/main/java/com/voranixextremo/plugin/
 ├── shops/                      # aldeanos chef y su comercio
 ├── worldevents/                # ruleta de eventos (afecta a todo el server: pvp libre, luna roja)
 ├── ruleta/                     # ruleta de colores animada (fuente custom + comandos por color)
-├── visualfx/                   # puente de red hacia el mod VoranixVisualFX (/fx, cielo de color)
+├── visualfx/                   # puente de red hacia el mod VoranixVisualFX (/fx: cielo y niebla por zonas)
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml

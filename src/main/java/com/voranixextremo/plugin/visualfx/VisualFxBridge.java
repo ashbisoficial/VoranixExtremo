@@ -23,6 +23,7 @@ public final class VisualFxBridge {
 
     private static final String CANAL = "voranixvisualfx:main";
     private static final byte ID_CIELO = 0;
+    private static final byte ID_NIEBLA_ZONA = 1;
 
     /** Los mismos 8 colores que /ruletacolor, así "fx cielo morado" usa el mismo morado de la ruleta. */
     public static final Map<String, int[]> COLORES = colores();
@@ -112,6 +113,37 @@ public final class VisualFxBridge {
             return buffer.toByteArray();
         } catch (IOException e) {
             // ByteArrayOutputStream no tira IOException en la práctica
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Niebla de zona para UN jugador puntual (a diferencia de cielo(), que es siempre para
+     * todos): lo usa FogZoneManager cuando ese jugador entra a una zona. cercana/lejana en
+     * bloques; lejana &lt;= 0 apaga el efecto (lo manda FogZoneManager cuando sale de la zona).
+     */
+    public void nieblaZona(Player jugador, int[] colorRgb, float cercana, float lejana, double fundidoSegundos) {
+        jugador.sendPluginMessage(plugin, CANAL, armarPaqueteNiebla(colorRgb, cercana, lejana, (int) Math.round(fundidoSegundos * 20)));
+    }
+
+    /** Apaga la niebla de zona para ese jugador (con una transición corta, no de un golpe). */
+    public void quitarNieblaZona(Player jugador, double fundidoSegundos) {
+        nieblaZona(jugador, new int[]{0, 0, 0}, 0f, 0f, fundidoSegundos);
+    }
+
+    private static byte[] armarPaqueteNiebla(int[] color, float cercana, float lejana, int fundidoTicks) {
+        try {
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            DataOutputStream datos = new DataOutputStream(buffer);
+            datos.writeByte(ID_NIEBLA_ZONA);
+            datos.writeByte(color[0]);
+            datos.writeByte(color[1]);
+            datos.writeByte(color[2]);
+            datos.writeFloat(cercana);
+            datos.writeFloat(lejana);
+            datos.writeInt(fundidoTicks);
+            return buffer.toByteArray();
+        } catch (IOException e) {
             throw new IllegalStateException(e);
         }
     }
