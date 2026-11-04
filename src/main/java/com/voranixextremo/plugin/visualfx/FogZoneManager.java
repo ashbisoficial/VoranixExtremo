@@ -3,7 +3,6 @@ package com.voranixextremo.plugin.visualfx;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -24,24 +23,25 @@ import java.util.UUID;
 import java.util.logging.Level;
 
 /**
- * Zonas esféricas del mapa donde hay niebla de verdad (ver FogZonePacket). Cada 10 ticks (medio
- * segundo) chequea en qué zona está cada jugador conectado y le manda el paquete correspondiente
- * SOLO cuando cambia de zona (entra, sale o pasa de una zona a otra) - no reenvía nada mientras
- * se queda quieto adentro de la misma. Las zonas se guardan en fogzones.yml y sobreviven un
- * reinicio del servidor.
+ * Zonas del mapa (cajas, como la selección de WorldEdit: dos esquinas) donde hay niebla de
+ * verdad (ver FogZonePacket). Cada 10 ticks (medio segundo) chequea en qué zona está cada
+ * jugador conectado y le manda el paquete correspondiente SOLO cuando cambia de zona (entra,
+ * sale o pasa de una zona a otra) - no reenvía nada mientras se queda quieto adentro de la
+ * misma. Las zonas se guardan en fogzones.yml y sobreviven un reinicio del servidor.
  */
 public final class FogZoneManager implements Listener {
 
-    /** Una zona esférica: todo lo que está a "radio" bloques o menos del centro, en ese mundo. */
-    public record Zona(String nombre, String mundo, double x, double y, double z, double radio,
+    /** Una caja (como la selección de WorldEdit): todo lo que cae entre las dos esquinas, en ese mundo. */
+    public record Zona(String nombre, String mundo, double minX, double minY, double minZ,
+                        double maxX, double maxY, double maxZ,
                         int[] color, float cercana, float lejana, double fundidoSegundos) {
 
         boolean contiene(Location loc) {
             if (!mundo.equals(loc.getWorld().getName())) {
                 return false;
             }
-            double dx = loc.getX() - x, dy = loc.getY() - y, dz = loc.getZ() - z;
-            return dx * dx + dy * dy + dz * dz <= radio * radio;
+            double x = loc.getX(), y = loc.getY(), z = loc.getZ();
+            return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
         }
     }
 
@@ -50,6 +50,8 @@ public final class FogZoneManager implements Listener {
     private final File archivo;
     private final Map<String, Zona> zonas = new LinkedHashMap<>();
     private final Map<UUID, String> zonaActual = new HashMap<>();
+    private final Map<UUID, Location> pos1 = new HashMap<>();
+    private final Map<UUID, Location> pos2 = new HashMap<>();
     private BukkitTask tarea;
 
     public FogZoneManager(VoranixExtremoPlugin plugin, VisualFxBridge bridge) {
@@ -81,17 +83,53 @@ public final class FogZoneManager implements Listener {
         zonaActual.clear();
     }
 
-    /** true si se creó; false si ya existía una zona con ese nombre. */
-    public boolean crear(String nombre, Location centro, double radio, int[] color, float cercana, float lejana, double fundidoSegundos) {
+    /** /fx niebla pos1 - marca la esquina 1 en la posición actual del jugador. */
+    public void marcarPos1(Player jugador) {
+        pos1.put(jugador.getUniqueId(), jugador.getLocation());
+    }
+
+    /** /fx niebla pos2 - marca la esquina 2 en la posición actual del jugador. */
+    public void marcarPos2(Player jugador) {
+        pos2.put(jugador.getUniqueId(), jugador.getLocation());
+    }
+
+    public Location getPos1(Player jugador) {
+        return pos1.get(jugador.getUniqueId());
+    }
+
+    public Location getPos2(Player jugador) {
+        return pos2.get(jugador.getUniqueId());
+    }
+
+    /**
+     * Resultado posible de crear(): por qué no se pudo, o null si salió bien.
+     */
+    public enum ErrorCrear {FALTA_POS1, FALTA_POS2, MUNDOS_DISTINTOS, YA_EXISTE}
+
+    /** Usa las dos posiciones que el jugador marcó con /fx niebla pos1 y pos2. */
+    public ErrorCrear crear(Player jugador, String nombre, int[] color, float cercana, float lejana, double fundidoSegundos) {
+        Location esquina1 = pos1.get(jugador.getUniqueId());
+        Location esquina2 = pos2.get(jugador.getUniqueId());
+        if (esquina1 == null) {
+            return ErrorCrear.FALTA_POS1;
+        }
+        if (esquina2 == null) {
+            return ErrorCrear.FALTA_POS2;
+        }
+        if (esquina1.getWorld() == null || esquina2.getWorld() == null
+                || !esquina1.getWorld().equals(esquina2.getWorld())) {
+            return ErrorCrear.MUNDOS_DISTINTOS;
+        }
         String clave = nombre.toLowerCase(Locale.ROOT);
         if (zonas.containsKey(clave)) {
-            return false;
+            return ErrorCrear.YA_EXISTE;
         }
-        World mundo = centro.getWorld();
-        zonas.put(clave, new Zona(nombre, mundo != null ? mundo.getName() : "world",
-                centro.getX(), centro.getY(), centro.getZ(), radio, color, cercana, lejana, fundidoSegundos));
+        zonas.put(clave, new Zona(nombre, esquina1.getWorld().getName(),
+                Math.min(esquina1.getX(), esquina2.getX()), Math.min(esquina1.getY(), esquina2.getY()), Math.min(esquina1.getZ(), esquina2.getZ()),
+                Math.max(esquina1.getX(), esquina2.getX()), Math.max(esquina1.getY(), esquina2.getY()), Math.max(esquina1.getZ(), esquina2.getZ()),
+                color, cercana, lejana, fundidoSegundos));
         guardar();
-        return true;
+        return null;
     }
 
     /** true si se borró; false si no existía. */
@@ -156,6 +194,8 @@ public final class FogZoneManager implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         zonaActual.remove(event.getPlayer().getUniqueId());
+        pos1.remove(event.getPlayer().getUniqueId());
+        pos2.remove(event.getPlayer().getUniqueId());
     }
 
     private void cargar() {
@@ -174,7 +214,8 @@ public final class FogZoneManager implements Listener {
             }
             int[] color = {z.getInt("color.r", 200), z.getInt("color.g", 200), z.getInt("color.b", 200)};
             zonas.put(clave, new Zona(z.getString("nombre", clave), z.getString("mundo", "world"),
-                    z.getDouble("x"), z.getDouble("y"), z.getDouble("z"), z.getDouble("radio", 20),
+                    z.getDouble("minX"), z.getDouble("minY"), z.getDouble("minZ"),
+                    z.getDouble("maxX"), z.getDouble("maxY"), z.getDouble("maxZ"),
                     color, (float) z.getDouble("cercana", 2), (float) z.getDouble("lejana", 18),
                     z.getDouble("fundido", 2)));
         }
@@ -186,10 +227,12 @@ public final class FogZoneManager implements Listener {
             String base = "zonas." + zona.nombre().toLowerCase(Locale.ROOT) + ".";
             yaml.set(base + "nombre", zona.nombre());
             yaml.set(base + "mundo", zona.mundo());
-            yaml.set(base + "x", zona.x());
-            yaml.set(base + "y", zona.y());
-            yaml.set(base + "z", zona.z());
-            yaml.set(base + "radio", zona.radio());
+            yaml.set(base + "minX", zona.minX());
+            yaml.set(base + "minY", zona.minY());
+            yaml.set(base + "minZ", zona.minZ());
+            yaml.set(base + "maxX", zona.maxX());
+            yaml.set(base + "maxY", zona.maxY());
+            yaml.set(base + "maxZ", zona.maxZ());
             yaml.set(base + "color.r", zona.color()[0]);
             yaml.set(base + "color.g", zona.color()[1]);
             yaml.set(base + "color.b", zona.color()[2]);
