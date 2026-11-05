@@ -154,7 +154,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
             colores.add("random");
             return colores;
         });
-        commandManager.registerCommand(new LivesCommand(this, livesManager));
+        commandManager.registerCommand(new LivesCommand(this, livesManager, stormEffect));
         commandManager.registerCommand(new PvpCommand(this, pvpManager));
         commandManager.registerCommand(new EconomyCommand(this, economyManager));
         commandManager.registerCommand(new BankCommand(this, bankService));

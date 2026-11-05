@@ -87,8 +87,17 @@ public class LivesManager {
     }
 
     public void resetLives(OfflinePlayer player) {
-        setLives(player, maxLives);
-        if (player.isOnline() && player.getPlayer() != null && player.getPlayer().getGameMode() == eliminationGameMode) {
+        revivirCon(player, maxLives);
+    }
+
+    /**
+     * Le da esa cantidad de vidas y, si estaba eliminado, lo saca de espectador. Para el "revivir
+     * dándole una vida" de staff (ítem legendario, etc.) - a diferencia de resetLives() no lo
+     * manda al máximo, le da justo la cantidad pedida.
+     */
+    public void revivirCon(OfflinePlayer player, int vidas) {
+        setLives(player, vidas);
+        if (vidas > 0 && player.isOnline() && player.getPlayer() != null && player.getPlayer().getGameMode() == eliminationGameMode) {
             player.getPlayer().setGameMode(GameMode.SURVIVAL);
         }
     }

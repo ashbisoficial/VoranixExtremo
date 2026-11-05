@@ -32,9 +32,10 @@ El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plu
   - `/vidas <jugador>` — ver las vidas de otro jugador.
   - `/vidas set <jugador> <cantidad>` — (admin) establece las vidas de un jugador.
   - `/vidas reset <jugador>` — (admin) restablece las vidas al máximo y lo saca de espectador si estaba eliminado.
+  - `/vidas revivir <jugador>` — (admin) el "revivir" de verdad: le da **una sola vida** (no el máximo) y dispara la tormenta (`/fx tormenta`, nubes + rayos) justo donde está parado el jugador — pensado para el momento de traerlo de vuelta con el ítem legendario. Necesita que esté conectado (para la ubicación de la tormenta); si está offline, usá `/vidas set` o `/vidas reset`.
 - Permisos: `voranixextremo.vidas` (todos) y `voranixextremo.vidas.admin` (operadores).
 - Los datos se guardan en `plugins/VoranixExtremo/lives.yml` y persisten entre reinicios.
-- **Tabla de vidas en pantalla:** arriba a la derecha (el sidebar de Minecraft) se ve siempre, para todos, una lista con las vidas de cada jugador conectado — se ordena sola, de más a menos vidas, y se actualiza cada segundo. Se puede apagar o cambiarle el título en `config.yml` → `lives.scoreboard` (`enabled`, `titulo`).
+- **Tabla de vidas en pantalla:** arriba a la derecha (el sidebar de Minecraft) se ve siempre, para todos, **solo las vidas propias de cada uno** (cada jugador tiene su propio sidebar, no comparten uno) — se actualiza cada segundo. Se puede apagar o cambiarle el título/texto en `config.yml` → `lives.scoreboard` (`enabled`, `titulo`, `linea`).
 
 ### Control de PVP (`/pvp`)
 

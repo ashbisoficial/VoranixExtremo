@@ -426,6 +426,7 @@ messages:
   prefix: "&8[&cVoranix&6Extremo&8] &r"
   life-lost: "&c%player% &7perdió una vida. Le quedan &c%vidas% &7vida(s)."
   eliminated: "&4%player% &7ha sido &4ELIMINADO&7 de la serie."
+  revived: "&a&l¡%player% HA SIDO REVIVIDO! &r&7Le queda &a1 &7vida."
   vidas-check: "&7Tienes &c%vidas% &7vida(s) restantes."
   vidas-check-other: "&c%player% &7tiene &c%vidas% &7vida(s) restantes."
   no-permission: "&cNo tienes permiso para usar este comando."

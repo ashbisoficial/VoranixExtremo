@@ -14,7 +14,7 @@ permissions:
     description: Permite consultar las propias vidas.
     default: true
   voranixextremo.vidas.admin:
-    description: Permite administrar las vidas de cualquier jugador (set/reset).
+    description: Permite administrar las vidas de cualquier jugador (set/reset/revivir).
     default: op
   voranixextremo.pvp:
     description: Permite activar o desactivar el PVP del servidor.
