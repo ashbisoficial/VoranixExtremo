@@ -265,13 +265,13 @@ public final class FogZoneManager implements Listener {
                 double x = zona.minX() + rnd.nextDouble() * (zona.maxX() - zona.minX());
                 double y = zona.minY() + rnd.nextDouble() * (zona.maxY() - zona.minY());
                 double z = zona.minZ() + rnd.nextDouble() * (zona.maxZ() - zona.minZ());
-                mundo.spawnParticle(Particle.LARGE_SMOKE, x, y, z, 1, 0, 0, 0, 0.01);
+                mundo.spawnParticle(Particle.SMOKE_LARGE, x, y, z, 1, 0, 0, 0, 0.01);
             }
             for (int i = 0; i < PARTICULAS_COLOR_POR_ZONA; i++) {
                 double x = zona.minX() + rnd.nextDouble() * (zona.maxX() - zona.minX());
                 double y = zona.minY() + rnd.nextDouble() * (zona.maxY() - zona.minY());
                 double z = zona.minZ() + rnd.nextDouble() * (zona.maxZ() - zona.minZ());
-                mundo.spawnParticle(Particle.DUST, x, y, z, 1, 0, 0, 0, 0, tinte);
+                mundo.spawnParticle(Particle.REDSTONE, x, y, z, 1, 0, 0, 0, 0, tinte);
             }
         }
     }

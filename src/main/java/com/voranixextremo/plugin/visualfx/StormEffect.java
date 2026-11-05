@@ -54,7 +54,7 @@ public final class StormEffect {
             double x = centro.getX() + rnd.nextDouble(-9, 9);
             double y = centro.getY() + 10 + rnd.nextDouble(0, 5);
             double z = centro.getZ() + rnd.nextDouble(-9, 9);
-            mundo.spawnParticle(Particle.LARGE_SMOKE, x, y, z, 1, 0, 0, 0, 0.01);
+            mundo.spawnParticle(Particle.SMOKE_LARGE, x, y, z, 1, 0, 0, 0, 0.01);
             mundo.spawnParticle(Particle.CLOUD, x, y, z, 1, 0, 0, 0, 0.01);
         }
     }
