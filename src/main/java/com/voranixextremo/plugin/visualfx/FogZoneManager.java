@@ -45,6 +45,9 @@ public final class FogZoneManager implements Listener {
         }
     }
 
+    /** Alto mínimo de una zona, en bloques, aunque pos1/pos2 se hayan marcado casi a la misma altura. */
+    private static final double ALTURA_MINIMA = 6.0;
+
     private final VoranixExtremoPlugin plugin;
     private final VisualFxBridge bridge;
     private final File archivo;
@@ -124,9 +127,18 @@ public final class FogZoneManager implements Listener {
         if (zonas.containsKey(clave)) {
             return ErrorCrear.YA_EXISTE;
         }
+        double minY = Math.min(esquina1.getY(), esquina2.getY());
+        double maxY = Math.max(esquina1.getY(), esquina2.getY());
+        // si las dos esquinas se marcaron caminando (alturas parecidas), la caja queda tan fina
+        // que un escalón del terreno te deja afuera sin darte cuenta - se garantiza un mínimo.
+        if (maxY - minY < ALTURA_MINIMA) {
+            double centro = (minY + maxY) / 2;
+            minY = centro - ALTURA_MINIMA / 2;
+            maxY = centro + ALTURA_MINIMA / 2;
+        }
         zonas.put(clave, new Zona(nombre, esquina1.getWorld().getName(),
-                Math.min(esquina1.getX(), esquina2.getX()), Math.min(esquina1.getY(), esquina2.getY()), Math.min(esquina1.getZ(), esquina2.getZ()),
-                Math.max(esquina1.getX(), esquina2.getX()), Math.max(esquina1.getY(), esquina2.getY()), Math.max(esquina1.getZ(), esquina2.getZ()),
+                Math.min(esquina1.getX(), esquina2.getX()), minY, Math.min(esquina1.getZ(), esquina2.getZ()),
+                Math.max(esquina1.getX(), esquina2.getX()), maxY, Math.max(esquina1.getZ(), esquina2.getZ()),
                 color, cercana, lejana, fundidoSegundos));
         guardar();
         return null;

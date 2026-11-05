@@ -216,7 +216,7 @@ morado:
 
 A diferencia de `/fx cielo` (que es siempre para todo el server), esto es **por ubicación**: se define una zona del mapa (una caja, como la selección de WorldEdit — dos esquinas), y mientras un jugador esté caminando adentro tiene niebla de verdad (se ve menos lejos, no solo cambia de color) — al cruzar el borde hacia adentro o afuera, la transición es gradual, no un salto. Pensado para un pantano, una cueva, la entrada a una estructura, etc.
 
-Para crear una zona: parado en una esquina (cualquiera de las 8 de la caja que querés), `/fx niebla pos1`; parado en la esquina opuesta, `/fx niebla pos2`; después `/fx niebla crear <nombre> [color] [cercana] [lejana] [fundido]`.
+Para crear una zona: parado en una esquina (cualquiera de las 8 de la caja que querés), `/fx niebla pos1`; parado en la esquina opuesta, `/fx niebla pos2`; después `/fx niebla crear <nombre> [color] [cercana] [lejana] [fundido]`. Si marcás las dos posiciones caminando por el piso (alturas parecidas), la zona igual queda con **al menos 6 bloques de alto** automáticamente (centrados en el punto medio) — así un escalón del terreno no te saca de la zona sin querer.
 
 - `/fx niebla pos1` / `/fx niebla pos2` — marcan las dos esquinas, en la posición actual del jugador.
 - `/fx niebla crear <nombre> [color] [cercana] [lejana] [fundido]` — arma la zona con las últimas pos1/pos2 marcadas por ese jugador. `color` son los mismos 8 nombres de `/ruletacolor` o un hex (por defecto, gris). `cercana`/`lejana` son las distancias en bloques donde arranca y donde ya no se ve nada (por defecto 2 y 18 — niebla bastante cerrada). `fundido` son los segundos que tarda la transición al cruzar el borde (por defecto 2).
