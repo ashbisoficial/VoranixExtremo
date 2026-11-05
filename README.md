@@ -214,13 +214,13 @@ morado:
 
 #### Niebla por zonas (`/fx niebla`)
 
-A diferencia de `/fx cielo` (que es siempre para todo el server), esto es **por ubicación**: se define una zona del mapa (una caja, como la selección de WorldEdit — dos esquinas), y mientras un jugador esté caminando adentro tiene niebla de verdad (se ve menos lejos, no solo cambia de color) — al cruzar el borde hacia adentro o afuera, la transición es gradual, no un salto. Pensado para un pantano, una cueva, la entrada a una estructura, etc.
+A diferencia de `/fx cielo` (que es siempre para todo el server), esto es **por ubicación**: se define una zona del mapa (una caja, como la selección de WorldEdit — dos esquinas). No es un muro de "adentro sí, afuera no": a medida que te acercás (hasta 20 bloques antes del borde) la niebla se va notando de a poco, cada vez más fuerte, como una bruma de verdad — no aparece de golpe al cruzar una línea exacta. Adentro de la caja, la niebla está a pleno (se ve menos lejos, no solo cambia de color). Pensado para un pantano, una cueva, la entrada a una estructura, etc.
 
 Para crear una zona: parado en una esquina (cualquiera de las 8 de la caja que querés), `/fx niebla pos1`; parado en la esquina opuesta, `/fx niebla pos2`; después `/fx niebla crear <nombre> [color] [cercana] [lejana] [fundido]`. Si marcás las dos posiciones caminando por el piso (alturas parecidas), la zona igual queda con **al menos 6 bloques de alto** automáticamente (centrados en el punto medio) — así un escalón del terreno no te saca de la zona sin querer.
 
 - `/fx niebla pos1` / `/fx niebla pos2` — marcan las dos esquinas, en la posición actual del jugador.
-- `/fx niebla crear <nombre> [color] [cercana] [lejana] [fundido]` — arma la zona con las últimas pos1/pos2 marcadas por ese jugador. `color` son los mismos 8 nombres de `/ruletacolor` o un hex (por defecto, gris). `cercana`/`lejana` son las distancias en bloques donde arranca y donde ya no se ve nada (por defecto 2 y 18 — niebla bastante cerrada). `fundido` son los segundos que tarda la transición al cruzar el borde (por defecto 2).
-- `/fx niebla borrar <nombre>` — la borra (a quien esté adentro en ese momento se le saca la niebla).
+- `/fx niebla crear <nombre> [color] [cercana] [lejana] [fundido]` — arma la zona con las últimas pos1/pos2 marcadas por ese jugador. `color` son los mismos 8 nombres de `/ruletacolor` o un hex (por defecto, gris). `cercana`/`lejana` son las distancias en bloques donde arranca y donde ya no se ve nada **adentro de la zona, a pleno** (por defecto 2 y 18 — niebla bastante cerrada); acercándose desde afuera se mezclan de a poco con "casi nada".
+- `/fx niebla borrar <nombre>` — la borra (a quien esté adentro o cerca en ese momento se le saca la niebla).
 - `/fx niebla lista` — las lista todas.
 - Mismo permiso que `/fx cielo`: `voranixextremo.fx.admin`.
 

@@ -18,16 +18,17 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.logging.Level;
 
 /**
  * Zonas del mapa (cajas, como la selección de WorldEdit: dos esquinas) donde hay niebla de
- * verdad (ver FogZonePacket). Cada 10 ticks (medio segundo) chequea en qué zona está cada
- * jugador conectado y le manda el paquete correspondiente SOLO cuando cambia de zona (entra,
- * sale o pasa de una zona a otra) - no reenvía nada mientras se queda quieto adentro de la
- * misma. Las zonas se guardan en fogzones.yml y sobreviven un reinicio del servidor.
+ * verdad (ver FogZonePacket). No es un muro de "adentro sí, afuera no": cada 10 ticks (medio
+ * segundo) se calcula qué tan cerca está cada jugador conectado de la zona más próxima (1.0
+ * adentro, bajando a 0.0 a los MARGEN_APROXIMACION bloques del borde) y se le manda la niebla
+ * mezclada en esa proporción con "casi nada" (gris clarito, poca densidad) - así se va notando
+ * de a poco según uno se acerca, como una bruma real, no de golpe. Las zonas se guardan en
+ * fogzones.yml y sobreviven un reinicio del servidor.
  */
 public final class FogZoneManager implements Listener {
 
@@ -36,17 +37,38 @@ public final class FogZoneManager implements Listener {
                         double maxX, double maxY, double maxZ,
                         int[] color, float cercana, float lejana, double fundidoSegundos) {
 
-        boolean contiene(Location loc) {
+        /**
+         * 1.0 adentro de la caja, bajando a 0.0 en el borde del margen de aproximación (fuera de
+         * la caja), 0.0 más allá. Así la niebla se va notando de a poco a medida que uno se
+         * acerca, en vez de aparecer de golpe al cruzar un borde exacto.
+         */
+        double proximidad(Location loc, double margen) {
             if (!mundo.equals(loc.getWorld().getName())) {
-                return false;
+                return 0;
             }
-            double x = loc.getX(), y = loc.getY(), z = loc.getZ();
-            return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
+            double dx = Math.max(Math.max(minX - loc.getX(), loc.getX() - maxX), 0);
+            double dy = Math.max(Math.max(minY - loc.getY(), loc.getY() - maxY), 0);
+            double dz = Math.max(Math.max(minZ - loc.getZ(), loc.getZ() - maxZ), 0);
+            double distancia = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (distancia <= 0) {
+                return 1.0;
+            }
+            if (distancia >= margen) {
+                return 0.0;
+            }
+            return 1.0 - distancia / margen;
         }
     }
 
     /** Alto mínimo de una zona, en bloques, aunque pos1/pos2 se hayan marcado casi a la misma altura. */
     private static final double ALTURA_MINIMA = 6.0;
+    /** Cuántos bloques antes del borde de la zona ya se empieza a notar la niebla, cada vez más fuerte. */
+    private static final double MARGEN_APROXIMACION = 20.0;
+    /** A qué "no hay niebla" tira el color/distancia en el borde del margen (lejos = casi nada, blanquecino como bruma real). */
+    private static final float DISTANCIA_SIN_EFECTO = 400f;
+    private static final int[] COLOR_SIN_EFECTO = {230, 230, 230};
+    /** Cuánto tarda en suavizarse entre dos actualizaciones (se manda una cada ACTUALIZAR_TICKS). */
+    private static final double SUAVIZADO_SEGUNDOS = 0.6;
 
     private final VoranixExtremoPlugin plugin;
     private final VisualFxBridge bridge;
@@ -177,30 +199,42 @@ public final class FogZoneManager implements Listener {
             return;
         }
         for (Player jugador : Bukkit.getOnlinePlayers()) {
-            Zona dentro = zonaDe(jugador.getLocation());
-            String anterior = zonaActual.get(jugador.getUniqueId());
-            String actual = dentro != null ? dentro.nombre() : null;
-            if (Objects.equals(anterior, actual)) {
+            Location loc = jugador.getLocation();
+            Zona masCercana = null;
+            double mejorProximidad = 0;
+            for (Zona zona : zonas.values()) {
+                double p = zona.proximidad(loc, MARGEN_APROXIMACION);
+                if (p > mejorProximidad) {
+                    mejorProximidad = p;
+                    masCercana = zona;
+                }
+            }
+            boolean teniaAlgo = zonaActual.containsKey(jugador.getUniqueId());
+            if (masCercana == null) {
+                if (teniaAlgo) {
+                    bridge.quitarNieblaZona(jugador, SUAVIZADO_SEGUNDOS);
+                    zonaActual.remove(jugador.getUniqueId());
+                }
                 continue;
             }
-            if (dentro != null) {
-                bridge.nieblaZona(jugador, dentro.color(), dentro.cercana(), dentro.lejana(), dentro.fundidoSegundos());
-                zonaActual.put(jugador.getUniqueId(), actual);
-            } else {
-                Zona previa = anterior != null ? zonas.get(anterior.toLowerCase(Locale.ROOT)) : null;
-                bridge.quitarNieblaZona(jugador, previa != null ? previa.fundidoSegundos() : 1.0);
-                zonaActual.remove(jugador.getUniqueId());
-            }
+            int[] color = mezclarColor(COLOR_SIN_EFECTO, masCercana.color(), mejorProximidad);
+            float cercana = mezclar(DISTANCIA_SIN_EFECTO, masCercana.cercana(), mejorProximidad);
+            float lejana = mezclar(DISTANCIA_SIN_EFECTO, masCercana.lejana(), mejorProximidad);
+            bridge.nieblaZona(jugador, color, cercana, lejana, SUAVIZADO_SEGUNDOS);
+            zonaActual.put(jugador.getUniqueId(), masCercana.nombre());
         }
     }
 
-    private Zona zonaDe(Location loc) {
-        for (Zona zona : zonas.values()) {
-            if (zona.contiene(loc)) {
-                return zona;
-            }
-        }
-        return null;
+    private static int[] mezclarColor(int[] desde, int[] hasta, double t) {
+        return new int[]{
+                (int) Math.round(desde[0] + (hasta[0] - desde[0]) * t),
+                (int) Math.round(desde[1] + (hasta[1] - desde[1]) * t),
+                (int) Math.round(desde[2] + (hasta[2] - desde[2]) * t)
+        };
+    }
+
+    private static float mezclar(float desde, float hasta, double t) {
+        return (float) (desde + (hasta - desde) * t);
     }
 
     @EventHandler
