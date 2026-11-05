@@ -42,6 +42,7 @@ import com.voranixextremo.plugin.totem.TotemPop;
 import com.voranixextremo.plugin.util.Messages;
 import com.voranixextremo.plugin.visualfx.FogZoneManager;
 import com.voranixextremo.plugin.visualfx.FxCommand;
+import com.voranixextremo.plugin.visualfx.StormEffect;
 import com.voranixextremo.plugin.visualfx.VisualFxBridge;
 import com.voranixextremo.plugin.voranixextremo.VoranixExtremoCommand;
 import com.voranixextremo.plugin.worldevents.RedMoonListener;
@@ -61,6 +62,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     private LivesScoreboard livesScoreboard;
     private VisualFxBridge visualFxBridge;
     private FogZoneManager fogZoneManager;
+    private StormEffect stormEffect;
     private PvpManager pvpManager;
     private EconomyManager economyManager;
     private RuletaManager ruletaManager;
@@ -133,6 +135,8 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         this.fogZoneManager = new FogZoneManager(this, visualFxBridge);
         getServer().getPluginManager().registerEvents(fogZoneManager, this);
         fogZoneManager.start();
+        // Tormenta puntual (nubes + rayos, sin lluvia ni daño): 100% vanilla, no necesita el mod.
+        this.stormEffect = new StormEffect(this);
 
         // Comandos con ACF: cada clase *Command declara su comando con anotaciones
         this.commandManager = new BukkitCommandManager(this);
@@ -163,7 +167,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         completions.registerCompletion("teams", c -> teamManager.getNombres());
         commandManager.registerCommand(new TeamCommand(teamManager));
         completions.registerCompletion("colores-fx", c -> VisualFxBridge.COLORES.keySet());
-        commandManager.registerCommand(new FxCommand(visualFxBridge, fogZoneManager));
+        commandManager.registerCommand(new FxCommand(visualFxBridge, fogZoneManager, stormEffect));
 
         registerVaultIfPresent();
 
@@ -278,5 +282,10 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
 
     public EconomyManager getEconomyManager() {
         return economyManager;
+    }
+
+    /** Para disparar la tormenta (nubes + rayos) desde cualquier otro listener del plugin. */
+    public StormEffect getStormEffect() {
+        return stormEffect;
     }
 }

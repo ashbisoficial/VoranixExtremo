@@ -224,9 +224,20 @@ Para crear una zona: parado en una esquina (cualquiera de las 8 de la caja que q
 - `/fx niebla lista` — las lista todas.
 - Mismo permiso que `/fx cielo`: `voranixextremo.fx.admin`.
 
-Las zonas quedan guardadas en `plugins/VoranixExtremo/fogzones.yml` y sobreviven un reinicio del servidor — el plugin revisa cada medio segundo en qué zona está cada jugador conectado (si en alguna) y solo manda un paquete nuevo cuando cambia de zona, no todo el rato.
+Las zonas quedan guardadas en `plugins/VoranixExtremo/fogzones.yml` y sobreviven un reinicio del servidor.
+
+**Se ve desde afuera, como una bomba de humo.** Además de la reducción de visibilidad (que necesita el mod, solo cerca/adentro), cada zona tiene partículas de humo de verdad (`Particle.LARGE_SMOKE` + un toque de `DUST` teñido del color de la zona) rellenando toda la caja todo el tiempo que exista — esto es **100% vanilla**, lo ve cualquiera esté cerca, tenga el mod instalado o no. Por eso se nota como una estructura/nube propia en el mapa, no aparece de la nada cuando alguien se acerca.
 
 El protocolo exacto entre el plugin y el mod (qué bytes manda `VisualFxBridge.java` de acá, para cielo y para niebla) está documentado en el README de `VoranixVisualFX` — si alguna vez se cambia alguno de los dos formatos, hay que tocar los dos repos a la vez.
+
+#### Tormenta puntual (`/fx tormenta`) — 100% vanilla, no necesita el mod
+
+Nubes (partículas) y rayos (`World#strikeLightningEffect`, visual + sonido, **sin daño ni fuego, sin tocar el clima real del mundo** — no activa lluvia ni truenos globales) en el punto donde se ejecuta el comando. Pensado para momentos puntuales: matar un boss, conseguir un ítem legendario.
+
+- `/fx tormenta [segundos]` — la dispara ahí mismo donde está parado quien ejecuta el comando (por defecto 15s). La ven todos los que estén cerca, tengan el mod o no.
+- Mismo permiso: `voranixextremo.fx.admin`.
+
+Como es vanilla, también sirve para dispararla **desde código**, no solo por comando — `StormEffect.disparar(Location, segundos)` queda expuesto vía `VoranixExtremoPlugin#getStormEffect()`, pensado para engancharlo el día que haya un listener de "boss muerto" o "ítem legendario recogido".
 
 ## Estructura del proyecto
 
@@ -241,7 +252,7 @@ src/main/java/com/voranixextremo/plugin/
 ├── shops/                      # aldeanos chef y su comercio
 ├── worldevents/                # ruleta de eventos (afecta a todo el server: pvp libre, luna roja)
 ├── ruleta/                     # ruleta de colores animada (fuente custom + comandos por color)
-├── visualfx/                   # puente de red hacia el mod VoranixVisualFX (/fx: cielo y niebla por zonas)
+├── visualfx/                   # /fx: cielo y niebla (necesitan el mod) + tormenta puntual (vanilla)
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml

@@ -33,10 +33,12 @@ public class FxCommand extends BaseCommand {
 
     private final VisualFxBridge bridge;
     private final FogZoneManager zonas;
+    private final StormEffect tormenta;
 
-    public FxCommand(VisualFxBridge bridge, FogZoneManager zonas) {
+    public FxCommand(VisualFxBridge bridge, FogZoneManager zonas, StormEffect tormenta) {
         this.bridge = bridge;
         this.zonas = zonas;
+        this.tormenta = tormenta;
     }
 
     @Default
@@ -47,6 +49,7 @@ public class FxCommand extends BaseCommand {
         sender.sendMessage(ColorUtils.color("&c     &f/fx niebla pos2 &7(parado en la esquina opuesta)"));
         sender.sendMessage(ColorUtils.color("&c     &f/fx niebla crear <nombre> [color] [cercana] [lejana] [fundido]"));
         sender.sendMessage(ColorUtils.color("&c     &f/fx niebla borrar <nombre> &7o &f/fx niebla lista"));
+        sender.sendMessage(ColorUtils.color("&c     &f/fx tormenta [segundos] &7(nubes + rayos acá mismo, sin lluvia ni daño)"));
     }
 
     @Subcommand("cielo")
@@ -145,6 +148,15 @@ public class FxCommand extends BaseCommand {
             sender.sendMessage(ColorUtils.color(String.format("&7- &f%s &7(%s, %.0f-%.0f bloques de niebla)",
                     zona.nombre(), zona.mundo(), zona.cercana(), zona.lejana())));
         }
+    }
+
+    @Subcommand("tormenta")
+    @CommandCompletion("15")
+    @Syntax("[segundos]")
+    public void onTormenta(Player jugador, @Optional Integer segundos) {
+        int seg = segundos != null ? segundos : 15;
+        tormenta.disparar(jugador.getLocation(), seg);
+        jugador.sendMessage(ColorUtils.color("&aTormenta &7(nubes + rayos, sin lluvia) &adisparada acá por " + seg + "s."));
     }
 
     private static String formatear(Location loc) {

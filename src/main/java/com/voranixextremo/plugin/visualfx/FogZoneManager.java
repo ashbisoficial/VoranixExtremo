@@ -2,7 +2,10 @@ package com.voranixextremo.plugin.visualfx;
 
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import org.bukkit.Bukkit;
+import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -19,6 +22,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 
 /**
@@ -69,6 +73,10 @@ public final class FogZoneManager implements Listener {
     private static final int[] COLOR_SIN_EFECTO = {230, 230, 230};
     /** Cuánto tarda en suavizarse entre dos actualizaciones (se manda una cada ACTUALIZAR_TICKS). */
     private static final double SUAVIZADO_SEGUNDOS = 0.6;
+    /** Partículas de humo "de verdad" (se ven desde afuera, con o sin el mod - son 100% vanilla). */
+    private static final long PARTICULAS_TICKS = 4L;
+    private static final int PARTICULAS_HUMO_POR_ZONA = 10;
+    private static final int PARTICULAS_COLOR_POR_ZONA = 4;
 
     private final VoranixExtremoPlugin plugin;
     private final VisualFxBridge bridge;
@@ -78,6 +86,7 @@ public final class FogZoneManager implements Listener {
     private final Map<UUID, Location> pos1 = new HashMap<>();
     private final Map<UUID, Location> pos2 = new HashMap<>();
     private BukkitTask tarea;
+    private BukkitTask tareaParticulas;
 
     public FogZoneManager(VoranixExtremoPlugin plugin, VisualFxBridge bridge) {
         this.plugin = plugin;
@@ -91,12 +100,20 @@ public final class FogZoneManager implements Listener {
             tarea.cancel();
         }
         tarea = Bukkit.getScheduler().runTaskTimer(plugin, this::actualizar, 0L, 10L);
+        if (tareaParticulas != null) {
+            tareaParticulas.cancel();
+        }
+        tareaParticulas = Bukkit.getScheduler().runTaskTimer(plugin, this::animarHumo, 0L, PARTICULAS_TICKS);
     }
 
     public void stop() {
         if (tarea != null) {
             tarea.cancel();
             tarea = null;
+        }
+        if (tareaParticulas != null) {
+            tareaParticulas.cancel();
+            tareaParticulas = null;
         }
         // al apagar el plugin (o recargar), a quien tuviera niebla puesta se la sacamos
         for (Map.Entry<UUID, String> entrada : zonaActual.entrySet()) {
@@ -222,6 +239,40 @@ public final class FogZoneManager implements Listener {
             float lejana = mezclar(DISTANCIA_SIN_EFECTO, masCercana.lejana(), mejorProximidad);
             bridge.nieblaZona(jugador, color, cercana, lejana, SUAVIZADO_SEGUNDOS);
             zonaActual.put(jugador.getUniqueId(), masCercana.nombre());
+        }
+    }
+
+    /**
+     * Partículas de humo/niebla DE VERDAD en el aire, rellenando cada zona - esto es lo que hace
+     * que se vea "como una bomba de humo" desde afuera, aunque no se tenga el mod instalado (son
+     * partículas vanilla, Bukkit las manda solas a quien esté cerca). No tiene nada que ver con
+     * la densidad de niebla de cada jugador (actualizar()) - esto se ve siempre que la zona
+     * exista, la reducción de visibilidad es aparte y solo para quien tenga el mod.
+     */
+    private void animarHumo() {
+        if (zonas.isEmpty()) {
+            return;
+        }
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        for (Zona zona : zonas.values()) {
+            World mundo = Bukkit.getWorld(zona.mundo());
+            if (mundo == null) {
+                continue;
+            }
+            Particle.DustOptions tinte = new Particle.DustOptions(
+                    Color.fromRGB(zona.color()[0], zona.color()[1], zona.color()[2]), 1.8f);
+            for (int i = 0; i < PARTICULAS_HUMO_POR_ZONA; i++) {
+                double x = zona.minX() + rnd.nextDouble() * (zona.maxX() - zona.minX());
+                double y = zona.minY() + rnd.nextDouble() * (zona.maxY() - zona.minY());
+                double z = zona.minZ() + rnd.nextDouble() * (zona.maxZ() - zona.minZ());
+                mundo.spawnParticle(Particle.LARGE_SMOKE, x, y, z, 1, 0, 0, 0, 0.01);
+            }
+            for (int i = 0; i < PARTICULAS_COLOR_POR_ZONA; i++) {
+                double x = zona.minX() + rnd.nextDouble() * (zona.maxX() - zona.minX());
+                double y = zona.minY() + rnd.nextDouble() * (zona.maxY() - zona.minY());
+                double z = zona.minZ() + rnd.nextDouble() * (zona.maxZ() - zona.minZ());
+                mundo.spawnParticle(Particle.DUST, x, y, z, 1, 0, 0, 0, 0, tinte);
+            }
         }
     }
 
