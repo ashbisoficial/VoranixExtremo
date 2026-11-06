@@ -2,10 +2,7 @@ package com.voranixextremo.plugin.visualfx;
 
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import org.bukkit.Bukkit;
-import org.bukkit.Color;
 import org.bukkit.Location;
-import org.bukkit.Particle;
-import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -15,7 +12,6 @@ import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRegisterChannelEvent;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,7 +21,6 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 
 /**
@@ -39,6 +34,11 @@ import java.util.logging.Level;
  * de todos los mundos): al conectarse (apenas registra el canal, con un reintento a los 1.5s por
  * las dudas) y cada vez que cambia de mundo, se le manda "borrá todo" + las zonas de donde está
  * parado ahora. Las zonas se guardan en fogzones.yml y sobreviven un reinicio del servidor.
+ *
+ * Ya no genera partículas vanilla (se sacó `animarHumo()`: las partículas sueltas no se veían
+ * como una nube real). Lo visible de humo hoy es 100% del mod cliente - niebla de distancia +
+ * la capa de pantalla completa (ver ClientEvents.java del otro repo); Fase 4 va a agregar ahí una
+ * partícula custom de verdad.
  */
 public final class FogZoneManager implements Listener {
 
@@ -62,9 +62,13 @@ public final class FogZoneManager implements Listener {
     private static final double ALTURA_MINIMA = 6.0;
     /** Margen por defecto si no se especifica uno al crear la zona. 20 bloques daba niebla sin nube visible. */
     private static final float MARGEN_DEFECTO = 4f;
-    private static final long PARTICULAS_TICKS = 4L;
-    private static final int PARTICULAS_HUMO_POR_ZONA = 10;
-    private static final int PARTICULAS_COLOR_POR_ZONA = 4;
+    /**
+     * cercana/lejana por defecto si no se especifican. Antes eran 2/18 (se veían estructuras a
+     * decenas de bloques adentro de la zona) - para un efecto de humo de granada tipo Valorant,
+     * con densidad 1 (bien adentro) prácticamente no se tiene que ver nada a pocos bloques.
+     */
+    public static final float CERCANA_DEFECTO = 0f;
+    public static final float LEJANA_DEFECTO = 4f;
     private static final String CANAL = "voranixvisualfx:main";
     /** Respaldo si PlayerRegisterChannelEvent no llega a tiempo (o nunca, si no tiene el mod). */
     private static final long REINTENTO_SYNC_TICKS = 30L;
@@ -75,27 +79,12 @@ public final class FogZoneManager implements Listener {
     private final Map<String, Zona> zonas = new LinkedHashMap<>();
     private final Map<UUID, Location> pos1 = new HashMap<>();
     private final Map<UUID, Location> pos2 = new HashMap<>();
-    private BukkitTask tareaParticulas;
 
     public FogZoneManager(VoranixExtremoPlugin plugin, VisualFxBridge bridge) {
         this.plugin = plugin;
         this.bridge = bridge;
         this.archivo = new File(plugin.getDataFolder(), "fogzones.yml");
         cargar();
-    }
-
-    public void start() {
-        if (tareaParticulas != null) {
-            tareaParticulas.cancel();
-        }
-        tareaParticulas = Bukkit.getScheduler().runTaskTimer(plugin, this::animarHumo, 0L, PARTICULAS_TICKS);
-    }
-
-    public void stop() {
-        if (tareaParticulas != null) {
-            tareaParticulas.cancel();
-            tareaParticulas = null;
-        }
     }
 
     /** /fx niebla pos1 - marca la esquina 1 en la posición actual del jugador. */
@@ -237,53 +226,6 @@ public final class FogZoneManager implements Listener {
         pos2.remove(event.getPlayer().getUniqueId());
     }
 
-    /**
-     * Partículas de humo/niebla DE VERDAD en el aire, rellenando cada zona - esto es lo que hace
-     * que se vea "como una bomba de humo" desde afuera, aunque no se tenga el mod instalado (son
-     * partículas vanilla, Bukkit las manda solas a quien esté cerca). Sin relación con la
-     * densidad de cada jugador - eso lo calcula el cliente solo. Esto es temporal: la Fase 4
-     * reemplaza esto por una partícula custom del mod, más grande y generada del lado cliente.
-     */
-    private void animarHumo() {
-        if (zonas.isEmpty()) {
-            return;
-        }
-        ThreadLocalRandom rnd = ThreadLocalRandom.current();
-        for (Zona zona : zonas.values()) {
-            World mundo = Bukkit.getWorld(zona.mundo());
-            if (mundo == null) {
-                continue;
-            }
-            Particle.DustOptions tinte = new Particle.DustOptions(
-                    Color.fromRGB(zona.color()[0], zona.color()[1], zona.color()[2]), 1.8f);
-            for (int i = 0; i < PARTICULAS_HUMO_POR_ZONA; i++) {
-                double[] punto = puntoAleatorioEnZona(zona, rnd);
-                mundo.spawnParticle(Particle.SMOKE_LARGE, punto[0], punto[1], punto[2], 1, 0, 0, 0, 0.01);
-            }
-            for (int i = 0; i < PARTICULAS_COLOR_POR_ZONA; i++) {
-                double[] punto = puntoAleatorioEnZona(zona, rnd);
-                mundo.spawnParticle(Particle.REDSTONE, punto[0], punto[1], punto[2], 1, 0, 0, 0, 0, tinte);
-            }
-        }
-    }
-
-    /** Un punto al azar dentro del volumen de la zona (caja: uniforme; esfera: uniforme en volumen, no solo en la superficie). */
-    private static double[] puntoAleatorioEnZona(Zona zona, ThreadLocalRandom rnd) {
-        if (zona.tipo() == Tipo.CAJA) {
-            double x = zona.p0() + rnd.nextDouble() * (zona.p3() - zona.p0());
-            double y = zona.p1() + rnd.nextDouble() * (zona.p4() - zona.p1());
-            double z = zona.p2() + rnd.nextDouble() * (zona.p5() - zona.p2());
-            return new double[]{x, y, z};
-        }
-        double radio = zona.p3() * Math.cbrt(rnd.nextDouble());
-        double theta = rnd.nextDouble() * Math.PI * 2;
-        double phi = Math.acos(2 * rnd.nextDouble() - 1);
-        double x = zona.p0() + radio * Math.sin(phi) * Math.cos(theta);
-        double y = zona.p1() + radio * Math.sin(phi) * Math.sin(theta);
-        double z = zona.p2() + radio * Math.cos(phi);
-        return new double[]{x, y, z};
-    }
-
     private void cargar() {
         if (!archivo.exists()) {
             return;
@@ -303,7 +245,7 @@ public final class FogZoneManager implements Listener {
             zonas.put(clave, new Zona(z.getString("nombre", clave), z.getString("mundo", "world"), tipo,
                     z.getDouble("p0"), z.getDouble("p1"), z.getDouble("p2"),
                     z.getDouble("p3"), z.getDouble("p4"), z.getDouble("p5"),
-                    color, (float) z.getDouble("cercana", 2), (float) z.getDouble("lejana", 18),
+                    color, (float) z.getDouble("cercana", CERCANA_DEFECTO), (float) z.getDouble("lejana", LEJANA_DEFECTO),
                     (float) z.getDouble("margen", MARGEN_DEFECTO),
                     z.getBoolean("creciendoActivo", false), z.getLong("tickInicio", 0),
                     (float) z.getDouble("velocidad", 0), (float) z.getDouble("radioMaximo", 0)));

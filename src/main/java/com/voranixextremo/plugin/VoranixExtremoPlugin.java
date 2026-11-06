@@ -135,7 +135,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         visualFxBridge.start();
         this.fogZoneManager = new FogZoneManager(this, visualFxBridge);
         getServer().getPluginManager().registerEvents(fogZoneManager, this);
-        fogZoneManager.start();
         // Tormenta puntual (nubes + rayos, sin lluvia ni daño): 100% vanilla, no necesita el mod.
         this.stormEffect = new StormEffect(this);
 
@@ -244,10 +243,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         }
         if (playtimeManager != null) {
             playtimeManager.stop();
-        }
-        if (fogZoneManager != null) {
-            // antes del bridge: manda paquetes para sacarle la niebla a quien la tuviera puesta
-            fogZoneManager.stop();
         }
         if (visualFxBridge != null) {
             visualFxBridge.stop();

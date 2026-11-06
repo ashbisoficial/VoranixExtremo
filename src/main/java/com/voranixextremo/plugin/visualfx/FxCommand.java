@@ -103,7 +103,7 @@ public class FxCommand extends BaseCommand {
     }
 
     @Subcommand("niebla crear")
-    @CommandCompletion("* @colores-fx 2 18 4")
+    @CommandCompletion("* @colores-fx 0 4 4")
     @Syntax("<nombre> [color] [cercana] [lejana] [margen]")
     public void onNieblaCrear(Player jugador, String nombre, @Optional String color,
                                @Optional Double cercana, @Optional Double lejana, @Optional Double margen) {
@@ -113,8 +113,8 @@ public class FxCommand extends BaseCommand {
                     + " &7(" + String.join(", ", VisualFxBridge.COLORES.keySet()) + " o #rrggbb)"));
             return;
         }
-        float near = cercana != null ? cercana.floatValue() : 2f;
-        float far = lejana != null ? lejana.floatValue() : 18f;
+        float near = cercana != null ? cercana.floatValue() : FogZoneManager.CERCANA_DEFECTO;
+        float far = lejana != null ? lejana.floatValue() : FogZoneManager.LEJANA_DEFECTO;
         Float marg = margen != null ? margen.floatValue() : null;
 
         FogZoneManager.ErrorCrear error = zonas.crear(jugador, nombre, rgb, near, far, marg);
@@ -133,7 +133,7 @@ public class FxCommand extends BaseCommand {
     }
 
     @Subcommand("niebla crearradio")
-    @CommandCompletion("* 10 @colores-fx 2 18 4")
+    @CommandCompletion("* 10 @colores-fx 0 4 4")
     @Syntax("<nombre> <radio> [color] [cercana] [lejana] [margen]")
     public void onNieblaCrearRadio(Player jugador, String nombre, double radio, @Optional String color,
                                     @Optional Double cercana, @Optional Double lejana, @Optional Double margen) {
@@ -143,8 +143,8 @@ public class FxCommand extends BaseCommand {
                     + " &7(" + String.join(", ", VisualFxBridge.COLORES.keySet()) + " o #rrggbb)"));
             return;
         }
-        float near = cercana != null ? cercana.floatValue() : 2f;
-        float far = lejana != null ? lejana.floatValue() : 18f;
+        float near = cercana != null ? cercana.floatValue() : FogZoneManager.CERCANA_DEFECTO;
+        float far = lejana != null ? lejana.floatValue() : FogZoneManager.LEJANA_DEFECTO;
         Float marg = margen != null ? margen.floatValue() : null;
 
         FogZoneManager.ErrorCrear error = zonas.crearEsfera(jugador, nombre, radio, rgb, near, far, marg);
