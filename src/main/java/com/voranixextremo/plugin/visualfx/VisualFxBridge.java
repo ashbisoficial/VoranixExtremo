@@ -7,6 +7,7 @@ import org.bukkit.entity.Player;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -16,14 +17,16 @@ import java.util.Map;
  * "voranixvisualfx:main". A quien no tenga el mod instalado no le pasa nada: Minecraft descarta
  * en silencio un paquete de un canal que ese cliente no registró.
  *
- * El formato del paquete tiene que coincidir byte a byte con network/SkyColorPacket.java de ese
- * otro repo (está documentado en su README) - si se cambia acá, hay que cambiarlo ahí también.
+ * El formato de cada paquete tiene que coincidir byte a byte con los que decodifica ese otro
+ * repo (documentado en su README) - si se cambia acá, hay que cambiarlo ahí también.
  */
 public final class VisualFxBridge {
 
     private static final String CANAL = "voranixvisualfx:main";
     private static final byte ID_CIELO = 0;
-    private static final byte ID_NIEBLA_ZONA = 1;
+    private static final byte ID_ZONA_AGREGAR = 1;
+    private static final byte ID_ZONA_QUITAR = 2;
+    private static final byte ID_ZONA_LIMPIAR = 3;
 
     /** Los mismos 8 colores que /ruletacolor, así "fx cielo morado" usa el mismo morado de la ruleta. */
     public static final Map<String, int[]> COLORES = colores();
@@ -85,22 +88,20 @@ public final class VisualFxBridge {
      */
     public void cielo(int[] colorHorizonte, int[] colorCenit, double segundos, double fundidoSegundos) {
         int[] cenit = colorCenit != null ? colorCenit : colorHorizonte;
-        byte[] datos = armarPaquete(colorHorizonte, cenit, (int) Math.round(segundos * 20), (int) Math.round(fundidoSegundos * 20));
+        byte[] datos = armarPaqueteCielo(colorHorizonte, cenit, (int) Math.round(segundos * 20), (int) Math.round(fundidoSegundos * 20));
         for (Player jugador : Bukkit.getOnlinePlayers()) {
             jugador.sendPluginMessage(plugin, CANAL, datos);
         }
     }
 
-    /** Apaga el efecto ya mismo en todos los conectados. */
+    /** Apaga el efecto de cielo ya mismo en todos los conectados. */
     public void detener() {
         int[] negro = {0, 0, 0};
         cielo(negro, negro, 0, 0);
     }
 
-    private static byte[] armarPaquete(int[] horizonte, int[] cenit, int duracionTicks, int fundidoTicks) {
-        try {
-            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-            DataOutputStream datos = new DataOutputStream(buffer);
+    private static byte[] armarPaqueteCielo(int[] horizonte, int[] cenit, int duracionTicks, int fundidoTicks) {
+        return conBuffer(datos -> {
             datos.writeByte(ID_CIELO);
             datos.writeByte(horizonte[0]);
             datos.writeByte(horizonte[1]);
@@ -110,40 +111,89 @@ public final class VisualFxBridge {
             datos.writeByte(cenit[2]);
             datos.writeInt(duracionTicks);
             datos.writeInt(fundidoTicks);
-            return buffer.toByteArray();
-        } catch (IOException e) {
-            // ByteArrayOutputStream no tira IOException en la práctica
-            throw new IllegalStateException(e);
+        });
+    }
+
+    /** Le manda esta zona a TODOS los conectados (se usa al crearla - cada uno decide si le aplica según su mundo, ver FogZoneManager). */
+    public void enviarZonaATodos(FogZoneManager.Zona zona) {
+        byte[] datos = armarPaqueteZona(zona);
+        for (Player jugador : Bukkit.getOnlinePlayers()) {
+            jugador.sendPluginMessage(plugin, CANAL, datos);
         }
     }
 
-    /**
-     * Niebla de zona para UN jugador puntual (a diferencia de cielo(), que es siempre para
-     * todos): lo usa FogZoneManager cuando ese jugador entra a una zona. cercana/lejana en
-     * bloques; lejana &lt;= 0 apaga el efecto (lo manda FogZoneManager cuando sale de la zona).
-     */
-    public void nieblaZona(Player jugador, int[] colorRgb, float cercana, float lejana, double fundidoSegundos) {
-        jugador.sendPluginMessage(plugin, CANAL, armarPaqueteNiebla(colorRgb, cercana, lejana, (int) Math.round(fundidoSegundos * 20)));
+    /** Le manda esta zona a UN jugador puntual (join, cambio de mundo, registro de canal). */
+    public void enviarZonaA(Player jugador, FogZoneManager.Zona zona) {
+        jugador.sendPluginMessage(plugin, CANAL, armarPaqueteZona(zona));
     }
 
-    /** Apaga la niebla de zona para ese jugador (con una transición corta, no de un golpe). */
-    public void quitarNieblaZona(Player jugador, double fundidoSegundos) {
-        nieblaZona(jugador, new int[]{0, 0, 0}, 0f, 0f, fundidoSegundos);
+    /** Le avisa a TODOS que se borró una zona (por nombre). */
+    public void enviarRemocionATodos(String nombre) {
+        byte[] datos = armarPaqueteRemocion(nombre);
+        for (Player jugador : Bukkit.getOnlinePlayers()) {
+            jugador.sendPluginMessage(plugin, CANAL, datos);
+        }
     }
 
-    private static byte[] armarPaqueteNiebla(int[] color, float cercana, float lejana, int fundidoTicks) {
+    /** "Borrá todas las zonas que tengas" - se manda antes de reenviar las del mundo actual. */
+    public void enviarLimpiarA(Player jugador) {
+        jugador.sendPluginMessage(plugin, CANAL, new byte[]{ID_ZONA_LIMPIAR});
+    }
+
+    private static byte[] armarPaqueteZona(FogZoneManager.Zona zona) {
+        return conBuffer(datos -> {
+            datos.writeByte(ID_ZONA_AGREGAR);
+            escribirTexto(datos, zona.nombre());
+            datos.writeByte(zona.tipo() == FogZoneManager.Tipo.ESFERA ? 1 : 0);
+            datos.writeDouble(zona.p0());
+            datos.writeDouble(zona.p1());
+            datos.writeDouble(zona.p2());
+            datos.writeDouble(zona.p3());
+            datos.writeDouble(zona.p4());
+            datos.writeDouble(zona.p5());
+            datos.writeByte(zona.color()[0]);
+            datos.writeByte(zona.color()[1]);
+            datos.writeByte(zona.color()[2]);
+            datos.writeFloat(zona.cercana());
+            datos.writeFloat(zona.lejana());
+            datos.writeFloat(zona.margen());
+            datos.writeBoolean(zona.creciendoActivo());
+            datos.writeLong(zona.tickInicio());
+            datos.writeFloat(zona.velocidadBloquesPorSegundo());
+            datos.writeFloat(zona.radioMaximo());
+        });
+    }
+
+    private static byte[] armarPaqueteRemocion(String nombre) {
+        return conBuffer(datos -> {
+            datos.writeByte(ID_ZONA_QUITAR);
+            escribirTexto(datos, nombre);
+        });
+    }
+
+    /** Mismo formato que ByteUtil.escribirTexto del lado del mod: 1 byte de longitud + UTF-8 (nada de VarInt). */
+    private static void escribirTexto(DataOutputStream datos, String texto) throws IOException {
+        byte[] bytes = texto.getBytes(StandardCharsets.UTF_8);
+        if (bytes.length > 255) {
+            throw new IllegalArgumentException("Texto demasiado largo para el formato de 1 byte: " + texto);
+        }
+        datos.writeByte(bytes.length);
+        datos.write(bytes);
+    }
+
+    @FunctionalInterface
+    private interface EscritorPaquete {
+        void escribir(DataOutputStream datos) throws IOException;
+    }
+
+    private static byte[] conBuffer(EscritorPaquete escritor) {
         try {
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
             DataOutputStream datos = new DataOutputStream(buffer);
-            datos.writeByte(ID_NIEBLA_ZONA);
-            datos.writeByte(color[0]);
-            datos.writeByte(color[1]);
-            datos.writeByte(color[2]);
-            datos.writeFloat(cercana);
-            datos.writeFloat(lejana);
-            datos.writeInt(fundidoTicks);
+            escritor.escribir(datos);
             return buffer.toByteArray();
         } catch (IOException e) {
+            // ByteArrayOutputStream no tira IOException en la práctica
             throw new IllegalStateException(e);
         }
     }

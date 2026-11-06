@@ -11,7 +11,10 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRegisterChannelEvent;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
@@ -26,66 +29,52 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 
 /**
- * Zonas del mapa (cajas, como la selección de WorldEdit: dos esquinas) donde hay niebla de
- * verdad (ver FogZonePacket). No es un muro de "adentro sí, afuera no": cada 10 ticks (medio
- * segundo) se calcula qué tan cerca está cada jugador conectado de la zona más próxima (1.0
- * adentro, bajando a 0.0 a los MARGEN_APROXIMACION bloques del borde) y se le manda la niebla
- * mezclada en esa proporción con "casi nada" (gris clarito, poca densidad) - así se va notando
- * de a poco según uno se acerca, como una bruma real, no de golpe. Las zonas se guardan en
- * fogzones.yml y sobreviven un reinicio del servidor.
+ * Zonas de humo/niebla (cajas o esferas) donde quien tenga el mod VoranixVisualFX pierde
+ * visibilidad de verdad, calculada en vivo del lado del cliente contra la posición de su cámara
+ * (no hay escaneo periódico del servidor: ver el README de ese repo para el porqué). Este
+ * manager solo es dueño de LA LISTA de zonas y de avisarle al mod cuándo cambia - el cálculo de
+ * densidad/color en sí vive enteramente en SmokeZoneRegistry del otro lado.
+ *
+ * El plugin le manda a cada jugador SOLO las zonas de SU mundo actual (nunca la lista completa
+ * de todos los mundos): al conectarse (apenas registra el canal, con un reintento a los 1.5s por
+ * las dudas) y cada vez que cambia de mundo, se le manda "borrá todo" + las zonas de donde está
+ * parado ahora. Las zonas se guardan en fogzones.yml y sobreviven un reinicio del servidor.
  */
 public final class FogZoneManager implements Listener {
 
-    /** Una caja (como la selección de WorldEdit): todo lo que cae entre las dos esquinas, en ese mundo. */
-    public record Zona(String nombre, String mundo, double minX, double minY, double minZ,
-                        double maxX, double maxY, double maxZ,
-                        int[] color, float cercana, float lejana, double fundidoSegundos) {
+    public enum Tipo {CAJA, ESFERA}
 
-        /**
-         * 1.0 adentro de la caja, bajando a 0.0 en el borde del margen de aproximación (fuera de
-         * la caja), 0.0 más allá. Así la niebla se va notando de a poco a medida que uno se
-         * acerca, en vez de aparecer de golpe al cruzar un borde exacto.
-         */
-        double proximidad(Location loc, double margen) {
-            if (!mundo.equals(loc.getWorld().getName())) {
-                return 0;
-            }
-            double dx = Math.max(Math.max(minX - loc.getX(), loc.getX() - maxX), 0);
-            double dy = Math.max(Math.max(minY - loc.getY(), loc.getY() - maxY), 0);
-            double dz = Math.max(Math.max(minZ - loc.getZ(), loc.getZ() - maxZ), 0);
-            double distancia = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (distancia <= 0) {
-                return 1.0;
-            }
-            if (distancia >= margen) {
-                return 0.0;
-            }
-            return 1.0 - distancia / margen;
-        }
+    /**
+     * Una zona - caja y esfera son la misma clase, con un campo de tipo que dice cómo
+     * interpretar p0..p5 (ver SmokeZone.java del otro repo, es el mismo esquema).
+     * CAJA: p0,p1,p2 = esquina mínima; p3,p4,p5 = esquina máxima.
+     * ESFERA: p0,p1,p2 = centro; p3 = radio (p4,p5 sin usar).
+     * Los 4 campos de crecimiento están reservados para la Fase 3 (máquina de humo) - hoy
+     * siempre van en false/0.
+     */
+    public record Zona(String nombre, String mundo, Tipo tipo,
+                        double p0, double p1, double p2, double p3, double p4, double p5,
+                        int[] color, float cercana, float lejana, float margen,
+                        boolean creciendoActivo, long tickInicio, float velocidadBloquesPorSegundo, float radioMaximo) {
     }
 
-    /** Alto mínimo de una zona, en bloques, aunque pos1/pos2 se hayan marcado casi a la misma altura. */
+    /** Alto mínimo de una zona caja, en bloques, aunque pos1/pos2 se hayan marcado casi a la misma altura. */
     private static final double ALTURA_MINIMA = 6.0;
-    /** Cuántos bloques antes del borde de la zona ya se empieza a notar la niebla, cada vez más fuerte. */
-    private static final double MARGEN_APROXIMACION = 20.0;
-    /** A qué "no hay niebla" tira el color/distancia en el borde del margen (lejos = casi nada, blanquecino como bruma real). */
-    private static final float DISTANCIA_SIN_EFECTO = 400f;
-    private static final int[] COLOR_SIN_EFECTO = {230, 230, 230};
-    /** Cuánto tarda en suavizarse entre dos actualizaciones (se manda una cada ACTUALIZAR_TICKS). */
-    private static final double SUAVIZADO_SEGUNDOS = 0.6;
-    /** Partículas de humo "de verdad" (se ven desde afuera, con o sin el mod - son 100% vanilla). */
+    /** Margen por defecto si no se especifica uno al crear la zona. 20 bloques daba niebla sin nube visible. */
+    private static final float MARGEN_DEFECTO = 4f;
     private static final long PARTICULAS_TICKS = 4L;
     private static final int PARTICULAS_HUMO_POR_ZONA = 10;
     private static final int PARTICULAS_COLOR_POR_ZONA = 4;
+    private static final String CANAL = "voranixvisualfx:main";
+    /** Respaldo si PlayerRegisterChannelEvent no llega a tiempo (o nunca, si no tiene el mod). */
+    private static final long REINTENTO_SYNC_TICKS = 30L;
 
     private final VoranixExtremoPlugin plugin;
     private final VisualFxBridge bridge;
     private final File archivo;
     private final Map<String, Zona> zonas = new LinkedHashMap<>();
-    private final Map<UUID, String> zonaActual = new HashMap<>();
     private final Map<UUID, Location> pos1 = new HashMap<>();
     private final Map<UUID, Location> pos2 = new HashMap<>();
-    private BukkitTask tarea;
     private BukkitTask tareaParticulas;
 
     public FogZoneManager(VoranixExtremoPlugin plugin, VisualFxBridge bridge) {
@@ -96,10 +85,6 @@ public final class FogZoneManager implements Listener {
     }
 
     public void start() {
-        if (tarea != null) {
-            tarea.cancel();
-        }
-        tarea = Bukkit.getScheduler().runTaskTimer(plugin, this::actualizar, 0L, 10L);
         if (tareaParticulas != null) {
             tareaParticulas.cancel();
         }
@@ -107,22 +92,10 @@ public final class FogZoneManager implements Listener {
     }
 
     public void stop() {
-        if (tarea != null) {
-            tarea.cancel();
-            tarea = null;
-        }
         if (tareaParticulas != null) {
             tareaParticulas.cancel();
             tareaParticulas = null;
         }
-        // al apagar el plugin (o recargar), a quien tuviera niebla puesta se la sacamos
-        for (Map.Entry<UUID, String> entrada : zonaActual.entrySet()) {
-            Player jugador = Bukkit.getPlayer(entrada.getKey());
-            if (jugador != null) {
-                bridge.quitarNieblaZona(jugador, 1.0);
-            }
-        }
-        zonaActual.clear();
     }
 
     /** /fx niebla pos1 - marca la esquina 1 en la posición actual del jugador. */
@@ -143,13 +116,11 @@ public final class FogZoneManager implements Listener {
         return pos2.get(jugador.getUniqueId());
     }
 
-    /**
-     * Resultado posible de crear(): por qué no se pudo, o null si salió bien.
-     */
+    /** Resultado posible de crear/crearEsfera: por qué no se pudo, o null si salió bien. */
     public enum ErrorCrear {FALTA_POS1, FALTA_POS2, MUNDOS_DISTINTOS, YA_EXISTE}
 
-    /** Usa las dos posiciones que el jugador marcó con /fx niebla pos1 y pos2. */
-    public ErrorCrear crear(Player jugador, String nombre, int[] color, float cercana, float lejana, double fundidoSegundos) {
+    /** Caja: usa las dos posiciones que el jugador marcó con /fx niebla pos1 y pos2. */
+    public ErrorCrear crear(Player jugador, String nombre, int[] color, float cercana, float lejana, Float margen) {
         Location esquina1 = pos1.get(jugador.getUniqueId());
         Location esquina2 = pos2.get(jugador.getUniqueId());
         if (esquina1 == null) {
@@ -175,12 +146,34 @@ public final class FogZoneManager implements Listener {
             minY = centro - ALTURA_MINIMA / 2;
             maxY = centro + ALTURA_MINIMA / 2;
         }
-        zonas.put(clave, new Zona(nombre, esquina1.getWorld().getName(),
+        Zona zona = new Zona(nombre, esquina1.getWorld().getName(), Tipo.CAJA,
                 Math.min(esquina1.getX(), esquina2.getX()), minY, Math.min(esquina1.getZ(), esquina2.getZ()),
                 Math.max(esquina1.getX(), esquina2.getX()), maxY, Math.max(esquina1.getZ(), esquina2.getZ()),
-                color, cercana, lejana, fundidoSegundos));
-        guardar();
+                color, cercana, lejana, margen != null ? margen : MARGEN_DEFECTO,
+                false, 0L, 0f, 0f);
+        agregarYAvisar(clave, zona);
         return null;
+    }
+
+    /** Esfera: centrada en la posición actual del jugador. */
+    public ErrorCrear crearEsfera(Player jugador, String nombre, double radio, int[] color, float cercana, float lejana, Float margen) {
+        String clave = nombre.toLowerCase(Locale.ROOT);
+        if (zonas.containsKey(clave)) {
+            return ErrorCrear.YA_EXISTE;
+        }
+        Location centro = jugador.getLocation();
+        Zona zona = new Zona(nombre, centro.getWorld().getName(), Tipo.ESFERA,
+                centro.getX(), centro.getY(), centro.getZ(), radio, 0, 0,
+                color, cercana, lejana, margen != null ? margen : MARGEN_DEFECTO,
+                false, 0L, 0f, 0f);
+        agregarYAvisar(clave, zona);
+        return null;
+    }
+
+    private void agregarYAvisar(String clave, Zona zona) {
+        zonas.put(clave, zona);
+        guardar();
+        bridge.enviarZonaATodos(zona);
     }
 
     /** true si se borró; false si no existía. */
@@ -190,15 +183,7 @@ public final class FogZoneManager implements Listener {
             return false;
         }
         guardar();
-        for (Map.Entry<UUID, String> entrada : Map.copyOf(zonaActual).entrySet()) {
-            if (entrada.getValue().equalsIgnoreCase(nombre)) {
-                Player jugador = Bukkit.getPlayer(entrada.getKey());
-                if (jugador != null) {
-                    bridge.quitarNieblaZona(jugador, 1.0);
-                }
-                zonaActual.remove(entrada.getKey());
-            }
-        }
+        bridge.enviarRemocionATodos(quitada.nombre());
         return true;
     }
 
@@ -211,43 +196,53 @@ public final class FogZoneManager implements Listener {
         cargar();
     }
 
-    private void actualizar() {
-        if (zonas.isEmpty()) {
-            return;
-        }
-        for (Player jugador : Bukkit.getOnlinePlayers()) {
-            Location loc = jugador.getLocation();
-            Zona masCercana = null;
-            double mejorProximidad = 0;
-            for (Zona zona : zonas.values()) {
-                double p = zona.proximidad(loc, MARGEN_APROXIMACION);
-                if (p > mejorProximidad) {
-                    mejorProximidad = p;
-                    masCercana = zona;
-                }
+    /** "Borrá todo" + las zonas del mundo donde está parado ESE jugador ahora mismo. */
+    private void resincronizar(Player jugador) {
+        bridge.enviarLimpiarA(jugador);
+        String mundoActual = jugador.getWorld().getName();
+        for (Zona zona : zonas.values()) {
+            if (zona.mundo().equals(mundoActual)) {
+                bridge.enviarZonaA(jugador, zona);
             }
-            boolean teniaAlgo = zonaActual.containsKey(jugador.getUniqueId());
-            if (masCercana == null) {
-                if (teniaAlgo) {
-                    bridge.quitarNieblaZona(jugador, SUAVIZADO_SEGUNDOS);
-                    zonaActual.remove(jugador.getUniqueId());
-                }
-                continue;
-            }
-            int[] color = mezclarColor(COLOR_SIN_EFECTO, masCercana.color(), mejorProximidad);
-            float cercana = mezclar(DISTANCIA_SIN_EFECTO, masCercana.cercana(), mejorProximidad);
-            float lejana = mezclar(DISTANCIA_SIN_EFECTO, masCercana.lejana(), mejorProximidad);
-            bridge.nieblaZona(jugador, color, cercana, lejana, SUAVIZADO_SEGUNDOS);
-            zonaActual.put(jugador.getUniqueId(), masCercana.nombre());
         }
+    }
+
+    /** El cliente avisa que registró el canal (con el mod puesto) - ahí ya le puede llegar cualquier paquete. */
+    @EventHandler
+    public void onRegistrarCanal(PlayerRegisterChannelEvent event) {
+        if (event.getChannel().equals(CANAL)) {
+            resincronizar(event.getPlayer());
+        }
+    }
+
+    /** Respaldo por si el evento de arriba no llega a tiempo (o no llega, si no tiene el mod - ahí no pasa nada igual). */
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player jugador = event.getPlayer();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (jugador.isOnline()) {
+                resincronizar(jugador);
+            }
+        }, REINTENTO_SYNC_TICKS);
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        resincronizar(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        pos1.remove(event.getPlayer().getUniqueId());
+        pos2.remove(event.getPlayer().getUniqueId());
     }
 
     /**
      * Partículas de humo/niebla DE VERDAD en el aire, rellenando cada zona - esto es lo que hace
      * que se vea "como una bomba de humo" desde afuera, aunque no se tenga el mod instalado (son
-     * partículas vanilla, Bukkit las manda solas a quien esté cerca). No tiene nada que ver con
-     * la densidad de niebla de cada jugador (actualizar()) - esto se ve siempre que la zona
-     * exista, la reducción de visibilidad es aparte y solo para quien tenga el mod.
+     * partículas vanilla, Bukkit las manda solas a quien esté cerca). Sin relación con la
+     * densidad de cada jugador - eso lo calcula el cliente solo. Esto es temporal: la Fase 4
+     * reemplaza esto por una partícula custom del mod, más grande y generada del lado cliente.
      */
     private void animarHumo() {
         if (zonas.isEmpty()) {
@@ -262,37 +257,31 @@ public final class FogZoneManager implements Listener {
             Particle.DustOptions tinte = new Particle.DustOptions(
                     Color.fromRGB(zona.color()[0], zona.color()[1], zona.color()[2]), 1.8f);
             for (int i = 0; i < PARTICULAS_HUMO_POR_ZONA; i++) {
-                double x = zona.minX() + rnd.nextDouble() * (zona.maxX() - zona.minX());
-                double y = zona.minY() + rnd.nextDouble() * (zona.maxY() - zona.minY());
-                double z = zona.minZ() + rnd.nextDouble() * (zona.maxZ() - zona.minZ());
-                mundo.spawnParticle(Particle.SMOKE_LARGE, x, y, z, 1, 0, 0, 0, 0.01);
+                double[] punto = puntoAleatorioEnZona(zona, rnd);
+                mundo.spawnParticle(Particle.SMOKE_LARGE, punto[0], punto[1], punto[2], 1, 0, 0, 0, 0.01);
             }
             for (int i = 0; i < PARTICULAS_COLOR_POR_ZONA; i++) {
-                double x = zona.minX() + rnd.nextDouble() * (zona.maxX() - zona.minX());
-                double y = zona.minY() + rnd.nextDouble() * (zona.maxY() - zona.minY());
-                double z = zona.minZ() + rnd.nextDouble() * (zona.maxZ() - zona.minZ());
-                mundo.spawnParticle(Particle.REDSTONE, x, y, z, 1, 0, 0, 0, 0, tinte);
+                double[] punto = puntoAleatorioEnZona(zona, rnd);
+                mundo.spawnParticle(Particle.REDSTONE, punto[0], punto[1], punto[2], 1, 0, 0, 0, 0, tinte);
             }
         }
     }
 
-    private static int[] mezclarColor(int[] desde, int[] hasta, double t) {
-        return new int[]{
-                (int) Math.round(desde[0] + (hasta[0] - desde[0]) * t),
-                (int) Math.round(desde[1] + (hasta[1] - desde[1]) * t),
-                (int) Math.round(desde[2] + (hasta[2] - desde[2]) * t)
-        };
-    }
-
-    private static float mezclar(float desde, float hasta, double t) {
-        return (float) (desde + (hasta - desde) * t);
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
-        zonaActual.remove(event.getPlayer().getUniqueId());
-        pos1.remove(event.getPlayer().getUniqueId());
-        pos2.remove(event.getPlayer().getUniqueId());
+    /** Un punto al azar dentro del volumen de la zona (caja: uniforme; esfera: uniforme en volumen, no solo en la superficie). */
+    private static double[] puntoAleatorioEnZona(Zona zona, ThreadLocalRandom rnd) {
+        if (zona.tipo() == Tipo.CAJA) {
+            double x = zona.p0() + rnd.nextDouble() * (zona.p3() - zona.p0());
+            double y = zona.p1() + rnd.nextDouble() * (zona.p4() - zona.p1());
+            double z = zona.p2() + rnd.nextDouble() * (zona.p5() - zona.p2());
+            return new double[]{x, y, z};
+        }
+        double radio = zona.p3() * Math.cbrt(rnd.nextDouble());
+        double theta = rnd.nextDouble() * Math.PI * 2;
+        double phi = Math.acos(2 * rnd.nextDouble() - 1);
+        double x = zona.p0() + radio * Math.sin(phi) * Math.cos(theta);
+        double y = zona.p1() + radio * Math.sin(phi) * Math.sin(theta);
+        double z = zona.p2() + radio * Math.cos(phi);
+        return new double[]{x, y, z};
     }
 
     private void cargar() {
@@ -310,11 +299,14 @@ public final class FogZoneManager implements Listener {
                 continue;
             }
             int[] color = {z.getInt("color.r", 200), z.getInt("color.g", 200), z.getInt("color.b", 200)};
-            zonas.put(clave, new Zona(z.getString("nombre", clave), z.getString("mundo", "world"),
-                    z.getDouble("minX"), z.getDouble("minY"), z.getDouble("minZ"),
-                    z.getDouble("maxX"), z.getDouble("maxY"), z.getDouble("maxZ"),
+            Tipo tipo = "ESFERA".equalsIgnoreCase(z.getString("tipo", "CAJA")) ? Tipo.ESFERA : Tipo.CAJA;
+            zonas.put(clave, new Zona(z.getString("nombre", clave), z.getString("mundo", "world"), tipo,
+                    z.getDouble("p0"), z.getDouble("p1"), z.getDouble("p2"),
+                    z.getDouble("p3"), z.getDouble("p4"), z.getDouble("p5"),
                     color, (float) z.getDouble("cercana", 2), (float) z.getDouble("lejana", 18),
-                    z.getDouble("fundido", 2)));
+                    (float) z.getDouble("margen", MARGEN_DEFECTO),
+                    z.getBoolean("creciendoActivo", false), z.getLong("tickInicio", 0),
+                    (float) z.getDouble("velocidad", 0), (float) z.getDouble("radioMaximo", 0)));
         }
     }
 
@@ -324,18 +316,23 @@ public final class FogZoneManager implements Listener {
             String base = "zonas." + zona.nombre().toLowerCase(Locale.ROOT) + ".";
             yaml.set(base + "nombre", zona.nombre());
             yaml.set(base + "mundo", zona.mundo());
-            yaml.set(base + "minX", zona.minX());
-            yaml.set(base + "minY", zona.minY());
-            yaml.set(base + "minZ", zona.minZ());
-            yaml.set(base + "maxX", zona.maxX());
-            yaml.set(base + "maxY", zona.maxY());
-            yaml.set(base + "maxZ", zona.maxZ());
+            yaml.set(base + "tipo", zona.tipo().name());
+            yaml.set(base + "p0", zona.p0());
+            yaml.set(base + "p1", zona.p1());
+            yaml.set(base + "p2", zona.p2());
+            yaml.set(base + "p3", zona.p3());
+            yaml.set(base + "p4", zona.p4());
+            yaml.set(base + "p5", zona.p5());
             yaml.set(base + "color.r", zona.color()[0]);
             yaml.set(base + "color.g", zona.color()[1]);
             yaml.set(base + "color.b", zona.color()[2]);
             yaml.set(base + "cercana", zona.cercana());
             yaml.set(base + "lejana", zona.lejana());
-            yaml.set(base + "fundido", zona.fundidoSegundos());
+            yaml.set(base + "margen", zona.margen());
+            yaml.set(base + "creciendoActivo", zona.creciendoActivo());
+            yaml.set(base + "tickInicio", zona.tickInicio());
+            yaml.set(base + "velocidad", zona.velocidadBloquesPorSegundo());
+            yaml.set(base + "radioMaximo", zona.radioMaximo());
         }
         try {
             yaml.save(archivo);

@@ -16,15 +16,19 @@ import org.bukkit.entity.Player;
 
 /**
  * /fx cielo <color|#rrggbb> [segundos] [fundido] [colorCenit] | parar
- * /fx niebla pos1 | pos2 | crear <nombre> [color] [cercana] [lejana] [fundido] | borrar <nombre> | lista
+ * /fx niebla pos1 | pos2 | crear <nombre> [color] [cercana] [lejana] [margen] | crearradio <nombre> <radio> [color] [cercana] [lejana] [margen] | borrar <nombre> | lista
  * Necesita que el jugador tenga instalado el mod cliente VoranixVisualFX (repo aparte, Forge) -
  * a quien no lo tenga no le pasa nada, el comando "funciona" igual (manda los paquetes igual).
  *
  * colorCenit (de "cielo") es opcional y es lo que se ve mirando derecho para arriba: si no se
  * pone, se usa el mismo color (cielo parejo); si se pone uno distinto, queda un degradado.
  *
- * La zona de niebla se arma con dos esquinas, como la selección de WorldEdit: parate en una
- * punta y hacé /fx niebla pos1, parate en la otra y /fx niebla pos2, después /fx niebla crear.
+ * La zona de niebla caja se arma con dos esquinas, como la selección de WorldEdit: parate en una
+ * punta y hacé /fx niebla pos1, parate en la otra y /fx niebla pos2, después /fx niebla crear. La
+ * esférica no necesita selección: /fx niebla crearradio la centra en donde estés parado.
+ *
+ * margen es cuántos bloques ANTES del borde empieza a entrar la niebla (por fuera de la zona) -
+ * 4 bloques por defecto; con 20 se nota la niebla pero no se ve la nube de humo.
  */
 @CommandAlias("fx")
 @CommandPermission("voranixextremo.fx.admin")
@@ -47,7 +51,8 @@ public class FxCommand extends BaseCommand {
         sender.sendMessage(ColorUtils.color("&c     &f/fx parar"));
         sender.sendMessage(ColorUtils.color("&c     &f/fx niebla pos1 &7(parado en una esquina de la zona)"));
         sender.sendMessage(ColorUtils.color("&c     &f/fx niebla pos2 &7(parado en la esquina opuesta)"));
-        sender.sendMessage(ColorUtils.color("&c     &f/fx niebla crear <nombre> [color] [cercana] [lejana] [fundido]"));
+        sender.sendMessage(ColorUtils.color("&c     &f/fx niebla crear <nombre> [color] [cercana] [lejana] [margen]"));
+        sender.sendMessage(ColorUtils.color("&c     &f/fx niebla crearradio <nombre> <radio> [color] [cercana] [lejana] [margen]"));
         sender.sendMessage(ColorUtils.color("&c     &f/fx niebla borrar <nombre> &7o &f/fx niebla lista"));
         sender.sendMessage(ColorUtils.color("&c     &f/fx tormenta [segundos] &7(nubes + rayos acá mismo, sin lluvia ni daño)"));
     }
@@ -98,10 +103,10 @@ public class FxCommand extends BaseCommand {
     }
 
     @Subcommand("niebla crear")
-    @CommandCompletion("* @colores-fx 2 18 2")
-    @Syntax("<nombre> [color] [cercana] [lejana] [fundido]")
+    @CommandCompletion("* @colores-fx 2 18 4")
+    @Syntax("<nombre> [color] [cercana] [lejana] [margen]")
     public void onNieblaCrear(Player jugador, String nombre, @Optional String color,
-                               @Optional Double cercana, @Optional Double lejana, @Optional Double fundido) {
+                               @Optional Double cercana, @Optional Double lejana, @Optional Double margen) {
         int[] rgb = color != null ? VisualFxBridge.parseColor(color) : new int[]{200, 200, 200};
         if (rgb == null) {
             jugador.sendMessage(ColorUtils.color("&cColor inválido: &f" + color
@@ -110,9 +115,9 @@ public class FxCommand extends BaseCommand {
         }
         float near = cercana != null ? cercana.floatValue() : 2f;
         float far = lejana != null ? lejana.floatValue() : 18f;
-        double fund = fundido != null ? fundido : 2.0;
+        Float marg = margen != null ? margen.floatValue() : null;
 
-        FogZoneManager.ErrorCrear error = zonas.crear(jugador, nombre, rgb, near, far, fund);
+        FogZoneManager.ErrorCrear error = zonas.crear(jugador, nombre, rgb, near, far, marg);
         if (error != null) {
             jugador.sendMessage(ColorUtils.color(switch (error) {
                 case FALTA_POS1 -> "&cPrimero marcá la esquina 1: &f/fx niebla pos1";
@@ -123,8 +128,34 @@ public class FxCommand extends BaseCommand {
             return;
         }
         Location p1 = zonas.getPos1(jugador), p2 = zonas.getPos2(jugador);
-        jugador.sendMessage(ColorUtils.color("&aZona de niebla &f" + nombre + " &acreada entre &7("
+        jugador.sendMessage(ColorUtils.color("&aZona de niebla (caja) &f" + nombre + " &acreada entre &7("
                 + formatear(p1) + ")&a y &7(" + formatear(p2) + ")&a."));
+    }
+
+    @Subcommand("niebla crearradio")
+    @CommandCompletion("* 10 @colores-fx 2 18 4")
+    @Syntax("<nombre> <radio> [color] [cercana] [lejana] [margen]")
+    public void onNieblaCrearRadio(Player jugador, String nombre, double radio, @Optional String color,
+                                    @Optional Double cercana, @Optional Double lejana, @Optional Double margen) {
+        int[] rgb = color != null ? VisualFxBridge.parseColor(color) : new int[]{200, 200, 200};
+        if (rgb == null) {
+            jugador.sendMessage(ColorUtils.color("&cColor inválido: &f" + color
+                    + " &7(" + String.join(", ", VisualFxBridge.COLORES.keySet()) + " o #rrggbb)"));
+            return;
+        }
+        float near = cercana != null ? cercana.floatValue() : 2f;
+        float far = lejana != null ? lejana.floatValue() : 18f;
+        Float marg = margen != null ? margen.floatValue() : null;
+
+        FogZoneManager.ErrorCrear error = zonas.crearEsfera(jugador, nombre, radio, rgb, near, far, marg);
+        if (error != null) {
+            jugador.sendMessage(ColorUtils.color(switch (error) {
+                case FALTA_POS1, FALTA_POS2, MUNDOS_DISTINTOS -> "&cError inesperado creando la esfera.";
+                case YA_EXISTE -> "&cYa existe una zona de niebla llamada &f" + nombre;
+            }));
+            return;
+        }
+        jugador.sendMessage(ColorUtils.color("&aZona de niebla (esfera) &f" + nombre + " &acreada acá, radio " + (int) radio + "."));
     }
 
     @Subcommand("niebla borrar")
@@ -145,8 +176,9 @@ public class FxCommand extends BaseCommand {
         }
         sender.sendMessage(ColorUtils.color("&6Zonas de niebla:"));
         for (FogZoneManager.Zona zona : zonas.listar()) {
-            sender.sendMessage(ColorUtils.color(String.format("&7- &f%s &7(%s, %.0f-%.0f bloques de niebla)",
-                    zona.nombre(), zona.mundo(), zona.cercana(), zona.lejana())));
+            sender.sendMessage(ColorUtils.color(String.format("&7- &f%s &7(%s, %s, %.0f-%.0f bloques de niebla, margen %.0f)",
+                    zona.nombre(), zona.mundo(), zona.tipo() == FogZoneManager.Tipo.ESFERA ? "esfera" : "caja",
+                    zona.cercana(), zona.lejana(), zona.margen())));
         }
     }
 
