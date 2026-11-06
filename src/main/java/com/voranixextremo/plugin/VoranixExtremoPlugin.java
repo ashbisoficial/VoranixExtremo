@@ -26,9 +26,10 @@ import com.voranixextremo.plugin.kills.PvpKillRewards;
 import com.voranixextremo.plugin.lives.DeathEffects;
 import com.voranixextremo.plugin.lives.LivesCommand;
 import com.voranixextremo.plugin.lives.LivesManager;
-import com.voranixextremo.plugin.lives.LivesScoreboard;
 import com.voranixextremo.plugin.lives.PlayerDeathListener;
 import com.voranixextremo.plugin.lives.PlayerJoinListener;
+import com.voranixextremo.plugin.playtime.PlaytimeCommand;
+import com.voranixextremo.plugin.playtime.PlaytimeManager;
 import com.voranixextremo.plugin.pvp.PvpCommand;
 import com.voranixextremo.plugin.pvp.PvpListener;
 import com.voranixextremo.plugin.pvp.PvpManager;
@@ -59,7 +60,7 @@ import java.util.Locale;
 public final class VoranixExtremoPlugin extends JavaPlugin {
 
     private LivesManager livesManager;
-    private LivesScoreboard livesScoreboard;
+    private PlaytimeManager playtimeManager;
     private VisualFxBridge visualFxBridge;
     private FogZoneManager fogZoneManager;
     private StormEffect stormEffect;
@@ -91,6 +92,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         PacketEvents.getAPI().init();
 
         this.livesManager = new LivesManager(this);
+        this.playtimeManager = new PlaytimeManager(this);
+        getServer().getPluginManager().registerEvents(playtimeManager, this);
+        playtimeManager.start();
         this.pvpManager = new PvpManager(this);
         this.economyManager = new EconomyManager(this);
         DeathEffects deathEffects = new DeathEffects(this);
@@ -105,9 +109,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager), this);
-        this.livesScoreboard = new LivesScoreboard(this, livesManager);
-        getServer().getPluginManager().registerEvents(livesScoreboard, this);
-        livesScoreboard.start();
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);
         getServer().getPluginManager().registerEvents(new FoodConsumeListener(this, foodManager), this);
@@ -155,6 +156,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
             return colores;
         });
         commandManager.registerCommand(new LivesCommand(this, livesManager, stormEffect));
+        commandManager.registerCommand(new PlaytimeCommand(this, playtimeManager));
         commandManager.registerCommand(new PvpCommand(this, pvpManager));
         commandManager.registerCommand(new EconomyCommand(this, economyManager));
         commandManager.registerCommand(new BankCommand(this, bankService));
@@ -201,7 +203,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     public void recargar() {
         reloadConfig();
         livesManager.reloadSettings();
-        livesScoreboard.reload();
+        playtimeManager.reloadSettings();
         economyManager.reloadSettings();
         foodManager.reload();
         shopManager.reload();
@@ -240,8 +242,8 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         if (livesManager != null) {
             livesManager.save();
         }
-        if (livesScoreboard != null) {
-            livesScoreboard.stop();
+        if (playtimeManager != null) {
+            playtimeManager.stop();
         }
         if (fogZoneManager != null) {
             // antes del bridge: manda paquetes para sacarle la niebla a quien la tuviera puesta
