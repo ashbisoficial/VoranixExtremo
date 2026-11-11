@@ -1,7 +1,7 @@
 {
   "providers": [
-    {"type": "bitmap", "file": "voranixextremo:font/vida_llena.png", "height": 13, "ascent": 10, "chars": [""]},
-    {"type": "bitmap", "file": "voranixextremo:font/vida_rota.png", "height": 13, "ascent": 10, "chars": [""]},
-    {"type": "space", "advances": {"": -11, "": -20, "": 11, "": -9}}
+    {"type": "bitmap", "file": "voranixextremo:font/vida_llena.png", "height": 20, "ascent": 16, "chars": [""]},
+    {"type": "bitmap", "file": "voranixextremo:font/vida_rota.png", "height": 20, "ascent": 16, "chars": [""]},
+    {"type": "space", "advances": {"": -15, "": -28, "": 15, "": -13}}
   ]
 }

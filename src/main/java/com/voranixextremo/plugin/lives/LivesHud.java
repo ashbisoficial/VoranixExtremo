@@ -36,15 +36,15 @@ public final class LivesHud implements Listener {
     private static final Key FUENTE = Key.key("voranixextremo", "vidas");
     /** Tiene que coincidir con el color que busca rendertype_text.vsh. */
     private static final TextColor MARCA = TextColor.color(80, 92, 40);
-    private static final char LLENA = '';
-    private static final char ROTA = '';
-    /** -11: del punto de partida al lugar del cristal de más a la derecha. */
-    private static final char PRIMER_PASO = '';
-    /** -20: después de dibujar un cristal (que avanza 9), al lugar del siguiente a la izquierda. */
-    private static final char PASO = '';
-    /** +11 y -9: para devolver el cursor a 0 al final (ancho total 0). */
-    private static final char VOLVER = '';
-    private static final char AJUSTE_FINAL = '';
+    private static final char LLENA = (char) 0xE100;
+    private static final char ROTA = (char) 0xE101;
+    /** -15: del punto de partida al lugar del cristal de más a la derecha. */
+    private static final char PRIMER_PASO = (char) 0xE110;
+    /** -28: después de dibujar un cristal (que avanza 13), al lugar del siguiente a la izquierda. */
+    private static final char PASO = (char) 0xE111;
+    /** +15 y -13: para devolver el cursor a 0 al final (ancho total 0). */
+    private static final char VOLVER = (char) 0xE112;
+    private static final char AJUSTE_FINAL = (char) 0xE113;
     /** Unos segundos después de entrar, así queda debajo de las otras boss bars en vez de empujarlas. */
     private static final long RETRASO_AL_ENTRAR = 60L;
 
