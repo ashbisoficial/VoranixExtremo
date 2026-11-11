@@ -37,21 +37,6 @@ El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plu
 - Los datos se guardan en `plugins/VoranixExtremo/lives.yml` y persisten entre reinicios.
 - El HUD en pantalla con las vidas (ícono custom, posición) lo maneja el mod `VoranixVisualFX` aparte — el plugin ya no trae un sidebar propio para esto.
 
-### Tope de tiempo jugado (`/tiempo`)
-
-Todos arrancan con el mismo presupuesto de horas (**3 por defecto**, configurable), que se va gastando segundo a segundo mientras cada uno está conectado — así nadie se adelanta farmeando/avanzando más que el resto solo por jugar más horas reales. Cada jugador ve **únicamente su propia** barra (una BossBar arriba de la pantalla, no un sidebar compartido) vaciándose de verde → amarillo → rojo a medida que gasta su tiempo.
-
-Al llegar a 0, el jugador pasa a **modo espectador** automáticamente (se avisa en pantalla) hasta que staff le resetee el tiempo o le agregue más — no hay otra forma de "pausar" el reloj (no cuenta nada mientras está desconectado, eso sí).
-
-- `/tiempo` — ver tu propio tiempo restante.
-- `/tiempo <jugador>` — ver el de otro jugador.
-- `/tiempo set <jugador> <horasUsadas>` — (admin) fija directamente cuántas horas lleva usadas ese jugador.
-- `/tiempo agregar <jugador> <horas>` — (admin) le suma esa cantidad de horas al tiempo **disponible** (le resta al tiempo usado) — para dar un bonus sin tener que calcular el total a mano.
-- `/tiempo reset <jugador>` — (admin) vuelve a dejarlo con el presupuesto completo (0 horas usadas) y lo saca de espectador si estaba ahí por esto.
-- Permisos: `voranixextremo.tiempo` (todos, incluye consultar a otros) y `voranixextremo.tiempo.admin` (operadores).
-- El tope se cambia en `config.yml` → `playtime.limite-horas` (y el texto de la barra en `playtime.titulo`) — cambiarlo no toca lo que cada jugador ya tiene jugado.
-- Los datos se guardan en `plugins/VoranixExtremo/playtime.yml` y persisten entre reinicios.
-
 ### Control de PVP (`/pvp`)
 
 - `/pvp`, `/pvp toggle`, `/pvp on`, `/pvp off` — activa/desactiva el PVP del servidor.
@@ -267,7 +252,6 @@ Como es vanilla, también sirve para dispararla **desde código**, no solo por c
 src/main/java/com/voranixextremo/plugin/
 ├── VoranixExtremoPlugin.java   # clase principal
 ├── lives/                      # sistema de vidas + animaciones de muerte
-├── playtime/                   # tope de tiempo jugado (barra personal que se vacía)
 ├── pvp/                        # sistema de PVP
 ├── economy/                    # monedas físicas, balance, Vault y precios de trades
 ├── kills/                      # trofeos (cabeza + monedas) al matar en PVP

@@ -6,7 +6,7 @@ author: ashbisoficial
 description: Plugin base para la serie Voranix Extremo (vidas, PVP, economía y futuras mecánicas de evento).
 softdepend: [Vault, PlaceholderAPI]
 
-# Los comandos (/vidas, /pvp, /dinero, /banco, /moneda, /comida, /chef, /ruleta, /ruletacolor, /fx, /tiempo)
+# Los comandos (/vidas, /pvp, /dinero, /banco, /moneda, /comida, /chef, /ruleta, /ruletacolor, /fx)
 # no van aquí: los registra ACF desde las clases *Command del código.
 
 permissions:
@@ -51,10 +51,4 @@ permissions:
     default: op
   voranixextremo.fx.admin:
     description: Permite usar /fx (efectos visuales para quien tenga el mod VoranixVisualFX).
-    default: op
-  voranixextremo.tiempo:
-    description: Permite consultar el tiempo jugado (propio o de otros).
-    default: true
-  voranixextremo.tiempo.admin:
-    description: Permite administrar el tiempo jugado de cualquier jugador (set/agregar/reset).
     default: op
