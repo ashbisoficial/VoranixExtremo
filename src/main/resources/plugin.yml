@@ -6,7 +6,7 @@ author: ashbisoficial
 description: Plugin base para la serie Voranix Extremo (vidas, PVP, economía y futuras mecánicas de evento).
 softdepend: [Vault, PlaceholderAPI]
 
-# Los comandos (/vidas, /pvp, /dinero, /banco, /moneda, /comida, /chef, /ruleta, /ruletacolor, /fx)
+# Los comandos (/vidas, /pvp, /dinero, /banco, /moneda, /comida, /chef, /ruleta, /ruletacolor)
 # no van aquí: los registra ACF desde las clases *Command del código.
 
 permissions:
@@ -48,7 +48,4 @@ permissions:
     default: true
   voranixextremo.admin:
     description: Permite usar /voranixextremo reload (recargar la configuración).
-    default: op
-  voranixextremo.fx.admin:
-    description: Permite usar /fx (efectos visuales para quien tenga el mod VoranixVisualFX).
     default: op

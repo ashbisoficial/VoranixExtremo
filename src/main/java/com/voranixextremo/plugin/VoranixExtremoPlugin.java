@@ -39,10 +39,7 @@ import com.voranixextremo.plugin.shops.ChefVillagerManager;
 import com.voranixextremo.plugin.shops.ShopManager;
 import com.voranixextremo.plugin.totem.TotemPop;
 import com.voranixextremo.plugin.util.Messages;
-import com.voranixextremo.plugin.visualfx.FogZoneManager;
-import com.voranixextremo.plugin.visualfx.FxCommand;
-import com.voranixextremo.plugin.visualfx.StormEffect;
-import com.voranixextremo.plugin.visualfx.VisualFxBridge;
+import com.voranixextremo.plugin.lives.StormEffect;
 import com.voranixextremo.plugin.voranixextremo.VoranixExtremoCommand;
 import com.voranixextremo.plugin.worldevents.RedMoonListener;
 import com.voranixextremo.plugin.worldevents.WorldEventCommand;
@@ -58,8 +55,6 @@ import java.util.Locale;
 public final class VoranixExtremoPlugin extends JavaPlugin {
 
     private LivesManager livesManager;
-    private VisualFxBridge visualFxBridge;
-    private FogZoneManager fogZoneManager;
     private StormEffect stormEffect;
     private PvpManager pvpManager;
     private EconomyManager economyManager;
@@ -123,13 +118,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         ruletaPackManager.start();
         getServer().getPluginManager().registerEvents(ruletaPackManager, this);
 
-        // Efectos visuales (cielo de color, niebla por zonas) para quien tenga el mod cliente
-        // VoranixVisualFX. Repo aparte: https://github.com/ashbisoficial/VoranixVisualFX
-        this.visualFxBridge = new VisualFxBridge(this);
-        visualFxBridge.start();
-        this.fogZoneManager = new FogZoneManager(this, visualFxBridge);
-        getServer().getPluginManager().registerEvents(fogZoneManager, this);
-        // Tormenta puntual (nubes + rayos, sin lluvia ni daño): 100% vanilla, no necesita el mod.
+        // Tormenta puntual (nubes + rayos, sin lluvia ni daño) de /vidas revivir: 100% vanilla.
         this.stormEffect = new StormEffect(this);
 
         // Comandos con ACF: cada clase *Command declara su comando con anotaciones
@@ -160,8 +149,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         commandManager.registerCommand(new VoranixExtremoCommand(this));
         completions.registerCompletion("teams", c -> teamManager.getNombres());
         commandManager.registerCommand(new TeamCommand(teamManager));
-        completions.registerCompletion("colores-fx", c -> VisualFxBridge.COLORES.keySet());
-        commandManager.registerCommand(new FxCommand(visualFxBridge, fogZoneManager, stormEffect));
 
         registerVaultIfPresent();
 
@@ -199,7 +186,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         foodManager.reload();
         shopManager.reload();
         worldEventManager.reload();
-        fogZoneManager.reload();
         ruletaManager.load();
         ruletaPackManager.stop();
         ruletaPackManager.start();
@@ -232,9 +218,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         }
         if (livesManager != null) {
             livesManager.save();
-        }
-        if (visualFxBridge != null) {
-            visualFxBridge.stop();
         }
         if (economyManager != null) {
             economyManager.save();

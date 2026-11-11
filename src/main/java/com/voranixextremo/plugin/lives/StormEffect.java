@@ -1,4 +1,4 @@
-package com.voranixextremo.plugin.visualfx;
+package com.voranixextremo.plugin.lives;
 
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import org.bukkit.Location;
@@ -10,10 +10,9 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Tormenta puntual (nubes + rayos) en un punto del mapa, para momentos dramáticos (matar un
- * boss, conseguir un ítem legendario). 100% vainilla - no necesita el mod VoranixVisualFX, así
- * que lo ve todo el mundo, lo tenga instalado o no. Pensado para dos formas de dispararla:
- * manual (staff parado ahí, /fx tormenta) y programática (disparar(...) desde cualquier otro
- * listener del plugin, ej. cuando se recoja un ítem específico).
+ * boss, conseguir un ítem legendario). 100% vainilla, así que lo ve todo el mundo. La usa
+ * /vidas revivir, y se puede disparar desde cualquier otro listener del plugin con
+ * disparar(...) (ej. cuando se recoja un ítem específico).
  */
 public final class StormEffect {
 

@@ -32,7 +32,7 @@ El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plu
   - `/vidas <jugador>` — ver las vidas de otro jugador.
   - `/vidas set <jugador> <cantidad>` — (admin) establece las vidas de un jugador.
   - `/vidas reset <jugador>` — (admin) restablece las vidas al máximo y lo saca de espectador si estaba eliminado.
-  - `/vidas revivir <jugador>` — (admin) el "revivir" de verdad: le da **una sola vida** (no el máximo) y dispara la tormenta (`/fx tormenta`, nubes + rayos) justo donde está parado el jugador — pensado para el momento de traerlo de vuelta con el ítem legendario. Necesita que esté conectado (para la ubicación de la tormenta); si está offline, usá `/vidas set` o `/vidas reset`.
+  - `/vidas revivir <jugador>` — (admin) el "revivir" de verdad: le da **una sola vida** (no el máximo) y dispara una tormenta (nubes + rayos) justo donde está parado el jugador — pensado para el momento de traerlo de vuelta con el ítem legendario. Necesita que esté conectado (para la ubicación de la tormenta); si está offline, usá `/vidas set` o `/vidas reset`.
 - Permisos: `voranixextremo.vidas` (todos) y `voranixextremo.vidas.admin` (operadores).
 - Los datos se guardan en `plugins/VoranixExtremo/lives.yml` y persisten entre reinicios.
 - El HUD en pantalla con las vidas (ícono custom, posición) lo maneja el mod `VoranixVisualFX` aparte — el plugin ya no trae un sidebar propio para esto.
@@ -193,65 +193,12 @@ Si un color se queda sin `mensaje`/`comandos` (como vienen todos ahora), `/rulet
 
 > **Sobre la idea de "Ruleta del Fénix" (web + RCON):** ese proyecto es una página HTML/WebGL que se abre en el navegador (pensada como overlay de stream) y habla con el servidor por un puente Node.js que usa RCON. Funciona, pero agrega una pieza externa que hay que tener corriendo aparte (el puente), un puerto RCON abierto y una contraseña que proteger. Como la idea de fondo — una ruleta vistosa que al caer dispara comandos — **ya está resuelta dentro del plugin** con `/ruletacolor` (misma animación "de ruleta de verdad", comandos por color, visible a todos a la vez, sin servidor aparte ni RCON), no se portó esa arquitectura: sería redundante y menos seguro que lo que ya tenés corriendo en el propio Paper.
 
-### Efectos visuales: cielo y niebla por zonas (`/fx`) — necesita el mod VoranixVisualFX
-
-Minecraft no deja recolorear el cielo de verdad (el degradado por bioma) desde comandos de servidor — eso es render del cliente. Como el server es **híbrido** (Mohist/Arclight/Magma: carga mods Forge y plugins Paper a la vez) y ya hay un instalador que mantiene actualizado un mod Forge en las máquinas de quienes participan, el efecto de cielo vive en un mod chiquito aparte: **[VoranixVisualFX](https://github.com/ashbisoficial/VoranixVisualFX)** (Forge 47.2.0 / MC 1.20.1, mismo toolchain que `voranixmod`). Ese mod **solo** hace efectos visuales — no agrega bloques, items ni mecánicas.
-
-- `/fx cielo <color|#rrggbb> [segundos] [fundido] [colorCenit]` — manda el color a todos los conectados (por defecto 10s, con un fundido de entrada/salida de hasta 2s). Cambia **todo el cielo**, no solo la niebla del horizonte: también lo que se ve mirando derecho para arriba. `colorCenit` es opcional — si no se pone, el cielo queda parejo con el primer color; si se pone uno distinto, queda un degradado (el primer color en el horizonte, `colorCenit` arriba de todo). Usa los mismos 8 nombres de color que `/ruletacolor` (`rojo`, `naranjo`, `amarillo`, `verde`, `celeste`, `azul`, `morado`, `rosa`), o un hex (`#9b30ff`), para cualquiera de los dos colores.
-- `/fx parar` — corta el efecto ya mismo en todos.
-- Permiso: `voranixextremo.fx.admin`.
-
-**A quien no tenga el mod instalado no le pasa nada** — el plugin le manda el paquete igual, pero Minecraft lo descarta en silencio porque ese cliente nunca registró el canal. No hace falta chequear quién lo tiene puesto.
-
-Como `/fx` es un comando más, se puede meter directo en los `comandos:` de un color de `/ruletacolor` (ver la sección de arriba) para que el cielo cambie solo cuando toque ese color:
-
-```yaml
-morado:
-  nombre: "<#6a3bff><bold>MORADO"
-  comandos:
-    - "fx cielo morado 15"              # cielo morado parejo, 15s
-    # - "fx cielo morado 15 2 rosa"      # ejemplo con degradado: morado en el horizonte, rosa arriba
-```
-
-#### Niebla por zonas (`/fx niebla`)
-
-A diferencia de `/fx cielo` (que es siempre para todo el server), esto es **por ubicación**: se define una zona del mapa, caja (como la selección de WorldEdit — dos esquinas) o esfera (un centro y un radio). No es un muro de "adentro sí, afuera no": a medida que te acercás (por defecto 4 bloques antes del borde, configurable por zona) la niebla se va notando de a poco, cada vez más fuerte, como una bruma de verdad — no aparece de golpe al cruzar una línea exacta. Adentro de la zona, la niebla está a pleno (se ve menos lejos, no solo cambia de color). Pensado para un pantano, una cueva, la entrada a una estructura, una bomba de humo, etc.
-
-**Cómo se calcula (importante):** el plugin NO escanea jugadores ni empuja niebla por red todo el rato — solo le manda al mod la geometría de cada zona (al crearla/borrarla, y a cada jugador cuando se conecta o cambia de mundo) y es el **mod, del lado del cliente, el que calcula en vivo cada frame** qué tan adentro está la cámara de cada zona. Por eso la niebla se nota perfectamente suave al moverse, sin el "salto" de un valor que se actualiza cada medio segundo. **Sin el mod instalado no se ve nada** — ya no hay partículas vanilla de respaldo (se sacaron, ver más abajo).
-
-Para crear una zona **caja**: parado en una esquina (cualquiera de las 8 de la caja que querés), `/fx niebla pos1`; parado en la esquina opuesta, `/fx niebla pos2`; después `/fx niebla crear <nombre> [color] [cercana] [lejana] [margen]`. Si marcás las dos posiciones caminando por el piso (alturas parecidas), la zona igual queda con **al menos 6 bloques de alto** automáticamente (centrados en el punto medio) — así un escalón del terreno no te saca de la zona sin querer.
-
-Para crear una zona **esfera**, sin selección previa: `/fx niebla crearradio <nombre> <radio> [color] [cercana] [lejana] [margen]` — se centra en donde esté parado quien ejecuta el comando.
-
-- `/fx niebla pos1` / `/fx niebla pos2` — marcan las dos esquinas (solo para la caja), en la posición actual del jugador.
-- `/fx niebla crear <nombre> [color] [cercana] [lejana] [margen]` — arma la caja con las últimas pos1/pos2 marcadas por ese jugador.
-- `/fx niebla crearradio <nombre> <radio> [color] [cercana] [lejana] [margen]` — arma la esfera centrada en el jugador.
-- `color` son los mismos 8 nombres de `/ruletacolor` o un hex (por defecto, gris). `cercana`/`lejana` son las distancias en bloques donde arranca y donde ya no se ve nada **adentro de la zona, a pleno** (por defecto 0 y 4 — pensado como humo de granada tipo Valorant/CoD: bien adentro, prácticamente no se ve nada a 4 bloques; antes era 2 y 18, que dejaba ver estructuras a decenas de bloques). `margen` son los bloques de transición ANTES de llegar al borde, por fuera de la zona (por defecto 4 — un número muy alto como 20 da niebla sin que se note ninguna nube de humo).
-- `/fx niebla borrar <nombre>` — la borra.
-- `/fx niebla lista` — las lista todas, con su tipo (caja/esfera).
-- Mismo permiso que `/fx cielo`: `voranixextremo.fx.admin`.
-
-Las zonas quedan guardadas en `plugins/VoranixExtremo/fogzones.yml` y sobreviven un reinicio del servidor.
-
-**Ya no hay partículas vanilla del lado del plugin.** Hasta esta versión, cada zona spameaba `Particle.SMOKE_LARGE`/`Particle.REDSTONE` por todo su volumen — en la práctica se veían como puntitos negros sueltos flotando, no como una nube, así que se sacó (`animarHumo()` ya no existe). Hoy, sin el mod instalado, una zona no se nota en absoluto. Lo visible es 100% del mod: la niebla de distancia (gradual, calculada en vivo) **más una capa de color a pantalla completa** cuando estás adentro de una zona (así tampoco se ve el cielo/sol/nubes de fondo) — ver el README de `VoranixVisualFX` para el detalle. Una partícula de humo de verdad, generada por el mod, queda para la Fase 4.
-
-El protocolo exacto entre el plugin y el mod (qué bytes manda `VisualFxBridge.java` de acá, para cielo y para niebla) está documentado en el README de `VoranixVisualFX` — si alguna vez se cambia alguno de los dos formatos, hay que tocar los dos repos a la vez. **Este sistema de niebla se reescribió de raíz** (antes el servidor escaneaba jugadores cada 0.5s y empujaba el resultado por red; ahora solo sincroniza geometría y el cliente calcula todo en vivo) — probado en el servidor real, la sincronización (Fase 1+2) funciona.
-
-#### Tormenta puntual (`/fx tormenta`) — 100% vanilla, no necesita el mod
-
-Nubes (partículas) y rayos (`World#strikeLightningEffect`, visual + sonido, **sin daño ni fuego, sin tocar el clima real del mundo** — no activa lluvia ni truenos globales) en el punto donde se ejecuta el comando. Pensado para momentos puntuales: matar un boss, conseguir un ítem legendario.
-
-- `/fx tormenta [segundos]` — la dispara ahí mismo donde está parado quien ejecuta el comando (por defecto 15s). La ven todos los que estén cerca, tengan el mod o no.
-- Mismo permiso: `voranixextremo.fx.admin`.
-
-Como es vanilla, también sirve para dispararla **desde código**, no solo por comando — `StormEffect.disparar(Location, segundos)` queda expuesto vía `VoranixExtremoPlugin#getStormEffect()`, pensado para engancharlo el día que haya un listener de "boss muerto" o "ítem legendario recogido".
-
 ## Estructura del proyecto
 
 ```
 src/main/java/com/voranixextremo/plugin/
 ├── VoranixExtremoPlugin.java   # clase principal
-├── lives/                      # sistema de vidas + animaciones de muerte
+├── lives/                      # sistema de vidas + animaciones de muerte + tormenta de /vidas revivir
 ├── pvp/                        # sistema de PVP
 ├── economy/                    # monedas físicas, balance, Vault y precios de trades
 ├── kills/                      # trofeos (cabeza + monedas) al matar en PVP
@@ -259,7 +206,6 @@ src/main/java/com/voranixextremo/plugin/
 ├── shops/                      # aldeanos chef y su comercio
 ├── worldevents/                # ruleta de eventos (afecta a todo el server: pvp libre, luna roja)
 ├── ruleta/                     # ruleta de colores animada (fuente custom + comandos por color)
-├── visualfx/                   # /fx: cielo y niebla (necesitan el mod) + tormenta puntual (vanilla)
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml

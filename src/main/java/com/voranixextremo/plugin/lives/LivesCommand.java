@@ -11,7 +11,6 @@ import co.aikar.commands.annotation.Subcommand;
 import co.aikar.commands.annotation.Syntax;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import com.voranixextremo.plugin.util.Messages;
-import com.voranixextremo.plugin.visualfx.StormEffect;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
