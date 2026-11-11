@@ -1,0 +1,7 @@
+{
+  "providers": [
+    {"type": "bitmap", "file": "voranixextremo:font/vida_llena.png", "height": 13, "ascent": 10, "chars": [""]},
+    {"type": "bitmap", "file": "voranixextremo:font/vida_rota.png", "height": 13, "ascent": 10, "chars": [""]},
+    {"type": "space", "advances": {"": -11, "": -20, "": 11, "": -9}}
+  ]
+}

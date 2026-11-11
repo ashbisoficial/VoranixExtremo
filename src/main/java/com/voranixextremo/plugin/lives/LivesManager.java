@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.logging.Level;
 
 public class LivesManager {
@@ -21,6 +22,8 @@ public class LivesManager {
     private final Map<UUID, Integer> lives = new HashMap<>();
     private int maxLives;
     private GameMode eliminationGameMode;
+    /** Se avisa cada vez que cambian las vidas de alguien (LivesHud redibuja sus cristales). */
+    private Consumer<OfflinePlayer> alCambiar = jugador -> { };
 
     public LivesManager(VoranixExtremoPlugin plugin) {
         this.plugin = plugin;
@@ -84,6 +87,11 @@ public class LivesManager {
 
     public void setLives(OfflinePlayer player, int amount) {
         lives.put(player.getUniqueId(), Math.max(0, amount));
+        alCambiar.accept(player);
+    }
+
+    public void setAlCambiar(Consumer<OfflinePlayer> alCambiar) {
+        this.alCambiar = alCambiar;
     }
 
     public void resetLives(OfflinePlayer player) {

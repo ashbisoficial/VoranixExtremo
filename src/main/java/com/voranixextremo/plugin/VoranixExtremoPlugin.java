@@ -27,6 +27,7 @@ import com.voranixextremo.plugin.lives.DeathEffects;
 import com.voranixextremo.plugin.lives.LivesCommand;
 import com.voranixextremo.plugin.lives.LivesManager;
 import com.voranixextremo.plugin.lives.PlayerDeathListener;
+import com.voranixextremo.plugin.lives.LivesHud;
 import com.voranixextremo.plugin.lives.PlayerJoinListener;
 import com.voranixextremo.plugin.pvp.PvpCommand;
 import com.voranixextremo.plugin.pvp.PvpListener;
@@ -55,6 +56,7 @@ import java.util.Locale;
 public final class VoranixExtremoPlugin extends JavaPlugin {
 
     private LivesManager livesManager;
+    private LivesHud livesHud;
     private StormEffect stormEffect;
     private PvpManager pvpManager;
     private EconomyManager economyManager;
@@ -98,6 +100,10 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager), this);
+        // Cristales de vidas arriba a la derecha (boss bar + fuente y shader del resource pack)
+        this.livesHud = new LivesHud(this, livesManager);
+        livesManager.setAlCambiar(livesHud::actualizar);
+        getServer().getPluginManager().registerEvents(livesHud, this);
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);
         getServer().getPluginManager().registerEvents(new FoodConsumeListener(this, foodManager), this);
@@ -182,6 +188,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     public void recargar() {
         reloadConfig();
         livesManager.reloadSettings();
+        livesHud.actualizarTodos();
         economyManager.reloadSettings();
         foodManager.reload();
         shopManager.reload();
@@ -218,6 +225,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         }
         if (livesManager != null) {
             livesManager.save();
+        }
+        if (livesHud != null) {
+            livesHud.close();
         }
         if (economyManager != null) {
             economyManager.save();

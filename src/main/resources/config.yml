@@ -17,6 +17,8 @@ lives:
   max: 5
   # Gamemode al que pasa un jugador cuando se queda sin vidas.
   elimination-gamemode: SPECTATOR
+  # Cristales de vidas arriba a la derecha de la pantalla (necesitan el resource pack del servidor).
+  hud: true
 
 pvp:
   # Estado del PVP cuando el plugin se activa por primera vez.
