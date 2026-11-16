@@ -74,6 +74,366 @@
     },
     {
       "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_8.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE128"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_9.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE129"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_10.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE12A"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_11.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE12B"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_12.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE12C"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_13.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE12D"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_14.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE12E"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_15.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE12F"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_16.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE130"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_17.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE131"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_18.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE132"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_19.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE133"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_20.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE134"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_21.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE135"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_22.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE136"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_23.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE137"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_24.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE138"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_25.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE139"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_26.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE13A"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_27.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE13B"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_28.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE13C"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_29.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE13D"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_30.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE13E"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_31.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE13F"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_32.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE140"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_33.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE141"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_34.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE142"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_35.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE143"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_36.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE144"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_37.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE145"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_38.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE146"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_39.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE147"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_40.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE148"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_41.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE149"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_42.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE14A"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_43.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE14B"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_44.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE14C"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_45.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE14D"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_46.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE14E"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_47.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE14F"
+      ]
+    },
+    {
+      "type": "bitmap",
       "file": "voranixextremo:font/vida_rota.png",
       "height": 26,
       "ascent": 21,

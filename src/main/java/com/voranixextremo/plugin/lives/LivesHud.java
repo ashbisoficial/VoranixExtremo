@@ -32,7 +32,7 @@ import java.util.UUID;
  * El título se arma de derecha a izquierda y con ancho total 0 (ver los espacios de vidas.json):
  * así el último cristal siempre queda pegado al borde, tenga el jugador las vidas que tenga.
  *
- * Las vidas que le quedan tienen un aura animada (8 cuadros, vida_llena_0..7.png): cada
+ * Las vidas que le quedan tienen un aura animada (48 cuadros, vida_llena_0..47.png): cada
  * CUADRO_TICKS se vuelve a mandar el título con el cuadro siguiente, cada cristal desfasado del
  * de al lado para que no latan todos juntos. Se apaga con lives.hud-animado: false.
  */
@@ -41,13 +41,13 @@ public final class LivesHud implements Listener {
     private static final Key FUENTE = Key.key("voranixextremo", "vidas");
     /** Tiene que coincidir con el color que busca rendertype_text.vsh. */
     private static final TextColor MARCA = TextColor.color(80, 92, 40);
-    /** Primer cuadro del aura; los 8 cuadros van seguidos (0xE120..0xE127). */
+    /** Primer cuadro del aura; los 48 cuadros van seguidos (0xE120..0xE14F). */
     private static final char LLENA = (char) 0xE120;
-    private static final int CUADROS = 8;
+    private static final int CUADROS = 48;
     /** Cuántos cuadros se adelanta cada cristal respecto del de su izquierda. */
-    private static final int DESFASE = 3;
-    /** 2 ticks por cuadro = 10 cuadros por segundo, lo mismo que la vista previa. */
-    private static final long CUADRO_TICKS = 2L;
+    private static final int DESFASE = 6;
+    /** Un cuadro por tick (20 por segundo): el aura da una vuelta cada 2,4 segundos. */
+    private static final long CUADRO_TICKS = 1L;
     private static final char ROTA = (char) 0xE101;
     /** -15: del punto de partida al lugar del cristal de más a la derecha. */
     private static final char PRIMER_PASO = (char) 0xE110;
