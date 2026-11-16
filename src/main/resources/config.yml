@@ -19,6 +19,8 @@ lives:
   elimination-gamemode: SPECTATOR
   # Cristales de vidas arriba a la derecha de la pantalla (necesitan el resource pack del servidor).
   hud: true
+  # Aura animada alrededor de las vidas que quedan (false = cristales quietos).
+  hud-animado: true
 
 pvp:
   # Estado del PVP cuando el plugin se activa por primera vez.

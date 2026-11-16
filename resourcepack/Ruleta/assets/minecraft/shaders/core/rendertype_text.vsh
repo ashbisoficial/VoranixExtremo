@@ -36,9 +36,9 @@ out vec4 vertexColor;
 out vec2 texCoord0;
 
 // Tiene que coincidir con la fuente voranixextremo:vidas (vidas.json) y LivesHud.java
-const float VIDAS_MARGEN = 4.0;      // separación con el borde derecho y con el de arriba
-const float VIDAS_BORDE_DER = -3.0;  // dónde termina el cristal de más a la derecha, relativo al centro
-const float VIDAS_ALTO = 20.0;       // alto de cada cristal
+const float VIDAS_MARGEN = 2.0;      // separación con el borde derecho y con el de arriba (el aura ya trae su margen)
+const float VIDAS_BORDE_DER = 3.0;   // dónde termina el cuadro (cristal + aura) de más a la derecha, relativo al centro
+const float VIDAS_ALTO = 26.0;       // alto de cada cuadro (cristal de 20 + aura)
 
 bool esColor(vec3 c, vec3 rgb) {
     return all(lessThan(abs(c * 255.0 - rgb), vec3(0.6)));

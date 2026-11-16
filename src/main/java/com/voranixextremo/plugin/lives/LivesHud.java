@@ -13,6 +13,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,19 +31,29 @@ import java.util.UUID;
  *
  * El título se arma de derecha a izquierda y con ancho total 0 (ver los espacios de vidas.json):
  * así el último cristal siempre queda pegado al borde, tenga el jugador las vidas que tenga.
+ *
+ * Las vidas que le quedan tienen un aura animada (8 cuadros, vida_llena_0..7.png): cada
+ * CUADRO_TICKS se vuelve a mandar el título con el cuadro siguiente, cada cristal desfasado del
+ * de al lado para que no latan todos juntos. Se apaga con lives.hud-animado: false.
  */
 public final class LivesHud implements Listener {
 
     private static final Key FUENTE = Key.key("voranixextremo", "vidas");
     /** Tiene que coincidir con el color que busca rendertype_text.vsh. */
     private static final TextColor MARCA = TextColor.color(80, 92, 40);
-    private static final char LLENA = (char) 0xE100;
+    /** Primer cuadro del aura; los 8 cuadros van seguidos (0xE120..0xE127). */
+    private static final char LLENA = (char) 0xE120;
+    private static final int CUADROS = 8;
+    /** Cuántos cuadros se adelanta cada cristal respecto del de su izquierda. */
+    private static final int DESFASE = 3;
+    /** 2 ticks por cuadro = 10 cuadros por segundo, lo mismo que la vista previa. */
+    private static final long CUADRO_TICKS = 2L;
     private static final char ROTA = (char) 0xE101;
     /** -15: del punto de partida al lugar del cristal de más a la derecha. */
     private static final char PRIMER_PASO = (char) 0xE110;
-    /** -28: después de dibujar un cristal (que avanza 13), al lugar del siguiente a la izquierda. */
+    /** -34: después de dibujar un cuadro (que avanza 19), al lugar del siguiente a la izquierda. */
     private static final char PASO = (char) 0xE111;
-    /** +15 y -13: para devolver el cursor a 0 al final (ancho total 0). */
+    /** +15 y -19: para devolver el cursor a 0 al final (ancho total 0). */
     private static final char VOLVER = (char) 0xE112;
     private static final char AJUSTE_FINAL = (char) 0xE113;
     /** Unos segundos después de entrar, así queda debajo de las otras boss bars en vez de empujarlas. */
@@ -52,15 +63,31 @@ public final class LivesHud implements Listener {
     private final LivesManager lives;
     private final BukkitAudiences audiences;
     private final Map<UUID, BossBar> barras = new HashMap<>();
+    private final BukkitTask animacion;
+    private int cuadro;
 
     public LivesHud(VoranixExtremoPlugin plugin, LivesManager lives) {
         this.plugin = plugin;
         this.lives = lives;
         this.audiences = BukkitAudiences.create(plugin);
+        this.animacion = Bukkit.getScheduler().runTaskTimer(plugin, this::siguienteCuadro, CUADRO_TICKS, CUADRO_TICKS);
     }
 
     private boolean activo() {
         return plugin.getConfig().getBoolean("lives.hud", true);
+    }
+
+    private void siguienteCuadro() {
+        if (barras.isEmpty() || !plugin.getConfig().getBoolean("lives.hud-animado", true)) {
+            return;
+        }
+        cuadro = (cuadro + 1) % CUADROS;
+        for (Map.Entry<UUID, BossBar> entrada : barras.entrySet()) {
+            Player jugador = Bukkit.getPlayer(entrada.getKey());
+            if (jugador != null) {
+                entrada.getValue().name(titulo(lives.getLives(jugador), lives.getMaxLives(), cuadro));
+            }
+        }
     }
 
     /** Vuelve a dibujar las vidas de este jugador (si está conectado). */
@@ -73,7 +100,7 @@ public final class LivesHud implements Listener {
             ocultar(online);
             return;
         }
-        Component titulo = titulo(lives.getLives(online), lives.getMaxLives());
+        Component titulo = titulo(lives.getLives(online), lives.getMaxLives(), cuadro);
         BossBar barra = barras.get(online.getUniqueId());
         if (barra == null) {
             barra = BossBar.bossBar(titulo, 0f, BossBar.Color.WHITE, BossBar.Overlay.PROGRESS);
@@ -98,7 +125,7 @@ public final class LivesHud implements Listener {
         }
     }
 
-    private static Component titulo(int vidas, int maximo) {
+    private static Component titulo(int vidas, int maximo, int cuadro) {
         int total = Math.max(maximo, vidas);
         int rotas = Math.max(0, total - Math.max(vidas, 0));
         StringBuilder texto = new StringBuilder();
@@ -108,7 +135,8 @@ public final class LivesHud implements Listener {
             if (i > 0) {
                 texto.append(PASO);
             }
-            texto.append(i < rotas ? ROTA : LLENA);
+            int desdeLaIzquierda = total - 1 - i;
+            texto.append(i < rotas ? ROTA : (char) (LLENA + (cuadro + desdeLaIzquierda * DESFASE) % CUADROS));
         }
         texto.append(String.valueOf(VOLVER).repeat(total)).append(AJUSTE_FINAL);
         return Component.text(texto.toString()).font(FUENTE).color(MARCA);
@@ -126,6 +154,7 @@ public final class LivesHud implements Listener {
     }
 
     public void close() {
+        animacion.cancel();
         for (Player jugador : Bukkit.getOnlinePlayers()) {
             ocultar(jugador);
         }

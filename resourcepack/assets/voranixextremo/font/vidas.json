@@ -1,7 +1,94 @@
 {
   "providers": [
-    {"type": "bitmap", "file": "voranixextremo:font/vida_llena.png", "height": 20, "ascent": 16, "chars": [""]},
-    {"type": "bitmap", "file": "voranixextremo:font/vida_rota.png", "height": 20, "ascent": 16, "chars": [""]},
-    {"type": "space", "advances": {"": -15, "": -28, "": 15, "": -13}}
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_0.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE120"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_1.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE121"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_2.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE122"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_3.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE123"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_4.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE124"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_5.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE125"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_6.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE126"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_llena_7.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE127"
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_rota.png",
+      "height": 26,
+      "ascent": 21,
+      "chars": [
+        "\uE101"
+      ]
+    },
+    {
+      "type": "space",
+      "advances": {
+        "\uE110": -15,
+        "\uE111": -34,
+        "\uE112": 15,
+        "\uE113": -19
+      }
+    }
   ]
 }
