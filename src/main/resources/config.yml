@@ -336,12 +336,11 @@ pvp-kill-rewards:
   # en una serie larga).
   trophy-sound: ENTITY_WITHER_AMBIENT
   trophy-particle-duration-ticks: 60
-  coin-reward:
-    enabled: true
-    # Valor total (en la unidad de la economía) que recibe el asesino, directo en el
-    # inventario (no se tira al piso), repartido en las denominaciones de economy.coins
-    # (de mayor a menor). Si el inventario está lleno, el sobrante sí cae a sus pies.
-    value: 50
+  # La recompensa: comandos que se ejecutan por consola (con todos los permisos) cuando alguien
+  # mata a otro jugador. %killer% = el que mató, %victim% = el que murió. Sin "/" adelante.
+  # Pon los que quieras (uno por línea) o deja la lista vacía ([]) para no dar nada.
+  commands:
+    - "moneda dar %killer% silver 5"
 
 # Ruleta de colores en pantalla (la del plugin Ruleta_Custom). Comando /ruletacolor
 # (permiso voranixextremo.ruletacolor.admin):

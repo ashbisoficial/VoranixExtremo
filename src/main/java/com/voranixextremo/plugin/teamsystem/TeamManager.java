@@ -104,13 +104,14 @@ public class TeamManager {
 
     /**
      * Separación entre líneas del texto sobre el jugador (cada línea es un texto con su propio fondo).
-     * Cada línea con su fondo mide 0,3 de alto: con menos, los fondos se montan uno sobre otro.
+     * Es justo el alto del fondo de una línea (11 px de texto x 0,025), así los fondos quedan
+     * pegados, sin hueco y sin montarse, y cada uno conserva su ancho.
      */
     public double getEspacioLineas() {
-        return Math.max(ALTO_LINEA, config.getDouble("nametag.espacio-lineas", 0.32));
+        return ALTO_LINEA;
     }
 
-    private static final double ALTO_LINEA = 0.3;
+    private static final double ALTO_LINEA = 0.275;
 
     /** Texto bajo el nombre para un team (ya con colores), o null si está desactivado. */
     public String getTextoNametag(Player player, Team team) {

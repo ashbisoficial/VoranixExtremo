@@ -34,13 +34,10 @@ nametag:
   lineas:
     - "&f%player%"
     - "&b%team%"
-  # Cada línea va con su propio fondo, a la medida de su texto (como nametags apilados).
+  # Cada línea va con su propio fondo, a la medida de su texto, y pegada a la de arriba (sin hueco).
   # Altura de la última línea: con 0.45 el nombre queda justo donde va el nametag normal y el team
   # debajo. Súbela (0.5) o bájala (0.4) si lo quieres más arriba o más abajo.
   altura: 0.45
-  # Separación entre líneas: más alto = más separadas. Mínimo 0.3 (cada línea con su fondo mide
-  # 0.3; con menos se montan una sobre otra, así que un valor menor se toma como 0.3).
-  espacio-lineas: 0.32
 
 chat:
   # Formato del chat del team (/team chat join). %team%, %player% y %message%.

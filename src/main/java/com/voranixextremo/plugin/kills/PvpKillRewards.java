@@ -1,7 +1,7 @@
 package com.voranixextremo.plugin.kills;
 
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
-import com.voranixextremo.plugin.economy.BankService;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
@@ -11,27 +11,22 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Skull;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.List;
-import java.util.Map;
 import java.util.logging.Level;
 
 /**
  * "Trofeos" al matar a otro jugador en combate (PVP): un mini monumento con la cabeza
- * de la víctima montada sobre un muro, y monedas físicas que van directo al inventario
- * del asesino (no se tiran al piso). No se aplica a muertes por caída, lava, mobs, etc.
+ * de la víctima montada sobre un muro, y la recompensa: los comandos de
+ * pvp-kill-rewards.commands, ejecutados por consola. No se aplica a muertes por caída, lava, mobs, etc.
  * — solo a asesinatos entre jugadores.
  */
 public class PvpKillRewards {
 
     private final VoranixExtremoPlugin plugin;
-    private final BankService bankService;
 
-    public PvpKillRewards(VoranixExtremoPlugin plugin, BankService bankService) {
+    public PvpKillRewards(VoranixExtremoPlugin plugin) {
         this.plugin = plugin;
-        this.bankService = bankService;
     }
 
     public void drop(Player victim, Player killer, Location location) {
@@ -48,9 +43,21 @@ public class PvpKillRewards {
             placeTrophy(victim, location);
         }
 
-        if (plugin.getConfig().getBoolean("pvp-kill-rewards.coin-reward.enabled", true)) {
-            double value = plugin.getConfig().getDouble("pvp-kill-rewards.coin-reward.value", 50);
-            bankService.breakIntoCoins(value).ifPresent(coins -> giveToInventory(killer, coins));
+        ejecutarComandos(victim, killer);
+    }
+
+    /** La recompensa: los comandos de pvp-kill-rewards.commands, por consola (permisos completos). */
+    private void ejecutarComandos(Player victim, Player killer) {
+        for (String comando : plugin.getConfig().getStringList("pvp-kill-rewards.commands")) {
+            if (comando == null || comando.isBlank()) continue;
+            String cmd = (comando.startsWith("/") ? comando.substring(1) : comando)
+                    .replace("%killer%", killer.getName())
+                    .replace("%victim%", victim.getName());
+            try {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+            } catch (Exception e) {
+                plugin.getLogger().log(Level.WARNING, "Recompensa de kill: falló el comando '" + cmd + "'", e);
+            }
         }
     }
 
@@ -111,14 +118,5 @@ public class PvpKillRewards {
             world.spawnParticle(Particle.SOUL, point, 1, 0, 0, 0, 0);
             elapsed[0] += 2;
         }, 0L, 2L);
-    }
-
-    private void giveToInventory(Player killer, List<ItemStack> coins) {
-        for (ItemStack coin : coins) {
-            Map<Integer, ItemStack> leftovers = killer.getInventory().addItem(coin);
-            for (ItemStack leftover : leftovers.values()) {
-                killer.getWorld().dropItemNaturally(killer.getLocation(), leftover);
-            }
-        }
     }
 }

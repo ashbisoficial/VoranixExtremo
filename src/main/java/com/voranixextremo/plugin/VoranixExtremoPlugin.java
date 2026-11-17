@@ -93,7 +93,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         this.deathEffects = new DeathEffects(this);
         CoinItemFactory coinItemFactory = new CoinItemFactory(this);
         BankService bankService = new BankService(economyManager, coinItemFactory);
-        PvpKillRewards pvpKillRewards = new PvpKillRewards(this, bankService);
+        PvpKillRewards pvpKillRewards = new PvpKillRewards(this);
         this.foodManager = new FoodManager(this);
         this.shopManager = new ShopManager(this);
         ChefVillagerManager chefVillagerManager = new ChefVillagerManager(this, economyManager, coinItemFactory, foodManager);
