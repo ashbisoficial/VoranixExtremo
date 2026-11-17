@@ -9,6 +9,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerResourcePackStatusEvent;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -19,8 +21,14 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.IntConsumer;
@@ -35,10 +43,21 @@ import java.util.zip.ZipOutputStream;
  * resourcepack/Ruleta y las monedas y comida de resourcepack/assets) y, si se quiere, lo sirve
  * por HTTP para mandarlo a los jugadores. La 1.20.1 acepta un solo pack del servidor, por eso
  * va todo junto. Si en config.yml → resourcepack.url hay un pack propio, se manda ese y este no.
+ *
+ * Un pack externo NUNCA se manda sin su sha1: sin sha1, Minecraft 1.20.1 usa el archivo que ya
+ * tenga guardado de ese mismo link (aunque sea una versión vieja o una descarga cortada) y no
+ * baja el nuevo, que era lo que obligaba a usar /voranixextremo texturepackreload. Quien entra
+ * mientras el sha1 se calcula queda esperando y recibe el pack apenas esté; si la descarga para
+ * calcularlo falla, se reintenta sola. Si el cliente no contesta al pack, se le vuelve a mandar.
  */
 public final class RuletaPackManager implements Listener {
 
     private static final String CARPETA = "ruleta-pack/";
+    /** Espera antes de volver a intentar calcular el sha1 si la descarga falló. */
+    private static final long REINTENTO_SHA1_TICKS = 30 * 20L;
+    /** Si el cliente no contesta (ni aceptó ni rechazó) en este tiempo, se le vuelve a mandar. */
+    private static final long SIN_RESPUESTA_TICKS = 20 * 20L;
+    private static final int MAX_ENVIOS = 3;
 
     private final VoranixExtremoPlugin plugin;
     private final RuletaManager ruleta;
@@ -47,6 +66,13 @@ public final class RuletaPackManager implements Listener {
     private volatile URI uri;
     /** sha1 del pack que se manda; con un link externo se calcula al descargarlo (null mientras tanto) */
     private volatile String sha1;
+    private volatile boolean externo;
+    /** Entraron mientras se calculaba el sha1 del pack externo: se les manda apenas esté. */
+    private final Set<UUID> esperandoSha1 = new HashSet<>();
+    /** Cuántas veces se le mandó el pack a cada uno (para no reintentar para siempre). */
+    private final Map<UUID, Integer> intentos = new HashMap<>();
+    /** Les llegó el pack y todavía no contestaron nada (ni aceptar ni rechazar): número de intento. */
+    private final Map<UUID, Integer> sinRespuesta = new HashMap<>();
 
     public RuletaPackManager(VoranixExtremoPlugin plugin, RuletaManager ruleta) {
         this.plugin = plugin;
@@ -87,6 +113,7 @@ public final class RuletaPackManager implements Listener {
             sha1 = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(bytes));
 
             String externa = urlExterna();
+            externo = externa != null;
             if (externa != null) {
                 // el pack de afuera puede traer más cosas (por ejemplo varios packs juntos): su sha1 no es el
                 // del pack del plugin, así que se calcula descargándolo una vez, en segundo plano
@@ -126,15 +153,40 @@ public final class RuletaPackManager implements Listener {
         if (listo != null) listo.run();
     }
 
-    /** Descarga el pack externo (sin guardarlo) para saber su sha1; mientras tanto se manda sin sha1. */
+    /**
+     * Descarga el pack externo (sin guardarlo) para saber su sha1; mientras tanto nadie lo recibe
+     * (quedan en esperandoSha1). Si falla, se reintenta cada 30 s mientras siga siendo el mismo link.
+     */
     private void calcularSha1Externo(URI externa, Runnable listo) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            revisarExterno(externa);
-            if (listo != null) Bukkit.getScheduler().runTask(plugin, listo);
+            boolean ok = revisarExterno(externa);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!externa.equals(uri)) return; // hubo un reload con otro link mientras tanto
+                if (ok) {
+                    if (listo != null) {
+                        esperandoSha1.clear(); // listo (texturepackreload) ya se lo manda a todos los conectados
+                        listo.run();
+                    } else {
+                        mandarALosQueEsperaban();
+                    }
+                } else {
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (externa.equals(uri) && sha1 == null) calcularSha1Externo(externa, listo);
+                    }, REINTENTO_SHA1_TICKS);
+                }
+            });
         });
     }
 
-    private void revisarExterno(URI externa) {
+    private void mandarALosQueEsperaban() {
+        for (UUID id : new ArrayList<>(esperandoSha1)) {
+            Player p = Bukkit.getPlayer(id);
+            if (p != null) send(p);
+        }
+        esperandoSha1.clear();
+    }
+
+    private boolean revisarExterno(URI externa) {
         try {
             HttpURLConnection conexion = (HttpURLConnection) externa.toURL().openConnection();
             conexion.setConnectTimeout(10_000);
@@ -148,9 +200,11 @@ public final class RuletaPackManager implements Listener {
             String calculado = HexFormat.of().formatHex(digest.digest());
             if (externa.equals(uri)) sha1 = calculado; // por si mientras tanto hubo un reload con otro link
             plugin.getLogger().info("Resource pack externo revisado: " + (bytes / 1024 / 1024) + " MB, sha1 " + calculado);
+            return true;
         } catch (Exception e) {
             plugin.getLogger().warning("No se pudo descargar el resource pack externo para revisarlo (" + e.getMessage()
-                    + "). Se va a mandar sin sha1: funciona igual, pero los jugadores lo vuelven a bajar cada vez.");
+                    + "). Se reintenta en 30 s; mientras tanto, quien entre recibe el pack apenas esté listo.");
+            return false;
         }
     }
 
@@ -190,12 +244,59 @@ public final class RuletaPackManager implements Listener {
     }
 
     public void send(Player player) {
+        enviar(player, 1);
+    }
+
+    private void enviar(Player player, int intento) {
         if (uri == null || !player.isOnline()) return;
+        String hash = sha1;
+        if (externo && hash == null) {
+            // sin sha1 el cliente se quedaría con el pack viejo que tenga guardado: mejor esperar
+            esperandoSha1.add(player.getUniqueId());
+            return;
+        }
         ConfigurationSection c = ruleta.config();
         String prompt = LegacyComponentSerializer.legacySection().serialize(RuletaManager.parse(c.getString("resource-pack.mensaje", "")));
-        // sin sha1 (todavía revisando el pack externo) Spigot lo manda igual, solo que el cliente no lo puede cachear
-        player.setResourcePack(uri.toString(), sha1 == null ? null : HexFormat.of().parseHex(sha1),
+        player.setResourcePack(uri.toString(), hash == null ? null : HexFormat.of().parseHex(hash),
                 prompt.isEmpty() ? null : prompt, c.getBoolean("resource-pack.obligatorio", false));
+
+        // si no contesta nada (se perdió el paquete o le llegó mientras cargaba el mundo), se reintenta
+        UUID id = player.getUniqueId();
+        intentos.put(id, intento);
+        sinRespuesta.put(id, intento);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Integer pendiente = sinRespuesta.get(id);
+            if (pendiente == null || pendiente != intento) return;
+            sinRespuesta.remove(id);
+            Player p = Bukkit.getPlayer(id);
+            if (p != null && intento < MAX_ENVIOS) {
+                plugin.getLogger().info("Resource pack: " + p.getName() + " no contestó, se le vuelve a mandar (intento " + (intento + 1) + ")");
+                enviar(p, intento + 1);
+            }
+        }, SIN_RESPUESTA_TICKS);
+    }
+
+    @EventHandler
+    public void onEstadoPack(PlayerResourcePackStatusEvent e) {
+        Player p = e.getPlayer();
+        PlayerResourcePackStatusEvent.Status estado = e.getStatus();
+        if (estado != PlayerResourcePackStatusEvent.Status.ACCEPTED) {
+            plugin.getLogger().info("Resource pack: " + p.getName() + " -> " + estado);
+        }
+        // contestó algo: ya no hace falta el reintento por silencio (la descarga puede tardar lo que tarde)
+        sinRespuesta.remove(p.getUniqueId());
+        int intento = intentos.getOrDefault(p.getUniqueId(), MAX_ENVIOS);
+        if (estado == PlayerResourcePackStatusEvent.Status.FAILED_DOWNLOAD && intento < MAX_ENVIOS) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> enviar(p, intento + 1), 5 * 20L);
+        }
+    }
+
+    @EventHandler
+    public void onSalir(PlayerQuitEvent e) {
+        UUID id = e.getPlayer().getUniqueId();
+        esperandoSha1.remove(id);
+        sinRespuesta.remove(id);
+        intentos.remove(id);
     }
 
     /**
@@ -215,8 +316,8 @@ public final class RuletaPackManager implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent e) {
         if (ruleta.config().getBoolean("resource-pack.enviar-al-entrar", true)) {
-            // un pequeño retraso para que el cliente termine de cargar el mundo
-            Bukkit.getScheduler().runTaskLater(plugin, () -> send(e.getPlayer()), 20L);
+            // un pequeño retraso para que el cliente termine de cargar el mundo (con mods tarda más)
+            Bukkit.getScheduler().runTaskLater(plugin, () -> send(e.getPlayer()), 40L);
         }
     }
 }
