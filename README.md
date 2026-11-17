@@ -108,10 +108,10 @@ Para usarlo en el servidor:
 Cuando un jugador mata a otro **en combate** (se detecta con `getKiller()`, que Bukkit solo pone si el último golpe fue de un jugador — no aplica a caídas, lava, mobs, etc.), además de la animación de muerte normal pasa esto en el lugar de la muerte:
 
 - Se arma un mini monumento: un bloque de `pvp-kill-rewards.trophy-wall-material` (por defecto `DEEPSLATE_BRICK_WALL`) con la **cabeza de la víctima** montada encima, con su skin real (`pvp-kill-rewards.head-drop`).
-- Al ponerse: sonido + un remolino breve de partículas de alma alrededor de la cabeza (unos segundos, `trophy-particle-duration-ticks`), y queda flotando sobre la cabeza un **Cristal del Fin** permanente (`trophy-crystal`) — da el brillo/haz de luz giratorio nativo del juego gratis, sin que el plugin tenga que animar nada tick a tick. Es invulnerable para que nadie lo haga explotar a golpes.
+- Al ponerse: sonido + un remolino breve de partículas de alma alrededor de la cabeza (unos segundos, `trophy-particle-duration-ticks`). Queda solo el muro con la cabeza (sin cristal del fin encima).
 - **Monedas** de botín, por un valor configurable (`pvp-kill-rewards.coin-reward.value`, por defecto 50), van **directo al inventario del asesino** (repartidas automáticamente en las denominaciones de `economy.coins`, reutilizando la misma lógica de "dar cambio" que usa `/banco retirar`). Si no le entran en el inventario, el sobrante cae a sus pies.
 
-Todo se puede desactivar por separado (`enabled`, `head-drop`, `trophy-crystal`, `coin-reward.enabled`) en `config.yml`.
+Todo se puede desactivar por separado (`enabled`, `head-drop`, `coin-reward.enabled`) en `config.yml`.
 
 > **Sobre el look del cristal:** por defecto se ve como un Cristal del Fin normal (blanco/verde). Para un look más oscuro/rojo (tipo los monumentos de DEDsafio) no hace falta modelar nada — alcanza con poner una textura propia en `resourcepack/assets/minecraft/textures/entity/end_crystal/end_crystal.png` (y `end_crystal_beam.png` para el haz). **Ojo:** esto reemplaza la textura de **todos** los cristales del fin del server (incluidos los reales, si pelean contra el Dragón del End) — es un cambio global del resource pack, no algo que afecte solo a estos trofeos.
 
