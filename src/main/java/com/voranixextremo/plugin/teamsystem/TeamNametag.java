@@ -280,6 +280,11 @@ public class TeamNametag implements Listener, PacketListener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         Player p = event.getPlayer();
+        // se borran sus textos acá: el "borrar" del jugador que manda el servidor llega después,
+        // cuando ya no se sabe de quién era, y los textos quedaban flotando donde salió
+        ocultarAnteTodos(p.getUniqueId());
+        for (Player viewer : Bukkit.getOnlinePlayers()) cargadosDe(viewer).remove(p.getEntityId());
+        idFalso.remove(p.getUniqueId());
         jugadorPorId.remove(p.getEntityId());
         cargados.remove(p.getUniqueId());
         textos.remove(p.getUniqueId());

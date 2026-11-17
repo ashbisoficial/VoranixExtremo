@@ -1,0 +1,93 @@
+# Mensajes de VoranixExtremo
+#
+# Todo lo que el plugin le dice a los jugadores. Se recarga con /voranixextremo reload.
+# Colores con códigos & (&c, &l, &#ff0000 no) salvo en la sección "ruleta", que usa MiniMessage
+# (<red>, <gradient:...>). Lo que va entre % se reemplaza solo (%player%, %vidas%, etc.).
+# Si borras un mensaje, se usa el que trae el plugin. Para que un mensaje no salga, déjalo vacío ("")
+# (solo funciona en totem-pop, death-text y eliminated-text).
+
+# Va delante de casi todos los mensajes del chat
+prefix: "&8[&cVoranix&6Extremo&8] &r"
+
+# ------------------------------------------------------------------ general
+no-permission: "&cNo tienes permiso para usar este comando."
+only-players: "&cEste comando solo puede ser usado por jugadores."
+player-not-found: "&cJugador no encontrado."
+reloaded: "&aConfiguración de VoranixExtremo recargada."
+texturepack-reloading: "&7Revisando el resource pack..."
+texturepack-reloaded: "&aResource pack actualizado y enviado a &f%jugadores% &ajugador(es)."
+voranixextremo-usage: "&7Uso: &f/voranixextremo <reload|texturepackreload>"
+
+# ------------------------------------------------------------------ vidas y muertes
+life-lost: "&c%player% &7perdió una vida. Le quedan &c%vidas% &7vida(s)."
+eliminated: "&4%player% &7ha sido &4ELIMINADO&7 de la serie."
+revived: "&a&l¡%player% HA SIDO REVIVIDO! &r&7Le queda &a1 &7vida."
+vidas-check: "&7Tienes &c%vidas% &7vida(s) restantes."
+vidas-check-other: "&c%player% &7tiene &c%vidas% &7vida(s) restantes."
+vidas-set: "&7Vidas de &f%player% &7establecidas en &c%vidas%&7."
+vidas-reset: "&7Vidas de &f%player% &7restablecidas a &c%vidas%&7."
+# Texto de la muerte para todos (sin prefijo): arriba de la hotbar mientras sale el Ojo, o como
+# título grande si el Ojo está apagado (config.yml -> death-effects)
+death-text: "&c%player% ha muerto"
+eliminated-text: "&4☠ %player% ELIMINADO ☠"
+# Cuando alguien usa (popea) un tótem (sin prefijo). %usuario% = nombre del jugador
+totem-pop: "&6⏳ &6&L%usuario% &6a utilizado un tótem"
+
+# ------------------------------------------------------------------ pvp
+pvp-enabled: "&a¡El PVP ha sido ACTIVADO!"
+pvp-disabled: "&c¡El PVP ha sido DESACTIVADO!"
+
+# ------------------------------------------------------------------ eventos mundiales y Revill
+world-event-spinning: "&6&l¡Se está girando la RULETA DE EVENTOS MUNDIALES!"
+world-event-started: "&d&l¡Comenzó: %evento%!"
+world-event-ended: "&7El evento %evento% terminó."
+event-none-configured: "&cNo hay eventos configurados en world-events.outcomes."
+event-already-active: "&cYa hay un evento activo: &f%evento% &7(quedan %segundos%s)."
+event-active: "&7Evento activo: &f%evento% &7(quedan %segundos%s)."
+event-none-active: "&7No hay ningún evento activo."
+event-stopped: "&7Evento detenido."
+revill-objective: "&4&l¡MOMENTO REVILL! &r&c%objetivo%"
+revill-eliminated: "&4☠ %player% no cumplió el objetivo del Revill y fue ELIMINADO."
+revill-summary: "&7Revill terminado: &a%sobrevivientes% sobrevivieron&7, &c%eliminados% eliminados&7."
+
+# ------------------------------------------------------------------ economía
+balance: "&7Tu balance: &f%cantidad%"
+balance-other: "&7Balance de &f%player% &7ahora: &f%cantidad%"
+pay-invalid: "&cLa cantidad debe ser mayor que 0."
+pay-insufficient: "&cNo tienes suficiente dinero."
+pay-done: "&7Le pagaste &f%cantidad% &7a &f%player%&7."
+amount-negative: "&cLa cantidad no puede ser negativa."
+bank-usage: "&7Uso: &f/banco <depositar|retirar> [cantidad]"
+bank-deposited: "&7Depositaste &f%cantidad%&7."
+bank-nothing: "&cNo tenías monedas físicas para depositar."
+bank-withdrawn: "&7Retiraste &f%cantidad% &7en monedas."
+bank-withdraw-failed: "&cNo se pudo retirar ese monto (fondos insuficientes o no se puede armar con las monedas configuradas)."
+coin-usage: "&7Uso: &f/moneda dar <jugador> <tipo> [cantidad]"
+coin-unknown: "&cTipo de moneda desconocido. Disponibles: &f%disponibles%"
+coin-given: "&7Le diste &f%cantidad%x %tipo% &7a &f%player%&7."
+
+# ------------------------------------------------------------------ comida y chefs
+food-usage: "&7Uso: &f/comida dar <jugador> <id> [cantidad]"
+food-given: "&7Le diste &f%cantidad%x %tipo% &7a &f%player%&7."
+food-unknown: "&cComida/bebida desconocida. Disponibles: &f%disponibles%"
+chef-usage: "&7Uso: &f/chef <spawn <tienda>|remove>"
+chef-unknown: "&cTienda desconocida. Disponibles: &f%disponibles%"
+chef-spawned: "&7Apareció &f%tienda%&7."
+chef-none-near: "&cNo hay ningún chef cerca (8 bloques)."
+chef-removed: "&7Chef eliminado."
+
+# ------------------------------------------------------------------ ruleta de colores (MiniMessage)
+ruleta:
+  prefijo: "<dark_gray>[<gold>Ruleta<dark_gray>] <gray>"
+  prefijo-broadcast: "<dark_gray>[<gold>Ruleta<dark_gray>] "
+  # Se usa cuando no escribes mensaje en el comando ni el color tiene uno propio
+  broadcast: "<yellow>¡La ruleta cayó en {color}<yellow>!"
+  uso: "Uso: <yellow>/ruletacolor girar <color|random> [mensaje]"
+  ya-girando: "<red>La ruleta ya está girando."
+  no-girando: "<red>La ruleta no está girando."
+  parada: "Ruleta detenida."
+  color-invalido: "<red>El color <white>{color}</white> no existe."
+  pack-enviado: "Resource pack de la ruleta enviado a todos."
+  recargado: "<green>Configuración recargada."
+  # Texto de la pantalla que pide aceptar el resource pack al entrar
+  pack-pedido: "<gold>Este pack es necesario para ver la ruleta."

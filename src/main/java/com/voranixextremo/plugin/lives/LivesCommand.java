@@ -54,7 +54,7 @@ public class LivesCommand extends BaseCommand {
     @Syntax("<jugador> <cantidad>")
     public void onSet(CommandSender sender, OfflinePlayer target, int cantidad) {
         livesManager.setLives(target, cantidad);
-        sender.sendMessage("Vidas de " + target.getName() + " establecidas en " + cantidad + ".");
+        Messages.send(sender, "vidas-set", "%player%", String.valueOf(target.getName()), "%vidas%", String.valueOf(cantidad));
     }
 
     @Subcommand("reset")
@@ -63,7 +63,7 @@ public class LivesCommand extends BaseCommand {
     @Syntax("<jugador>")
     public void onReset(CommandSender sender, OfflinePlayer target) {
         livesManager.resetLives(target);
-        sender.sendMessage("Vidas de " + target.getName() + " restablecidas a " + livesManager.getMaxLives() + ".");
+        Messages.send(sender, "vidas-reset", "%player%", String.valueOf(target.getName()), "%vidas%", String.valueOf(livesManager.getMaxLives()));
     }
 
     /**

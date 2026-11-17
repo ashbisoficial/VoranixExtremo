@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.economy;
 
+import com.voranixextremo.plugin.util.Messages;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandCompletion;
@@ -29,7 +30,7 @@ public class EconomyCommand extends BaseCommand {
 
     @Default
     public void onBalance(Player player) {
-        player.sendMessage("Tu balance: " + format(economyManager.getBalance(player)));
+        Messages.send(player, "balance", "%cantidad%", format(economyManager.getBalance(player)));
     }
 
     @Subcommand("pagar")
@@ -37,15 +38,15 @@ public class EconomyCommand extends BaseCommand {
     @Syntax("<jugador> <cantidad>")
     public void onPay(Player payer, OfflinePlayer target, double cantidad) {
         if (cantidad <= 0) {
-            payer.sendMessage("La cantidad debe ser mayor que 0.");
+            Messages.send(payer, "pay-invalid");
             return;
         }
         if (!economyManager.withdraw(payer, cantidad)) {
-            payer.sendMessage("No tenés suficiente dinero.");
+            Messages.send(payer, "pay-insufficient");
             return;
         }
         economyManager.deposit(target, cantidad);
-        payer.sendMessage("Le pagaste " + format(cantidad) + " a " + target.getName() + ".");
+        Messages.send(payer, "pay-done", "%cantidad%", format(cantidad), "%player%", String.valueOf(target.getName()));
     }
 
     @Subcommand("dar")
@@ -83,14 +84,14 @@ public class EconomyCommand extends BaseCommand {
 
     private boolean cantidadValida(CommandSender sender, double cantidad) {
         if (cantidad < 0) {
-            sender.sendMessage("La cantidad no puede ser negativa.");
+            Messages.send(sender, "amount-negative");
             return false;
         }
         return true;
     }
 
     private void mostrarBalance(CommandSender sender, OfflinePlayer target) {
-        sender.sendMessage("Balance de " + target.getName() + " ahora: " + format(economyManager.getBalance(target)));
+        Messages.send(sender, "balance-other", "%player%", String.valueOf(target.getName()), "%cantidad%", format(economyManager.getBalance(target)));
     }
 
     private String format(double amount) {

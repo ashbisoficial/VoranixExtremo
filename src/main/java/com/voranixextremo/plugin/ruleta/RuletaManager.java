@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.ruleta;
 
+import com.voranixextremo.plugin.util.Messages;
 import com.google.gson.Gson;
 import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
@@ -311,9 +312,9 @@ public final class RuletaManager {
         if (sonidoFinal != null) audiences.players().playSound(sonidoFinal);
         String texto = mensaje != null ? mensaje
                 : color.mensaje() != null ? color.mensaje()
-                : config().getString("mensajes.broadcast", "{color}");
+                : Messages.texto("ruleta.broadcast", "{color}");
         Component broadcast = parse(texto).replaceText(r("{color}", nombre));
-        Component prefix = parse(config().getString("mensajes.prefijo-broadcast", ""));
+        Component prefix = parse(Messages.texto("ruleta.prefijo-broadcast", ""));
         audiences.all().sendMessage(prefix.append(broadcast));
         ejecutarComandos(color);
     }
@@ -358,8 +359,7 @@ public final class RuletaManager {
     }
 
     public Component msg(String key) {
-        String prefix = config().getString("mensajes.prefijo", "");
-        return parse(prefix + config().getString("mensajes." + key, key));
+        return parse(Messages.texto("ruleta.prefijo", "") + Messages.texto("ruleta." + key, key));
     }
 
     /** Lee los §x§r§r§g§g§b§b que deja ColorUtils para los colores hex. */

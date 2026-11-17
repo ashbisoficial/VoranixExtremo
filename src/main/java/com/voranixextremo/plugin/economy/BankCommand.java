@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.economy;
 
+import com.voranixextremo.plugin.util.Messages;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CatchUnknown;
 import co.aikar.commands.annotation.CommandAlias;
@@ -29,21 +30,27 @@ public class BankCommand extends BaseCommand {
     @Default
     @CatchUnknown
     public void onUsage(CommandSender sender) {
-        sender.sendMessage("Uso: /banco <depositar|retirar> [cantidad]");
+        Messages.send(sender, "bank-usage");
     }
 
     @Subcommand("depositar")
     public void onDeposit(Player player) {
         double total = bankService.depositAll(player);
-        player.sendMessage(total > 0 ? "Depositaste " + total + "." : "No tenías monedas físicas para depositar.");
+        if (total > 0) {
+            Messages.send(player, "bank-deposited", "%cantidad%", String.valueOf(total));
+        } else {
+            Messages.send(player, "bank-nothing");
+        }
     }
 
     @Subcommand("retirar")
     @Syntax("<cantidad>")
     public void onWithdraw(Player player, double cantidad) {
         boolean success = bankService.withdraw(player, cantidad);
-        player.sendMessage(success
-                ? "Retiraste " + cantidad + " en monedas."
-                : "No se pudo retirar ese monto (fondos insuficientes o no se puede armar con las monedas configuradas).");
+        if (success) {
+            Messages.send(player, "bank-withdrawn", "%cantidad%", String.valueOf(cantidad));
+        } else {
+            Messages.send(player, "bank-withdraw-failed");
+        }
     }
 }

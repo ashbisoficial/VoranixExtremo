@@ -6,18 +6,14 @@ resourcepack:
   # El plugin lo descarga al arrancar para sacar su sha1, así cuando lo actualizas los jugadores
   # bajan el nuevo (usa /voranixextremo texturepackreload). Vacío = se manda el pack del plugin.
   # El pack tiene que incluir lo de plugins/VoranixExtremo/ruleta-pack.zip para que se vea la ruleta.
-  url: ""
-
-# Mensaje que sale en el chat cuando un jugador usa (popea) un tótem.
-# %usuario% = nombre del jugador. Déjalo vacío ("") para que no salga nada.
-totempop: "&6⏳ &6&L%usuario% &6a utilizado un tótem"
+  url: "http://voranixstudio.tech/packs/VoranixExtremo.zip"
 
 lives:
   # Vidas con las que empieza cada jugador.
   max: 5
   # Gamemode al que pasa un jugador cuando se queda sin vidas.
   elimination-gamemode: SPECTATOR
-  # Cristales de vidas arriba a la derecha de la pantalla (necesitan el resource pack del servidor).
+  # Cristales de vidas abajo a la derecha de la pantalla (necesitan el resource pack del servidor).
   hud: true
   # Aura animada alrededor de las vidas que quedan (false = cristales quietos).
   hud-animado: true
@@ -315,10 +311,16 @@ death-effects:
     pitch: 1.0
   # Rayo decorativo en el punto de la muerte (NO hace daño ni prende fuego).
   lightning-effect: true
+  # Animación del Ojo en la pantalla de todos, con su sonido (necesita el resource pack combinado
+  # del VPS, que trae el pack OjoMuerte). Mientras está activa, el texto de abajo sale arriba de la
+  # hotbar en vez de como título. Ya no hace falta el script muerte_ojo de VoranixConditions:
+  # si lo tienes activo, apágalo (/vcondition script muerte_ojo false) para que no salga doble.
+  ojo:
+    enabled: true
+    volumen: 1.0
+  # Título grande con el texto de la muerte (el texto se cambia en messages.yml: death-text, eliminated-text)
   title:
     enabled: true
-    death-text: "&c%player% ha muerto"
-    eliminated-text: "&4☠ %player% ELIMINADO ☠"
 
 pvp-kill-rewards:
   # Cuando un jugador mata a otro en combate (no por caída, lava, mobs, etc.), además
@@ -395,23 +397,9 @@ ruleta-colores:
     rosa:
       nombre: "<#e02bff><bold>ROSA"
 
-  mensajes:
-    prefijo: "<dark_gray>[<gold>Ruleta<dark_gray>] <gray>"
-    prefijo-broadcast: "<dark_gray>[<gold>Ruleta<dark_gray>] "
-    # Se usa cuando no escribes mensaje en el comando ni el color tiene uno propio
-    broadcast: "<yellow>¡La ruleta cayó en {color}<yellow>!"
-    uso: "Uso: <yellow>/ruletacolor girar <color|random> [mensaje]"
-    ya-girando: "<red>La ruleta ya está girando."
-    no-girando: "<red>La ruleta no está girando."
-    parada: "Ruleta detenida."
-    color-invalido: "<red>El color <white>{color}</white> no existe."
-    pack-enviado: "Resource pack de la ruleta enviado a todos."
-    recargado: "<green>Configuración recargada."
-
   resource-pack:
     enviar-al-entrar: true
     obligatorio: false
-    mensaje: "<gold>Este pack es necesario para ver la ruleta."
     # Servidor HTTP propio del plugin (abre este puerto en el firewall del VPS)
     servidor-interno: true
     puerto: 8165
@@ -420,24 +408,4 @@ ruleta-colores:
     # Si prefieres subir plugins/VoranixExtremo/ruleta-pack.zip a otro lado, pon aquí el link directo
     url-externa: ""
 
-messages:
-  prefix: "&8[&cVoranix&6Extremo&8] &r"
-  life-lost: "&c%player% &7perdió una vida. Le quedan &c%vidas% &7vida(s)."
-  eliminated: "&4%player% &7ha sido &4ELIMINADO&7 de la serie."
-  revived: "&a&l¡%player% HA SIDO REVIVIDO! &r&7Le queda &a1 &7vida."
-  vidas-check: "&7Tienes &c%vidas% &7vida(s) restantes."
-  vidas-check-other: "&c%player% &7tiene &c%vidas% &7vida(s) restantes."
-  no-permission: "&cNo tienes permiso para usar este comando."
-  reloaded: "&aConfiguración de VoranixExtremo recargada."
-  texturepack-reloading: "&7Revisando el resource pack..."
-  texturepack-reloaded: "&aResource pack actualizado y enviado a &f%jugadores% &ajugador(es)."
-  only-players: "&cEste comando solo puede ser usado por jugadores."
-  player-not-found: "&cJugador no encontrado."
-  pvp-enabled: "&a¡El PVP ha sido ACTIVADO!"
-  pvp-disabled: "&c¡El PVP ha sido DESACTIVADO!"
-  world-event-spinning: "&6&l¡Se está girando la RULETA DE EVENTOS MUNDIALES!"
-  world-event-started: "&d&l¡Comenzó: %evento%!"
-  world-event-ended: "&7El evento %evento% terminó."
-  revill-objective: "&4&l¡MOMENTO REVILL! &r&c%objetivo%"
-  revill-eliminated: "&4☠ %player% no cumplió el objetivo del Revill y fue ELIMINADO."
-  revill-summary: "&7Revill terminado: &a%sobrevivientes% sobrevivieron&7, &c%eliminados% eliminados&7."
+# Los mensajes (chat, títulos, ruleta, tótem...) están en messages.yml

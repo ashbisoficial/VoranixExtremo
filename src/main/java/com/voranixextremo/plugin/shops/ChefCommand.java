@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.shops;
 
+import com.voranixextremo.plugin.util.Messages;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CatchUnknown;
 import co.aikar.commands.annotation.CommandAlias;
@@ -34,7 +35,7 @@ public class ChefCommand extends BaseCommand {
     @Default
     @CatchUnknown
     public void onUsage(CommandSender sender) {
-        sender.sendMessage("Uso: /chef <spawn <tienda>|remove>");
+        Messages.send(sender, "chef-usage");
     }
 
     @Subcommand("spawn")
@@ -43,22 +44,22 @@ public class ChefCommand extends BaseCommand {
     public void onSpawn(Player player, String tienda) {
         ShopType shop = shopManager.getShopType(tienda);
         if (shop == null) {
-            player.sendMessage("Tienda desconocida. Disponibles: " + String.join(", ", shopManager.getShopTypes().keySet()));
+            Messages.send(player, "chef-unknown", "%disponibles%", String.join(", ", shopManager.getShopTypes().keySet()));
             return;
         }
         chefVillagerManager.spawn(shop, player.getLocation());
-        player.sendMessage("Apareció " + shop.getDisplayName() + ".");
+        Messages.send(player, "chef-spawned", "%tienda%", shop.getDisplayName());
     }
 
     @Subcommand("remove")
     public void onRemove(Player player) {
         Entity nearest = findNearestChef(player);
         if (nearest == null) {
-            player.sendMessage("No hay ningún chef cerca (8 bloques).");
+            Messages.send(player, "chef-none-near");
             return;
         }
         nearest.remove();
-        player.sendMessage("Chef eliminado.");
+        Messages.send(player, "chef-removed");
     }
 
     private Entity findNearestChef(Player player) {

@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.economy;
 
+import com.voranixextremo.plugin.util.Messages;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CatchUnknown;
 import co.aikar.commands.annotation.CommandAlias;
@@ -33,7 +34,7 @@ public class CoinCommand extends BaseCommand {
     @Default
     @CatchUnknown
     public void onUsage(CommandSender sender) {
-        sender.sendMessage("Uso: /moneda dar <jugador> <tipo> [cantidad]");
+        Messages.send(sender, "coin-usage");
     }
 
     @Subcommand("dar")
@@ -42,12 +43,11 @@ public class CoinCommand extends BaseCommand {
     public void onGive(CommandSender sender, OnlinePlayer target, String tipo, @Default("1") int cantidad) {
         CoinType type = economyManager.getCoinType(tipo);
         if (type == null) {
-            sender.sendMessage("Tipo de moneda desconocido. Disponibles: "
-                    + String.join(", ", economyManager.getCoinTypes().keySet()));
+            Messages.send(sender, "coin-unknown", "%disponibles%", String.join(", ", economyManager.getCoinTypes().keySet()));
             return;
         }
         Player player = target.getPlayer();
         player.getInventory().addItem(coinItemFactory.create(type, cantidad));
-        sender.sendMessage("Le diste " + cantidad + "x " + type.getId() + " a " + player.getName() + ".");
+        Messages.send(sender, "coin-given", "%cantidad%", String.valueOf(cantidad), "%tipo%", type.getId(), "%player%", player.getName());
     }
 }

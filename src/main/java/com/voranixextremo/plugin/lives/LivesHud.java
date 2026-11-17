@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Las vidas de cada jugador en SU pantalla, arriba a la derecha: un cristal morado por vida y,
+ * Las vidas de cada jugador en SU pantalla, abajo a la derecha: un cristal morado por vida y,
  * por cada vida perdida, el mismo cristal gris y roto (a la derecha de los que le quedan).
  *
  * Sin mods: es el título de una boss bar propia de cada jugador, con la fuente

@@ -35,7 +35,7 @@ El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plu
   - `/vidas revivir <jugador>` — (admin) el "revivir" de verdad: le da **una sola vida** (no el máximo) y dispara una tormenta (nubes + rayos) justo donde está parado el jugador — pensado para el momento de traerlo de vuelta con el ítem legendario. Necesita que esté conectado (para la ubicación de la tormenta); si está offline, usá `/vidas set` o `/vidas reset`.
 - Permisos: `voranixextremo.vidas` (todos) y `voranixextremo.vidas.admin` (operadores).
 - Los datos se guardan en `plugins/VoranixExtremo/lives.yml` y persisten entre reinicios.
-- **Vidas en pantalla, arriba a la derecha** (`LivesHud.java`, sin mods): un cristal morado por cada vida y, por cada vida perdida, el mismo cristal gris y roto. Es el título de una boss bar propia de cada jugador con la fuente `voranixextremo:vidas` del resource pack; el shader de texto del pack (`resourcepack/Ruleta/.../rendertype_text.vsh`) reconoce su color (80, 92, 40) y lo corre a la esquina, sea cual sea la resolución o la escala de interfaz, y el pack deja transparente la boss bar **blanca** (`textures/gui/bars.png`) para que no se vea la barra. Por eso ninguna otra boss bar del servidor debería usar el color blanco. Se apaga con `lives.hud: false`. Los dibujos son `resourcepack/assets/voranixextremo/textures/font/vida_llena_0..47.png` (48 cuadros de un aura animada que da una vuelta cada 2,4 s: el plugin cambia de cuadro cada tick, cada cristal desfasado; se apaga con `lives.hud-animado: false`) y `vida_rota.png`, todos de 24x34 (cristal de 16x26 + 4 de aura por lado) dibujados de 26 de alto; el primer y el último pixel de abajo tienen alfa 1 para que Minecraft les mida a todos el mismo ancho.
+- **Vidas en pantalla, abajo a la derecha** (`LivesHud.java`, sin mods): un cristal morado por cada vida y, por cada vida perdida, el mismo cristal gris y roto. Es el título de una boss bar propia de cada jugador con la fuente `voranixextremo:vidas` del resource pack; el shader de texto del pack (`resourcepack/Ruleta/.../rendertype_text.vsh`) reconoce su color (80, 92, 40) y lo corre a la esquina, sea cual sea la resolución o la escala de interfaz, y el pack deja transparente la boss bar **blanca** (`textures/gui/bars.png`) para que no se vea la barra. Por eso ninguna otra boss bar del servidor debería usar el color blanco. Se apaga con `lives.hud: false`. Los dibujos son `resourcepack/assets/voranixextremo/textures/font/vida_llena_0..47.png` (48 cuadros de un aura animada que da una vuelta cada 2,4 s: el plugin cambia de cuadro cada tick, cada cristal desfasado; se apaga con `lives.hud-animado: false`) y `vida_rota.png`, todos de 24x34 (cristal de 16x26 + 4 de aura por lado) dibujados de 26 de alto; el primer y el último pixel de abajo tienen alfa 1 para que Minecraft les mida a todos el mismo ancho.
 
 ### Control de PVP (`/pvp`)
 
@@ -44,7 +44,7 @@ El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plu
 - Con PVP desactivado se cancela el daño entre jugadores (incluye proyectiles).
 - Permiso: `voranixextremo.pvp` (operadores por defecto).
 
-Todos los mensajes (vidas, eliminación, PVP, errores) son editables en `config.yml` bajo `messages:` y admiten códigos de color con `&`.
+Todos los mensajes (vidas, eliminación, PVP, economía, comida, chefs, eventos, ruleta de colores, tótem, texto de la muerte y errores) están en `plugins/VoranixExtremo/messages.yml`, admiten códigos de color con `&` (la sección `ruleta` usa MiniMessage) y se recargan con `/voranixextremo reload`. Si actualizás desde una versión anterior, la primera vez que arranca copia a `messages.yml` los mensajes que tenías en `config.yml`. Los mensajes de los teams siguen en `team.yml`.
 
 ### Animaciones/efectos de muerte
 
@@ -53,7 +53,8 @@ Al morir un jugador (sea que pierda una vida o quede eliminado) se reproduce a *
 - Una partícula en el punto de la muerte (`death-effects.particle`, por defecto `EXPLOSION_HUGE`).
 - Un sonido global (`death-effects.sound`, por defecto `ENTITY_GENERIC_EXPLODE`).
 - Un rayo decorativo en ese punto, sin daño ni fuego (`death-effects.lightning-effect`).
-- Un título grande en pantalla (`death-effects.title`), con texto distinto si fue una muerte normal o una eliminación.
+- La animación del Ojo en la pantalla de todos, con su sonido (`death-effects.ojo`). Usa la fuente y el sonido `ojo:muerte` del resource pack combinado del VPS; reemplaza al script `muerte_ojo` de VoranixConditions.
+- El texto de la muerte (`death-effects.title`), distinto si fue una muerte normal o una eliminación: sale arriba de la hotbar mientras está el Ojo, o como título grande si el Ojo está apagado.
 
 Todo se puede desactivar o cambiar en `config.yml` → `death-effects` sin tocar código (cualquier [`Particle`](https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Particle.html) o [`Sound`](https://hub.spigotmc.org/javadocs/spigot/org/bukkit/Sound.html) válido sirve). Para una animación más elaborada (ej. un fuego artificial real, un esqueleto decorativo, un modelo con un resource pack) hay que escribir código específico — avisá qué tipo de animación tenés en mente y la agrego.
 
@@ -183,7 +184,7 @@ Como los efectos/mensajes/comandos de cada color van a cambiar todos los días (
        - "weather thunder"
        - "effect give @a minecraft:slowness 200 0"
    ```
-   - `mensaje` es opcional (si lo dejás vacío, usa el genérico de `mensajes.broadcast`).
+   - `mensaje` es opcional (si lo dejás vacío, usa el genérico de `messages.yml` → `ruleta.broadcast`).
    - `comandos` es una lista: podés poner uno o varios, cualquier comando de servidor (`effect`, `weather`, `summon`, `give`, comandos del propio plugin como `pvp toggle`, etc.), uno por línea con `-`.
 3. Guardá el archivo.
 4. Ejecutá `reload` de la ruleta: en la consola del servidor escribís `ruletacolor reload` (sin barra); en el juego, como admin, `/ruletacolor reload`. Recarga `config.yml` al vuelo — **no hace falta reiniciar el servidor**.
@@ -209,7 +210,8 @@ src/main/java/com/voranixextremo/plugin/
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/
 ├── plugin.yml
-└── config.yml
+├── config.yml
+└── messages.yml
 ```
 
 ## Plugins complementarios recomendados

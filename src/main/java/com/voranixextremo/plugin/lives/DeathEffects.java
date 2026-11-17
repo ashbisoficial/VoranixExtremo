@@ -1,6 +1,6 @@
 package com.voranixextremo.plugin.lives;
 
-import com.voranixextremo.plugin.voranixextremo.ColorUtils;
+import com.voranixextremo.plugin.util.Messages;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -13,8 +13,9 @@ import java.util.logging.Level;
 
 /**
  * Efectos "de espectáculo" que se reproducen cuando un jugador muere: partícula en el
- * punto de la muerte, sonido global, rayo decorativo (sin daño) y un título grande para
- * todos los espectadores. Todo es configurable en config.yml -> death-effects.
+ * punto de la muerte, sonido global, rayo decorativo (sin daño) y, para todos, la animación del
+ * Ojo (con el texto arriba de la hotbar) o, si se apaga death-effects.ojo, un título grande.
+ * Todo es configurable en config.yml -> death-effects.
  */
 public class DeathEffects {
 
@@ -22,9 +23,15 @@ public class DeathEffects {
     private static final int TITLE_FADE_IN = 6, TITLE_STAY = 40, TITLE_FADE_OUT = 10;
 
     private final VoranixExtremoPlugin plugin;
+    private final OjoMuerte ojo;
 
     public DeathEffects(VoranixExtremoPlugin plugin) {
         this.plugin = plugin;
+        this.ojo = new OjoMuerte(plugin);
+    }
+
+    public void close() {
+        ojo.close();
     }
 
     public void play(Player player, boolean eliminated) {
@@ -45,7 +52,11 @@ public class DeathEffects {
             world.strikeLightningEffect(location);
         }
 
-        if (plugin.getConfig().getBoolean("death-effects.title.enabled", true)) {
+        boolean conTexto = plugin.getConfig().getBoolean("death-effects.title.enabled", true);
+        if (plugin.getConfig().getBoolean("death-effects.ojo.enabled", true)) {
+            // el Ojo ocupa el título: el texto va arriba de la hotbar
+            ojo.mostrar(conTexto ? texto(player, eliminated) : null);
+        } else if (conTexto) {
             showTitle(player, eliminated);
         }
     }
@@ -81,13 +92,13 @@ public class DeathEffects {
     }
 
     private void showTitle(Player deadPlayer, boolean eliminated) {
-        String path = eliminated ? "death-effects.title.eliminated-text" : "death-effects.title.death-text";
-        String defaultText = eliminated ? "&4☠ %player% ELIMINADO ☠" : "&c%player% ha muerto";
-        String raw = plugin.getConfig().getString(path, defaultText).replace("%player%", deadPlayer.getName());
-        String colored = ColorUtils.color(raw);
-
+        String colored = texto(deadPlayer, eliminated);
         for (Player online : Bukkit.getOnlinePlayers()) {
             online.sendTitle(colored, "", TITLE_FADE_IN, TITLE_STAY, TITLE_FADE_OUT);
         }
+    }
+
+    private String texto(Player deadPlayer, boolean eliminated) {
+        return Messages.sinPrefijo(eliminated ? "eliminated-text" : "death-text", "%player%", deadPlayer.getName());
     }
 }

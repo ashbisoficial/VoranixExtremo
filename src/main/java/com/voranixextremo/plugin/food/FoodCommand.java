@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.food;
 
+import com.voranixextremo.plugin.util.Messages;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CatchUnknown;
 import co.aikar.commands.annotation.CommandAlias;
@@ -32,7 +33,7 @@ public class FoodCommand extends BaseCommand {
     @Default
     @CatchUnknown
     public void onUsage(CommandSender sender) {
-        sender.sendMessage("Uso: /comida dar <jugador> <id> [cantidad]");
+        Messages.send(sender, "food-usage");
     }
 
     @Subcommand("dar")
@@ -47,7 +48,7 @@ public class FoodCommand extends BaseCommand {
             ItemStack item = foodManager.createFoodItem(food);
             item.setAmount(amount);
             player.getInventory().addItem(item);
-            sender.sendMessage("Le diste " + amount + "x " + food.getId() + " a " + player.getName() + ".");
+            Messages.send(sender, "food-given", "%cantidad%", String.valueOf(amount), "%tipo%", food.getId(), "%player%", player.getName());
             return;
         }
 
@@ -56,12 +57,11 @@ public class FoodCommand extends BaseCommand {
             for (int i = 0; i < amount; i++) {
                 player.getInventory().addItem(foodManager.createDrinkItem(drink));
             }
-            sender.sendMessage("Le diste " + amount + "x " + drink.getId() + " a " + player.getName() + ".");
+            Messages.send(sender, "food-given", "%cantidad%", String.valueOf(amount), "%tipo%", drink.getId(), "%player%", player.getName());
             return;
         }
 
-        sender.sendMessage("Comida/bebida desconocida. Disponibles: "
-                + String.join(", ", foodManager.getFoodTypes().keySet())
+        Messages.send(sender, "food-unknown", "%disponibles%", String.join(", ", foodManager.getFoodTypes().keySet())
                 + (foodManager.getDrinkTypes().isEmpty() ? "" : ", " + String.join(", ", foodManager.getDrinkTypes().keySet())));
     }
 }

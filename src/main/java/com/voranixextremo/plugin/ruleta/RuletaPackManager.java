@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.ruleta;
 
+import com.voranixextremo.plugin.util.Messages;
 import com.sun.net.httpserver.HttpServer;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -67,6 +68,13 @@ public final class RuletaPackManager implements Listener {
     /** sha1 del pack que se manda; con un link externo se calcula al descargarlo (null mientras tanto) */
     private volatile String sha1;
     private volatile boolean externo;
+    /**
+     * ETag + Last-Modified del pack externo cuando se le sacó el sha1. Si en el VPS suben un pack
+     * nuevo cambian, y hay que volver a sacar el sha1: con el viejo el cliente baja el pack nuevo,
+     * no le coincide el hash y da FAILED_DOWNLOAD (antes había que hacer texturepackreload).
+     */
+    private volatile String huella;
+    private boolean calculando;
     /** Entraron mientras se calculaba el sha1 del pack externo: se les manda apenas esté. */
     private final Set<UUID> esperandoSha1 = new HashSet<>();
     /** Cuántas veces se le mandó el pack a cada uno (para no reintentar para siempre). */
@@ -158,10 +166,12 @@ public final class RuletaPackManager implements Listener {
      * (quedan en esperandoSha1). Si falla, se reintenta cada 30 s mientras siga siendo el mismo link.
      */
     private void calcularSha1Externo(URI externa, Runnable listo) {
+        calculando = true;
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             boolean ok = revisarExterno(externa);
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (!externa.equals(uri)) return; // hubo un reload con otro link mientras tanto
+                if (ok) calculando = false; // si falló sigue en true: ya hay un reintento agendado
                 if (ok) {
                     if (listo != null) {
                         esperandoSha1.clear(); // listo (texturepackreload) ya se lo manda a todos los conectados
@@ -198,13 +208,39 @@ public final class RuletaPackManager implements Listener {
                 for (int n; (n = in.read(buffer)) > 0; bytes += n) digest.update(buffer, 0, n);
             }
             String calculado = HexFormat.of().formatHex(digest.digest());
-            if (externa.equals(uri)) sha1 = calculado; // por si mientras tanto hubo un reload con otro link
+            if (externa.equals(uri)) {
+                huella = huellaDe(conexion);
+                sha1 = calculado;
+            } // por si mientras tanto hubo un reload con otro link
             plugin.getLogger().info("Resource pack externo revisado: " + (bytes / 1024 / 1024) + " MB, sha1 " + calculado);
             return true;
         } catch (Exception e) {
             plugin.getLogger().warning("No se pudo descargar el resource pack externo para revisarlo (" + e.getMessage()
                     + "). Se reintenta en 30 s; mientras tanto, quien entre recibe el pack apenas esté listo.");
             return false;
+        }
+    }
+
+    private static String huellaDe(HttpURLConnection conexion) {
+        String etag = conexion.getHeaderField("ETag");
+        String fecha = conexion.getHeaderField("Last-Modified");
+        return etag == null && fecha == null ? null : etag + "|" + fecha;
+    }
+
+    /** Pregunta (HEAD, sin bajar nada) si el pack externo sigue siendo el mismo. null si no se pudo saber. */
+    private static String huellaActual(URI externa) {
+        try {
+            HttpURLConnection conexion = (HttpURLConnection) externa.toURL().openConnection();
+            conexion.setRequestMethod("HEAD");
+            conexion.setConnectTimeout(5_000);
+            conexion.setReadTimeout(5_000);
+            try {
+                return conexion.getResponseCode() == 200 ? huellaDe(conexion) : null;
+            } finally {
+                conexion.disconnect();
+            }
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -247,16 +283,45 @@ public final class RuletaPackManager implements Listener {
         enviar(player, 1);
     }
 
+    /**
+     * Con pack externo, antes de mandarlo se revisa (HEAD) que en el VPS siga el mismo pack del que
+     * se sacó el sha1; si lo cambiaron, se vuelve a calcular y se le manda apenas esté.
+     */
     private void enviar(Player player, int intento) {
+        URI actual = uri;
+        String conocida = huella;
+        if (actual == null || !player.isOnline()) return;
+        if (!externo || sha1 == null || conocida == null) {
+            mandar(player, intento);
+            return;
+        }
+        UUID id = player.getUniqueId();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            String nueva = huellaActual(actual);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Player p = Bukkit.getPlayer(id);
+                if (p == null || !actual.equals(uri)) return;
+                if (nueva != null && conocida.equals(huella) && !nueva.equals(conocida)) {
+                    plugin.getLogger().info("El resource pack externo cambió en el servidor web: se vuelve a sacar su sha1");
+                    sha1 = null;
+                    huella = null;
+                }
+                mandar(p, intento);
+            });
+        });
+    }
+
+    private void mandar(Player player, int intento) {
         if (uri == null || !player.isOnline()) return;
         String hash = sha1;
         if (externo && hash == null) {
             // sin sha1 el cliente se quedaría con el pack viejo que tenga guardado: mejor esperar
             esperandoSha1.add(player.getUniqueId());
+            if (!calculando) calcularSha1Externo(uri, null);
             return;
         }
         ConfigurationSection c = ruleta.config();
-        String prompt = LegacyComponentSerializer.legacySection().serialize(RuletaManager.parse(c.getString("resource-pack.mensaje", "")));
+        String prompt = LegacyComponentSerializer.legacySection().serialize(RuletaManager.parse(Messages.texto("ruleta.pack-pedido", "")));
         player.setResourcePack(uri.toString(), hash == null ? null : HexFormat.of().parseHex(hash),
                 prompt.isEmpty() ? null : prompt, c.getBoolean("resource-pack.obligatorio", false));
 

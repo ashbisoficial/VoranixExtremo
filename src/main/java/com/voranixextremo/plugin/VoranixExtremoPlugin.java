@@ -57,6 +57,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
 
     private LivesManager livesManager;
     private LivesHud livesHud;
+    private DeathEffects deathEffects;
     private StormEffect stormEffect;
     private PvpManager pvpManager;
     private EconomyManager economyManager;
@@ -83,12 +84,13 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        Messages.cargar(this);
         PacketEvents.getAPI().init();
 
         this.livesManager = new LivesManager(this);
         this.pvpManager = new PvpManager(this);
         this.economyManager = new EconomyManager(this);
-        DeathEffects deathEffects = new DeathEffects(this);
+        this.deathEffects = new DeathEffects(this);
         CoinItemFactory coinItemFactory = new CoinItemFactory(this);
         BankService bankService = new BankService(economyManager, coinItemFactory);
         PvpKillRewards pvpKillRewards = new PvpKillRewards(this, bankService);
@@ -100,7 +102,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(
                 new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager), this);
-        // Cristales de vidas arriba a la derecha (boss bar + fuente y shader del resource pack)
+        // Cristales de vidas abajo a la derecha (boss bar + fuente y shader del resource pack)
         this.livesHud = new LivesHud(this, livesManager);
         livesManager.setAlCambiar(livesHud::actualizar);
         getServer().getPluginManager().registerEvents(livesHud, this);
@@ -182,11 +184,12 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
 
     /**
      * /voranixextremo reload: vuelve a leer config.yml y se lo pasa a todo lo que lo guarda al arrancar.
-     * Lo demás (mensajes, efectos de muerte, recompensas PVP, tótem) ya lee la config en el momento.
+     * messages.yml también se vuelve a leer. Lo demás (efectos de muerte, recompensas PVP, tótem) ya lee la config en el momento.
      * Las vidas y los balances de los jugadores son datos guardados aparte: no se tocan.
      */
     public void recargar() {
         reloadConfig();
+        Messages.cargar(this);
         livesManager.reloadSettings();
         livesHud.actualizarTodos();
         economyManager.reloadSettings();
@@ -228,6 +231,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         }
         if (livesHud != null) {
             livesHud.close();
+        }
+        if (deathEffects != null) {
+            deathEffects.close();
         }
         if (economyManager != null) {
             economyManager.save();

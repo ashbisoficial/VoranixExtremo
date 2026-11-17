@@ -25,7 +25,7 @@ public class VoranixExtremoCommand extends BaseCommand {
     @Default
     @CatchUnknown
     public void onUsage(CommandSender sender) {
-        sender.sendMessage("Uso: /voranixextremo <reload|texturepackreload>");
+        Messages.send(sender, "voranixextremo-usage");
     }
 
     @Subcommand("reload")

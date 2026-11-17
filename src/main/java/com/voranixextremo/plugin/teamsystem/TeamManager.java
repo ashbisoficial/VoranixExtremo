@@ -102,10 +102,15 @@ public class TeamManager {
         return config.getDouble("nametag.altura", 0.45);
     }
 
-    /** Separación entre líneas del texto sobre el jugador (cada línea es un texto con su propio fondo). */
+    /**
+     * Separación entre líneas del texto sobre el jugador (cada línea es un texto con su propio fondo).
+     * Cada línea con su fondo mide 0,3 de alto: con menos, los fondos se montan uno sobre otro.
+     */
     public double getEspacioLineas() {
-        return config.getDouble("nametag.espacio-lineas", 0.26);
+        return Math.max(ALTO_LINEA, config.getDouble("nametag.espacio-lineas", 0.32));
     }
+
+    private static final double ALTO_LINEA = 0.3;
 
     /** Texto bajo el nombre para un team (ya con colores), o null si está desactivado. */
     public String getTextoNametag(Player player, Team team) {

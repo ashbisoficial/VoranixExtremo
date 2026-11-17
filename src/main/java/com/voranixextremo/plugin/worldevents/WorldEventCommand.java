@@ -1,5 +1,6 @@
 package com.voranixextremo.plugin.worldevents;
 
+import com.voranixextremo.plugin.util.Messages;
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandPermission;
@@ -30,12 +31,12 @@ public class WorldEventCommand extends BaseCommand {
     @Subcommand("girar")
     public void onSpin(CommandSender sender) {
         if (!worldEventManager.hasOutcomes()) {
-            sender.sendMessage("No hay eventos configurados en world-events.outcomes.");
+            Messages.send(sender, "event-none-configured");
             return;
         }
         if (worldEventManager.isEventActive()) {
-            sender.sendMessage("Ya hay un evento activo: " + worldEventManager.getActiveEvent().getDisplayName()
-                    + " (quedan " + worldEventManager.getActiveEventRemainingSeconds() + "s).");
+            Messages.send(sender, "event-already-active", "%evento%", worldEventManager.getActiveEvent().getDisplayName(),
+                    "%segundos%", String.valueOf(worldEventManager.getActiveEventRemainingSeconds()));
             return;
         }
         worldEventManager.spin();
@@ -44,16 +45,16 @@ public class WorldEventCommand extends BaseCommand {
     @Subcommand("estado")
     public void onStatus(CommandSender sender) {
         if (worldEventManager.isEventActive()) {
-            sender.sendMessage("Evento activo: " + worldEventManager.getActiveEvent().getDisplayName()
-                    + " (quedan " + worldEventManager.getActiveEventRemainingSeconds() + "s).");
+            Messages.send(sender, "event-active", "%evento%", worldEventManager.getActiveEvent().getDisplayName(),
+                    "%segundos%", String.valueOf(worldEventManager.getActiveEventRemainingSeconds()));
         } else {
-            sender.sendMessage("No hay ningún evento activo.");
+            Messages.send(sender, "event-none-active");
         }
     }
 
     @Subcommand("detener")
     public void onStop(CommandSender sender) {
         boolean stopped = worldEventManager.forceEnd();
-        sender.sendMessage(stopped ? "Evento detenido." : "No hay ningún evento activo.");
+        Messages.send(sender, stopped ? "event-stopped" : "event-none-active");
     }
 }
