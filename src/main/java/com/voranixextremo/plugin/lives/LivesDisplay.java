@@ -118,7 +118,8 @@ public final class LivesDisplay implements Listener {
                 Component.empty(), Component.empty(), sufijo,
                 WrapperPlayServerTeams.NameTagVisibility.ALWAYS,
                 WrapperPlayServerTeams.CollisionRule.ALWAYS,
-                NamedTextColor.WHITE);
+                NamedTextColor.WHITE,
+                WrapperPlayServerTeams.OptionData.NONE);
     }
 
     private static String nombreTeam(UUID uuid) {

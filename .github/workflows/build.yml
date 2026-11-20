@@ -15,13 +15,6 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Diagnostico API PacketEvents
-        run: |
-          mvn -B -q dependency:build-classpath -Dmdep.outputFile=cp.txt
-          CP=$(cat cp.txt)
-          javap -cp "$CP" 'com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerTeams$OptionData' || true
-          javap -cp "$CP" 'com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerTeams$ScoreBoardTeamInfo' || true
-          javap -cp "$CP" 'com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerTeams' || true
       - name: Compilar y empaquetar
         run: mvn -B -DskipTests package
       - uses: actions/upload-artifact@v4
