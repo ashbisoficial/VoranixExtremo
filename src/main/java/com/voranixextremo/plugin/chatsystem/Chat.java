@@ -59,7 +59,7 @@ public class Chat implements Listener {
                 Player miembro = Bukkit.getPlayer(uuid);
                 if (miembro != null) event.getRecipients().add(miembro);
             }
-            event.setFormat(armarFormato(player, teams.getFormatoChat().replace("%team%", team.getName())));
+            event.setFormat(armarFormato(player, teams.getFormatoChat(team)));
         } else {
             if (!enabled || format == null || format.isBlank()) {
                 return;

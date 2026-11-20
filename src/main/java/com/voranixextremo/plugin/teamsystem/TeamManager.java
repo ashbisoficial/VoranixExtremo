@@ -3,6 +3,7 @@ package com.voranixextremo.plugin.teamsystem;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
 import com.voranixextremo.plugin.voranixextremo.ColorUtils;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -15,6 +16,8 @@ import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +35,10 @@ import java.util.regex.Pattern;
 public class TeamManager {
 
     private static final Pattern NOMBRE_VALIDO = Pattern.compile("[A-Za-z0-9_]+");
+    private static final Pattern TAG_VALIDO = Pattern.compile("[A-Za-z0-9]+");
+
+    /** Un color que se puede elegir en el menú del team (team.yml → colores). */
+    public record ColorOpcion(String id, String nombre, String codigo, Material material) { }
 
     private final VoranixExtremoPlugin plugin;
     private final File configFile;
@@ -43,6 +50,8 @@ public class TeamManager {
     /** invitado → (team → momento en que expira) */
     private final Map<UUID, Map<String, Long>> invitaciones = new ConcurrentHashMap<>();
     private final Set<UUID> enChatDeTeam = ConcurrentHashMap.newKeySet();
+    /** Skin (URL de textures.minecraft.net) de cada jugador con team, para su cabeza en el menú aunque no esté conectado. */
+    private final Map<UUID, String> skins = new ConcurrentHashMap<>();
     /** Avisa cuando cambia el team de un jugador (para actualizar el texto bajo su nombre). */
     private Consumer<UUID> alCambiar = uuid -> { };
 
@@ -72,6 +81,42 @@ public class TeamManager {
         InputStream original = plugin.getResource("team.yml");
         if (original != null) {
             config.setDefaults(YamlConfiguration.loadConfiguration(new InputStreamReader(original, StandardCharsets.UTF_8)));
+            actualizarConfigVieja();
+        }
+    }
+
+    /**
+     * Un team.yml de antes de los tags y colores: si todavía tiene los textos que traía el plugin, se
+     * cambian por los nuevos (con %tag% y %color%) para que el color del team se vea. Lo que el
+     * usuario haya cambiado no se toca.
+     */
+    private void actualizarConfigVieja() {
+        Map<String, Object> viejos = new LinkedHashMap<>();
+        viejos.put("nametag.lineas", List.of("&f%player%", "&b%team%"));
+        viejos.put("nametag.lineas#2", List.of("&f%player%", "%color%%team% &8[%color%%tag%&8]"));
+        viejos.put("chat.formato", "&8[&bTeam &f%team%&8] &f%player%&7: &f%message%");
+        viejos.put("mensajes.creado", "&aCreaste el team &f%team%&a.");
+        viejos.put("mensajes.info-titulo", "&bTeam &f%team% &8(%cantidad%/%max%)");
+        viejos.put("mensajes.lista-linea", "&8- &f%team% &7(%cantidad%/%max%)");
+        boolean cambio = false;
+        for (Map.Entry<String, Object> e : viejos.entrySet()) {
+            String key = e.getKey().replaceAll("#\\d+$", ""); // "#2": otro texto viejo de la misma clave
+            Object actual = e.getValue() instanceof List ? config.getStringList(key) : config.getString(key);
+            if (e.getValue().equals(actual) && config.isSet(key)) {
+                config.set(key, config.getDefaults().get(key));
+                cambio = true;
+            }
+        }
+        if (config.getStringList("ayuda").contains(" &b/team create &f<nombre> &8- &7Crea tu propio team")) {
+            config.set("ayuda", config.getDefaults().getStringList("ayuda"));
+            cambio = true;
+        }
+        if (!cambio) return;
+        try {
+            config.save(configFile);
+            plugin.getLogger().info("team.yml actualizado con los tags y colores de los teams.");
+        } catch (IOException e) {
+            plugin.getLogger().log(Level.WARNING, "No se pudo actualizar team.yml", e);
         }
     }
 
@@ -92,8 +137,13 @@ public class TeamManager {
         return Math.max(5, config.getInt("team.invitacion-segundos", 60));
     }
 
+    /**
+     * Si el plugin dibuja su propio texto sobre la cabeza (nametag.modo: texto). En el modo vanilla
+     * (el de por defecto) se usa el nombre normal con el prefijo del tab ([VRX] Jugador): ver TabOrden.
+     */
     public boolean isNametagEnabled() {
-        return config.getBoolean("nametag.enabled", true);
+        String modo = config.getString("nametag.modo"); // sin valor por defecto: así usa el del team.yml del plugin
+        return "texto".equalsIgnoreCase(modo) && config.getBoolean("nametag.enabled", true);
     }
 
     public double getAlturaNametag() {
@@ -118,28 +168,156 @@ public class TeamManager {
         if (!isNametagEnabled()) {
             return null;
         }
-        // el cliente no dibuja el nombre de un jugador que lleva algo montado (el texto del team),
-        // así que el texto trae las dos líneas: el nombre del jugador y debajo el team
+        // el nombre normal se esconde (ver TabOrden), así que el texto trae el nombre del jugador
         List<String> lineas = config.getStringList("nametag.lineas");
-        if (lineas.isEmpty()) lineas = List.of("&f%player%", "&b%team%");
+        if (lineas.isEmpty()) lineas = List.of("&8[%color%%tag%&8] &f%player%");
         List<String> coloreadas = new ArrayList<>();
         for (String linea : lineas) {
-            coloreadas.add(ColorUtils.color(linea.replace("%player%", player.getName()).replace("%team%", team.getName())));
+            coloreadas.add(ColorUtils.color(aplicar(linea.replace("%player%", player.getName()), team)));
         }
         return String.join("\n", coloreadas);
     }
 
-    public String getFormatoChat() {
-        return config.getString("chat.formato", "&8[&bTeam &f%team%&8] &f%player%&7: &f%message%");
+    /** Formato del chat del team, con %team%, %tag% y %color% ya puestos (sin colores aún). */
+    public String getFormatoChat(Team team) {
+        return aplicar(config.getString("chat.formato", "&8[%color%%tag%&8] &f%player%&7: &f%message%"), team);
+    }
+
+    /** Reemplaza %team%, %tag%, %color% y %nombre-color% por los del team. */
+    public String aplicar(String texto, Team team) {
+        return texto.replace("%team%", team.getName()).replace("%tag%", team.getTag())
+                .replace("%nombre-color%", nombreDeColor(team.getColor())).replace("%color%", team.getColor());
+    }
+
+    // ------------------------------------------------------------------ tab (team.yml → tab)
+
+    public boolean isTabEnabled() {
+        return config.getBoolean("tab.enabled", true);
+    }
+
+    public boolean isTabLiderPrimero() {
+        return config.getBoolean("tab.lider-primero", true);
+    }
+
+    public boolean isTabSinTeamAlFinal() {
+        return config.getBoolean("tab.sin-team-al-final", true);
+    }
+
+    public boolean isTabColorNombre() {
+        return config.getBoolean("tab.color-nombre", true);
+    }
+
+    /** Texto de team.yml → tab (prefijo, sufijo), sin colores aún. */
+    public String getTab(String key) {
+        String texto = config.getString("tab." + key); // sin valor por defecto: así usa el del team.yml del plugin
+        return texto == null ? "" : texto;
+    }
+
+    /**
+     * Los teams en el orden en que salen en el tab (team.yml → tab.orden):
+     *   nombre      por nombre, de la A a la Z
+     *   miembros    los que tienen más integrantes primero
+     *   conectados  los que tienen más integrantes conectados primero
+     * En un empate, por nombre.
+     */
+    public List<Team> getTeamsOrdenados() {
+        List<Team> lista = new ArrayList<>(teams.values());
+        Comparator<Team> porNombre = Comparator.comparing(Team::getKey);
+        String orden = config.getString("tab.orden", "nombre").toLowerCase();
+        Comparator<Team> comparador = switch (orden) {
+            case "miembros" -> Comparator.comparingInt(Team::size).reversed().thenComparing(porNombre);
+            case "conectados" -> Comparator.<Team>comparingInt(t -> getConectados(t).size()).reversed().thenComparing(porNombre);
+            default -> porNombre;
+        };
+        lista.sort(comparador);
+        return lista;
+    }
+
+    /** Posición del team en el orden del tab (1 = primero), o 0 si no está. */
+    public int getPosicion(Team team) {
+        List<Team> lista = getTeamsOrdenados();
+        for (int i = 0; i < lista.size(); i++) if (lista.get(i).getKey().equals(team.getKey())) return i + 1;
+        return 0;
+    }
+
+    /** Texto de team.yml → placeholder (sufijo, prefijo, sin-team), sin colores aún. */
+    public String getPlaceholder(String key) {
+        String texto = config.getString("placeholder." + key); // sin valor por defecto: así usa el del team.yml del plugin
+        return texto == null ? "" : texto;
+    }
+
+    /** Texto de team.yml → gui (sin colores aún). */
+    public String gui(String path) {
+        String texto = config.getString("gui." + path); // sin valor por defecto: así usa el del team.yml del plugin
+        return texto == null ? "" : texto;
+    }
+
+    public List<String> guiLista(String path) {
+        return config.getStringList("gui." + path);
+    }
+
+    // ------------------------------------------------------------------ colores
+
+    /** Los colores que se pueden elegir (team.yml → colores), en orden. */
+    public List<ColorOpcion> getColores() {
+        ConfigurationSection seccion = config.getConfigurationSection("colores");
+        if ((seccion == null || seccion.getKeys(false).isEmpty()) && config.getDefaults() != null) {
+            seccion = config.getDefaults().getConfigurationSection("colores");
+        }
+        if (seccion == null) return List.of();
+        List<ColorOpcion> opciones = new ArrayList<>();
+        for (String id : seccion.getKeys(false)) {
+            ConfigurationSection s = seccion.getConfigurationSection(id);
+            if (s == null) continue;
+            Material material = Material.matchMaterial(s.getString("material", "WHITE_WOOL"));
+            opciones.add(new ColorOpcion(id.toLowerCase(), s.getString("nombre", id), s.getString("codigo", "&f"),
+                    material == null || !material.isItem() ? Material.WHITE_WOOL : material));
+        }
+        return opciones;
+    }
+
+    /** El color por su id o su nombre (sin importar mayúsculas), o null. */
+    public ColorOpcion getColor(String id) {
+        for (ColorOpcion opcion : getColores()) {
+            if (opcion.id().equalsIgnoreCase(id) || opcion.nombre().equalsIgnoreCase(id)) return opcion;
+        }
+        return null;
+    }
+
+    /** Nombre del color (por ejemplo "Rojo") según su código; si no está en la lista, el código. */
+    public String nombreDeColor(String codigo) {
+        for (ColorOpcion opcion : getColores()) if (opcion.codigo().equalsIgnoreCase(codigo)) return opcion.nombre();
+        return codigo.replace("&", "");
+    }
+
+    public String getColorDefecto() {
+        return config.getString("team.color-defecto", "&b");
+    }
+
+    /** Cambia el color del team, lo guarda y actualiza el texto sobre cada integrante. */
+    public void cambiarColor(Team team, ColorOpcion color) {
+        team.setColor(color.codigo());
+        save();
+        for (UUID uuid : team.getMembers()) alCambiar.accept(uuid);
     }
 
     /** Mensaje de team.yml → mensajes, con el prefijo y los colores ya puestos. */
     public String msg(String key, String... reemplazos) {
-        String texto = config.getString("mensajes.prefijo", "") + config.getString("mensajes." + key, key);
+        return ColorUtils.color(crudo(key, reemplazos));
+    }
+
+    /** Igual que msg, con %team%, %tag% y %color% del team (antes de poner los colores). */
+    public String msg(Team team, String key, String... reemplazos) {
+        return ColorUtils.color(aplicar(crudo(key, reemplazos), team));
+    }
+
+    private String crudo(String key, String... reemplazos) {
+        String mensaje = config.getString("mensajes." + key); // sin valor por defecto: así usa el del team.yml del plugin
+        String texto = config.getString("mensajes.prefijo", "") + (mensaje == null ? key : mensaje);
         for (int i = 0; i + 1 < reemplazos.length; i += 2) {
             texto = texto.replace(reemplazos[i], reemplazos[i + 1]);
         }
-        return ColorUtils.color(texto);
+        return texto;
     }
 
     /** null si el nombre es válido; si no, el mensaje de error. */
@@ -150,6 +328,18 @@ public class TeamManager {
         }
         if (teams.containsKey(Team.key(nombre))) {
             return msg("nombre-usado", "%team%", nombre);
+        }
+        return null;
+    }
+
+    /** null si el tag es válido; si no, el mensaje de error. */
+    public String validarTag(String tag) {
+        int min = config.getInt("team.tag-min", 2), max = config.getInt("team.tag-max", 4);
+        if (tag.length() < min || tag.length() > max || !TAG_VALIDO.matcher(tag).matches()) {
+            return msg("tag-invalido", "%min%", String.valueOf(min), "%max%", String.valueOf(max));
+        }
+        for (Team team : teams.values()) {
+            if (team.getTag().equalsIgnoreCase(tag)) return msg("tag-usado", "%tag%", tag, "%team%", team.getName());
         }
         return null;
     }
@@ -197,8 +387,8 @@ public class TeamManager {
 
     // ------------------------------------------------------------------ acciones
 
-    public Team crear(String nombre, UUID lider) {
-        Team team = new Team(nombre, lider);
+    public Team crear(String nombre, String tag, UUID lider) {
+        Team team = new Team(nombre, tag, getColorDefecto(), lider);
         teams.put(team.getKey(), team);
         teamDe.put(lider, team.getKey());
         invitaciones.remove(lider);
@@ -270,6 +460,19 @@ public class TeamManager {
         for (Map<String, Long> suyas : invitaciones.values()) suyas.remove(team.getKey());
     }
 
+    // ------------------------------------------------------------------ skins (cabezas del menú)
+
+    public String getSkin(UUID uuid) {
+        return skins.get(uuid);
+    }
+
+    /** Guarda la skin de un jugador (solo si tiene team y cambió). */
+    public void setSkin(UUID uuid, String url) {
+        if (url == null || getTeam(uuid) == null || url.equals(skins.get(uuid))) return;
+        skins.put(uuid, url);
+        save();
+    }
+
     // ------------------------------------------------------------------ chat del team
 
     public boolean isEnChatDeTeam(UUID uuid) {
@@ -287,13 +490,29 @@ public class TeamManager {
         teams.clear();
         teamDe.clear();
         YamlConfiguration data = YamlConfiguration.loadConfiguration(dataFile);
+        skins.clear();
+        ConfigurationSection guardadas = data.getConfigurationSection("skins");
+        if (guardadas != null) {
+            for (String uuid : guardadas.getKeys(false)) {
+                try {
+                    skins.put(UUID.fromString(uuid), guardadas.getString(uuid));
+                } catch (IllegalArgumentException ignored) {
+                    // uuid mal escrito: se ignora
+                }
+            }
+        }
         ConfigurationSection seccion = data.getConfigurationSection("teams");
         if (seccion == null) return;
         for (String key : seccion.getKeys(false)) {
             ConfigurationSection s = seccion.getConfigurationSection(key);
             if (s == null) continue;
             try {
-                Team team = new Team(s.getString("nombre", key), UUID.fromString(s.getString("lider", "")));
+                String nombre = s.getString("nombre", key);
+                // los teams de antes no tenían tag: se usan las primeras letras del nombre
+                String letras = nombre.replace("_", "");
+                String tag = s.getString("tag", letras.substring(0, Math.min(3, letras.length())).toUpperCase());
+                Team team = new Team(nombre, tag.isEmpty() ? nombre : tag, s.getString("color", getColorDefecto()),
+                        UUID.fromString(s.getString("lider", "")));
                 for (String miembro : s.getStringList("miembros")) team.addMember(UUID.fromString(miembro));
                 teams.put(team.getKey(), team);
                 for (UUID uuid : team.getMembers()) teamDe.put(uuid, team.getKey());
@@ -308,10 +527,15 @@ public class TeamManager {
         for (Team team : teams.values()) {
             String base = "teams." + team.getKey();
             data.set(base + ".nombre", team.getName());
+            data.set(base + ".tag", team.getTag());
+            data.set(base + ".color", team.getColor());
             data.set(base + ".lider", team.getLeader().toString());
             List<String> miembros = new ArrayList<>();
             for (UUID uuid : team.getMembers()) miembros.add(uuid.toString());
             data.set(base + ".miembros", miembros);
+        }
+        for (Map.Entry<UUID, String> skin : skins.entrySet()) {
+            if (teamDe.containsKey(skin.getKey())) data.set("skins." + skin.getKey(), skin.getValue());
         }
         try {
             data.save(dataFile);

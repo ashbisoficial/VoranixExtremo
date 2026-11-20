@@ -1,7 +1,9 @@
 # Sistema de teams de VoranixExtremo
 #
 # Comandos:
-#   /team create <nombre>     crea un team (quedas como líder)
+#   /team create <nombre> <tag>   crea un team con su tag (ej: /team create Voranix VRX); quedas como líder
+#   /team menu                abre el menú del team: datos, integrantes, color y chat
+#   /team color [color]       cambia el color del team (solo el líder); sin color abre el menú de colores
 #   /team invite <jugador>    invita a alguien (solo el líder)
 #   /team accept <team>       acepta una invitación
 #   /team leave               sales del team
@@ -13,6 +15,8 @@
 #   /team help                muestra la ayuda (se edita abajo, en "ayuda")
 #
 # Colores: &c, &l... y hex con &#a855f7 o {#a855f7}.
+# En los textos de los teams sirven %team% (nombre), %tag%, %color% (el color del team, para pintar
+# lo que va después) y %nombre-color% (por ejemplo "Rojo").
 # Después de editar, usa /voranixextremo reload.
 
 team:
@@ -23,33 +27,42 @@ team:
   # Largo permitido del nombre (solo letras, números y _)
   nombre-min: 3
   nombre-max: 16
+  # Largo permitido del tag (solo letras y números). No puede repetirse entre teams.
+  tag-min: 2
+  tag-max: 4
+  # Color con el que nace un team (el líder lo cambia en /team menu)
+  color-defecto: "&b"
 
 nametag:
-  # Muestra el nombre del team debajo del nombre de cada integrante:
-  #   NombreJugador
-  #   NombreDelTeam
-  # Minecraft esconde el nombre normal de un jugador que lleva algo montado (y el texto del team
-  # va montado sobre él), por eso el plugin dibuja las dos líneas. %player% = jugador, %team% = team.
+  # Lo que sale sobre la cabeza de cada integrante:
+  #   vanilla  el nombre normal de Minecraft con el tag delante: [VRX] NombreJugador. Usa el mismo
+  #            prefijo, sufijo y color que el tab (ver tab, abajo). Es una sola línea y no se duplica.
+  #   texto    el plugin dibuja sus propias líneas (las de "lineas", abajo) y esconde el nombre normal.
+  #            Algunos clientes con mods igual muestran el nombre normal y se ven dos: en ese caso usa vanilla.
+  modo: vanilla
+  # Solo para el modo texto
   enabled: true
+  # %player% = jugador, %team% = team, %tag% = tag, %color% = color del team
   lineas:
-    - "&f%player%"
-    - "&b%team%"
+    - "&8[%color%%tag%&8] &f%player%"
   # Cada línea va con su propio fondo, a la medida de su texto, y pegada a la de arriba (sin hueco).
-  # Altura de la última línea: con 0.45 el nombre queda justo donde va el nametag normal y el team
-  # debajo. Súbela (0.5) o bájala (0.4) si lo quieres más arriba o más abajo.
+  # Con 0.45 la primera línea queda justo donde va el nametag normal y las demás debajo.
+  # Súbela (0.5) o bájala (0.4) si lo quieres más arriba o más abajo.
   altura: 0.45
 
 chat:
   # Formato del chat del team (/team chat join). %team%, %player% y %message%.
   # Si PlaceholderAPI está instalado, también sirven sus placeholders.
-  formato: "&8[&bTeam &f%team%&8] &f%player%&7: &f%message%"
+  formato: "&8[%color%%tag%&8] &f%player%&7: &f%message%"
 
 # Lo que muestra /team help (y /team solo). Una línea por renglón; "" deja una línea en blanco.
 ayuda:
   - "&8&m                                                    "
   - "  &b&lTEAMS &8» &7Comandos disponibles"
   - ""
-  - " &b/team create &f<nombre> &8- &7Crea tu propio team"
+  - " &b/team create &f<nombre> <tag> &8- &7Crea tu propio team"
+  - " &b/team menu &8- &7Abre el menú de tu team"
+  - " &b/team color &f[color] &8- &7Cambia el color del team &8(líder)"
   - " &b/team invite &f<jugador> &8- &7Invita a alguien &8(líder)"
   - " &b/team accept &f<team> &8- &7Acepta una invitación"
   - " &b/team leave &8- &7Sales de tu team"
@@ -64,10 +77,15 @@ ayuda:
 
 mensajes:
   prefijo: "&8[&bTeam&8] &7"
-  creado: "&aCreaste el team &f%team%&a."
+  creado: "&aCreaste el team %color%%team% &8[%color%%tag%&8]&a."
+  uso-create: "&cUso: &f/team create <nombre> <tag> &7(por ejemplo &f/team create Voranix VRX&7)"
   ya-en-team: "&cYa estás en un team. Sal con &f/team leave&c."
   nombre-invalido: "&cEl nombre debe tener entre %min% y %max% caracteres (letras, números o _)."
   nombre-usado: "&cYa existe un team llamado &f%team%&c."
+  tag-invalido: "&cEl tag debe tener entre %min% y %max% caracteres (letras o números)."
+  tag-usado: "&cEl tag &f%tag% &cya lo usa el team &f%team%&c."
+  color-cambiado: "&f%player% &7cambió el color del team a %color%%nombre-color%&7."
+  color-invalido: "&cNo existe el color &f%color%&c. Disponibles: &f%disponibles%"
   sin-team: "&cNo estás en ningún team."
   solo-lider: "&cSolo el líder del team puede hacer eso."
   jugador-ya-en-team: "&f%player% &cya está en un team."
@@ -88,9 +106,110 @@ mensajes:
   disuelto: "&cEl team &f%team% &cfue disuelto."
   chat-join: "&aAhora hablas en el chat del team. Usa &f/team chat leave &apara volver al chat general."
   chat-leave: "&7Volviste al chat general."
-  info-titulo: "&bTeam &f%team% &8(%cantidad%/%max%)"
+  info-titulo: "%color%Team %team% &8[%color%%tag%&8] &8(%cantidad%/%max%)"
   info-lider: "&7Líder: &f%player%"
   info-miembros: "&7Integrantes: &f%miembros%"
   lista-titulo: "&bTeams del servidor &8(%cantidad%)&b:"
   lista-vacia: "&7Todavía no hay teams."
-  lista-linea: "&8- &f%team% &7(%cantidad%/%max%)"
+  lista-linea: "&8- %color%%team% &8[%color%%tag%&8] &7(%cantidad%/%max%)"
+
+# Tab (la lista de jugadores al apretar Tab): los integrantes de cada team salen juntos, uno al lado
+# del otro, y los que no tienen team al final. Para el orden se usan teams del scoreboard (vx001a...),
+# solo para eso: no cambian el texto sobre la cabeza.
+# Si usas el plugin TAB, desactiva esto (enabled: false) y en TAB ordena con el placeholder:
+#   sorting-types: ["PLACEHOLDER_A_TO_Z:%voranixteam_orden%"]
+tab:
+  enabled: true
+  # En qué orden salen los teams: nombre (A a Z), miembros (los más grandes primero) o
+  # conectados (los que tienen más integrantes conectados primero)
+  orden: nombre
+  # El líder de cada team sale primero dentro de su team
+  lider-primero: true
+  # Los jugadores sin team salen al final (si no, Minecraft los pone al principio)
+  sin-team-al-final: true
+  # Lo que va antes y después del nombre del jugador en el tab ("" = nada)
+  prefijo: "&8[%color%%tag%&8] "
+  sufijo: ""
+  # Pinta el nombre del jugador en el tab con el color del team (solo colores &, no hex)
+  color-nombre: true
+
+# Placeholders de PlaceholderAPI (para el chat, el tab, el scoreboard...). Si el jugador no tiene team
+# dan "" (vacío), salvo sufijo y prefijo, que dan lo que diga "sin-team".
+#   %voranixteam_tag%           VRX                 %voranixteam_tag_color%     VRX con el color del team
+#   %voranixteam_sufijo%        " [VRX]" (abajo)    %voranixteam_prefijo%       "[VRX] " (abajo)
+#   %voranixteam_nombre%        Voranix             %voranixteam_nombre_color%  Voranix con el color
+#   %voranixteam_color%         el color (pinta lo que va después)
+#   %voranixteam_color_nombre%  Rojo                %voranixteam_lider%         nombre del líder
+#   %voranixteam_miembros%      integrantes         %voranixteam_max%           capacidad
+#   %voranixteam_tiene%         "si" o "no"
+#   %voranixteam_posicion%      posición del team en el tab (1, 2...)
+#   %voranixteam_orden%         clave para ordenar el tab si usas el plugin TAB (ver tab, abajo)
+placeholder:
+  sufijo: " &8[%color%%tag%&8]"
+  prefijo: "&8[%color%%tag%&8] "
+  sin-team: ""
+
+# Menú del team (/team menu). %lider%, %cantidad% y %max% sirven en info; %player% en miembro.
+gui:
+  titulo: "&8Team %color%%team% &8[%tag%]"
+  titulo-colores: "&8Color del team"
+  info:
+    nombre: "%color%&l%team% &8[%color%%tag%&8]"
+    lore:
+      - "&7Tag: %color%%tag%"
+      - "&7Líder: &f%lider%"
+      - "&7Integrantes: &f%cantidad%&7/&f%max%"
+      - "&7Color: %color%%nombre-color%"
+  miembro:
+    nombre: "%color%%player%"
+    lider: "&6★ Líder"
+    integrante: "&7Integrante"
+    conectado: "&a● Conectado"
+    desconectado: "&c● Desconectado"
+  color:
+    nombre: "&eColor del team"
+    lore:
+      - "&7Color actual: %color%%nombre-color%"
+      - ""
+      - "&eClic para cambiarlo"
+    lore-no-lider:
+      - "&7Color actual: %color%%nombre-color%"
+      - ""
+      - "&cSolo el líder puede cambiarlo"
+  chat:
+    nombre: "&bChat del team"
+    lore-activo:
+      - "&7Estás hablando en el chat del team"
+      - ""
+      - "&eClic para volver al chat general"
+    lore-inactivo:
+      - "&7Estás en el chat general"
+      - ""
+      - "&eClic para hablar en el chat del team"
+  opcion-color:
+    nombre: "%codigo%%nombre%"
+    lore:
+      - "&eClic para usar este color"
+    lore-actual:
+      - "&aEs el color actual"
+  volver: "&7← Volver"
+  cerrar: "&cCerrar"
+
+# Colores que el líder puede elegir. codigo: & o hex (&#a855f7); material: el ítem del menú.
+colores:
+  rojo: {nombre: "Rojo", codigo: "&c", material: RED_WOOL}
+  rojo-oscuro: {nombre: "Rojo oscuro", codigo: "&4", material: RED_TERRACOTTA}
+  naranjo: {nombre: "Naranjo", codigo: "&6", material: ORANGE_WOOL}
+  amarillo: {nombre: "Amarillo", codigo: "&e", material: YELLOW_WOOL}
+  verde: {nombre: "Verde", codigo: "&a", material: LIME_WOOL}
+  verde-oscuro: {nombre: "Verde oscuro", codigo: "&2", material: GREEN_WOOL}
+  celeste: {nombre: "Celeste", codigo: "&b", material: LIGHT_BLUE_WOOL}
+  cian: {nombre: "Cian", codigo: "&3", material: CYAN_WOOL}
+  azul: {nombre: "Azul", codigo: "&9", material: BLUE_WOOL}
+  azul-oscuro: {nombre: "Azul oscuro", codigo: "&1", material: BLUE_TERRACOTTA}
+  morado: {nombre: "Morado", codigo: "&5", material: PURPLE_WOOL}
+  rosa: {nombre: "Rosa", codigo: "&d", material: MAGENTA_WOOL}
+  blanco: {nombre: "Blanco", codigo: "&f", material: WHITE_WOOL}
+  gris: {nombre: "Gris", codigo: "&7", material: LIGHT_GRAY_WOOL}
+  gris-oscuro: {nombre: "Gris oscuro", codigo: "&8", material: GRAY_WOOL}
+  negro: {nombre: "Negro", codigo: "&0", material: BLACK_WOOL}

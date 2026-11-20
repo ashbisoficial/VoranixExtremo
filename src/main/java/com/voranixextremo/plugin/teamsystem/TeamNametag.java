@@ -216,8 +216,8 @@ public class TeamNametag implements Listener, PacketListener {
         List<Integer> montados = new ArrayList<>();
         for (int i = 0; i < n; i++) {
             if (lineas[i].isBlank()) continue; // una línea vacía deja el espacio, pero sin fondo
-            // la última línea va abajo (en "altura") y cada una de arriba sube un renglón
-            float y = (float) (teams.getAlturaNametag() + (n - 1 - i) * teams.getEspacioLineas());
+            // la primera línea va donde va el nametag normal (un renglón sobre "altura") y las demás debajo
+            float y = (float) (teams.getAlturaNametag() + (1 - i) * teams.getEspacioLineas());
             enviar(viewer, new WrapperPlayServerSpawnEntity(ids[i], Optional.of(UUID.randomUUID()), EntityTypes.TEXT_DISPLAY,
                     new Vector3d(loc.getX(), loc.getY(), loc.getZ()), 0f, 0f, 0f, 0, Optional.of(ORIGEN)));
             List<EntityData<?>> datos = new ArrayList<>();

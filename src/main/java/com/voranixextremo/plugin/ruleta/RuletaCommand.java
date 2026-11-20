@@ -19,7 +19,7 @@ import java.util.Locale;
 
 /**
  * /ruletacolor girar <color|random> | parar | pack | reload
- * (no es /ruleta porque ese ya es la ruleta de eventos). La ruleta no manda mensajes al chat:
+ * La ruleta no manda mensajes al chat:
  * solo se avisa a quien usa el comando si algo sale mal.
  */
 @CommandAlias("ruletacolor")

@@ -37,19 +37,6 @@ totem-pop: "&6⏳ &6&L%usuario% &6a utilizado un tótem"
 pvp-enabled: "&a¡El PVP ha sido ACTIVADO!"
 pvp-disabled: "&c¡El PVP ha sido DESACTIVADO!"
 
-# ------------------------------------------------------------------ eventos mundiales y Revill
-world-event-spinning: "&6&l¡Se está girando la RULETA DE EVENTOS MUNDIALES!"
-world-event-started: "&d&l¡Comenzó: %evento%!"
-world-event-ended: "&7El evento %evento% terminó."
-event-none-configured: "&cNo hay eventos configurados en world-events.outcomes."
-event-already-active: "&cYa hay un evento activo: &f%evento% &7(quedan %segundos%s)."
-event-active: "&7Evento activo: &f%evento% &7(quedan %segundos%s)."
-event-none-active: "&7No hay ningún evento activo."
-event-stopped: "&7Evento detenido."
-revill-objective: "&4&l¡MOMENTO REVILL! &r&c%objetivo%"
-revill-eliminated: "&4☠ %player% no cumplió el objetivo del Revill y fue ELIMINADO."
-revill-summary: "&7Revill terminado: &a%sobrevivientes% sobrevivieron&7, &c%eliminados% eliminados&7."
-
 # ------------------------------------------------------------------ economía
 balance: "&7Tu balance: &f%cantidad%"
 balance-other: "&7Balance de &f%player% &7ahora: &f%cantidad%"

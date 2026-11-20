@@ -18,16 +18,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/** /team create|invite|accept|leave|kick|disband|info|list|chat — ver team.yml. */
+/** /team create|invite|accept|leave|kick|disband|info|list|chat|menu|color — ver team.yml. */
 @CommandAlias("team")
 @CommandPermission("voranixextremo.team")
 @Description("Crea y administra tu team.")
 public class TeamCommand extends BaseCommand {
 
     private final TeamManager teams;
+    private final TeamGui gui;
 
-    public TeamCommand(TeamManager teams) {
+    public TeamCommand(TeamManager teams, TeamGui gui) {
         this.teams = teams;
+        this.gui = gui;
     }
 
     /** /team help, /team solo o un subcomando que no existe: muestra la ayuda de team.yml → ayuda. */
@@ -38,20 +40,60 @@ public class TeamCommand extends BaseCommand {
         for (String linea : teams.getAyuda()) sender.sendMessage(linea);
     }
 
+    /** /team create <nombre> <tag>, por ejemplo /team create Voranix VRX */
     @Subcommand("create")
-    @Syntax("<nombre>")
-    public void onCreate(Player player, String nombre) {
+    @Syntax("<nombre> <tag>")
+    public void onCreate(Player player, String nombre, @Optional String tag) {
         if (teams.getTeam(player.getUniqueId()) != null) {
             player.sendMessage(teams.msg("ya-en-team"));
             return;
         }
+        if (tag == null) {
+            player.sendMessage(teams.msg("uso-create"));
+            return;
+        }
         String error = teams.validarNombre(nombre);
+        if (error == null) error = teams.validarTag(tag);
         if (error != null) {
             player.sendMessage(error);
             return;
         }
-        Team team = teams.crear(nombre, player.getUniqueId());
-        player.sendMessage(teams.msg("creado", "%team%", team.getName()));
+        Team team = teams.crear(nombre, tag, player.getUniqueId());
+        player.sendMessage(teams.msg(team, "creado"));
+    }
+
+    /** /team menu: el menú con los datos del team, sus integrantes y el color. */
+    @Subcommand("menu|settings|gui")
+    public void onMenu(Player player) {
+        Team team = teams.getTeam(player.getUniqueId());
+        if (team == null) {
+            player.sendMessage(teams.msg("sin-team"));
+            return;
+        }
+        gui.abrir(player, team);
+    }
+
+    /** /team color [color]: sin color abre el menú de colores; con color lo cambia directo (solo el líder). */
+    @Subcommand("color")
+    @CommandCompletion("@colores-team")
+    @Syntax("[color]")
+    public void onColor(Player player, @Optional String nombre) {
+        Team team = equipoDeLider(player);
+        if (team == null) return;
+        if (nombre == null) {
+            gui.abrirColores(player, team);
+            return;
+        }
+        TeamManager.ColorOpcion color = teams.getColor(nombre);
+        if (color == null) {
+            List<String> ids = new ArrayList<>();
+            for (TeamManager.ColorOpcion c : teams.getColores()) ids.add(c.id());
+            player.sendMessage(teams.msg("color-invalido", "%color%", nombre, "%disponibles%", String.join(", ", ids)));
+            return;
+        }
+        teams.cambiarColor(team, color);
+        teams.avisar(team, teams.msg("color-cambiado", "%player%", player.getName(),
+                "%color%", color.codigo(), "%nombre-color%", color.nombre()));
     }
 
     @Subcommand("invite")
@@ -180,7 +222,7 @@ public class TeamCommand extends BaseCommand {
         }
         List<String> miembros = new ArrayList<>();
         for (UUID uuid : team.getMembers()) miembros.add(TeamManager.nombreDe(uuid));
-        sender.sendMessage(teams.msg("info-titulo", "%team%", team.getName(),
+        sender.sendMessage(teams.msg(team, "info-titulo",
                 "%cantidad%", String.valueOf(team.size()), "%max%", String.valueOf(teams.getCapacidad())));
         sender.sendMessage(teams.msg("info-lider", "%player%", TeamManager.nombreDe(team.getLeader())));
         sender.sendMessage(teams.msg("info-miembros", "%miembros%", String.join(", ", miembros)));
@@ -194,7 +236,7 @@ public class TeamCommand extends BaseCommand {
         }
         sender.sendMessage(teams.msg("lista-titulo", "%cantidad%", String.valueOf(teams.getTeams().size())));
         for (Team team : teams.getTeams()) {
-            sender.sendMessage(teams.msg("lista-linea", "%team%", team.getName(),
+            sender.sendMessage(teams.msg(team, "lista-linea",
                     "%cantidad%", String.valueOf(team.size()), "%max%", String.valueOf(teams.getCapacidad())));
         }
     }

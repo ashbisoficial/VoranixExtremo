@@ -6,7 +6,7 @@ author: ashbisoficial
 description: Plugin base para la serie Voranix Extremo (vidas, PVP, economía y futuras mecánicas de evento).
 softdepend: [Vault, PlaceholderAPI]
 
-# Los comandos (/vidas, /pvp, /dinero, /banco, /moneda, /comida, /chef, /ruleta, /ruletacolor)
+# Los comandos (/vidas, /pvp, /dinero, /banco, /moneda, /comida, /chef, /ruletacolor, /team)
 # no van aquí: los registra ACF desde las clases *Command del código.
 
 permissions:
@@ -33,9 +33,6 @@ permissions:
     default: op
   voranixextremo.chef.admin:
     description: Permite aparecer o eliminar aldeanos chef.
-    default: op
-  voranixextremo.ruleta.admin:
-    description: Permite girar, consultar o detener la ruleta de eventos.
     default: op
   voranixextremo.ruletacolor.admin:
     description: Permite usar /ruletacolor (ruleta de colores en pantalla).

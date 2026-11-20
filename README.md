@@ -129,28 +129,9 @@ Portado del módulo `ottoke` del repo [voranixmod](https://github.com/ashbisofic
 
 **Lo que quedó afuera de este portado** (ver el repo voranixmod si se quiere retomar más adelante): las Banderillas "crudas" y la Freidora (la estación de cocina donde se fríen) — no hacen falta para que el chef las venda listas; el módulo hermano `maipizza` (pizzas, que en el original son bloques con porciones, no ítems simples — pedirían más diseño); bloques personalizados (mostrador, cartel, menú); y los efectos de crecer/encoger (no hay atributo de escala en la versión de Minecraft que usa este plugin, 1.20.4 — recién existe desde 1.20.5+).
 
-### Ruleta de eventos (`/ruleta`)
-
-Al estilo de las ruletas de Desafío/Extremo, pero **para todo el servidor a la vez**: no es un suceso por jugador, es un evento único que cae al azar (ponderado por `weight`) y cambia las reglas del juego por un tiempo — la animación se ve en la pantalla de todos los conectados en el mismo instante. Pensado para que lo dispare producción/staff en un momento puntual del stream, no algo que cualquier jugador pueda tirar (por eso es 100% admin, sin cooldown — lo manejan ustedes a criterio).
-
-**La animación** simula una ruleta de verdad frenando: va mostrando nombres al azar cada vez más espaciados (empieza cambiando varias veces por segundo y se va frenando hasta una pausa final antes de revelar el resultado), con una barra de progreso (boss bar) arriba de la pantalla que se va vaciando en sincro, y un sonido de "clic" en cada cambio y uno distinto al final. Cada suceso tiene una `category` que define su color en el título y en la barra — **rojo (`PELIGRO`)**, **verde (`BUENO`)**, **amarillo (`NEUTRAL`)** — para que de un vistazo se entienda qué tipo de cosa está por tocar.
-
-- `/ruleta` o `/ruleta girar` — gira y aplica un resultado al azar.
-- `/ruleta estado` — qué evento está activo y cuánto le queda.
-- `/ruleta detener` — corta el evento activo antes de tiempo.
-- Permiso: `voranixextremo.ruleta.admin`.
-
-No se puede girar si ya hay un evento activo (hay que esperar a que termine o usar `/ruleta detener`), para no superponer dos a la vez. Los sucesos son 100% configurables en `config.yml` → `world-events.outcomes`, sin tocar código. Vienen 4 de ejemplo:
-
-- **`pvp_libre`** (`PELIGRO`, `PVP_WINDOW`) — fuerza el PVP activado por `duration-seconds` (300 por defecto) y lo devuelve a como estaba al terminar (reutiliza el mismo `PvpManager`, con su sonido de activar/desactivar).
-- **`luna_roja`** (`PELIGRO`, `RED_MOON`) — pone de noche y en tormenta en todos los mundos; mientras dura, todo mob que nace sale con la salud y el daño multiplicados (`mob-health-multiplier`, `mob-damage-multiplier`) y al morir tiene una chance extra de soltar ítems de `bonus-drops` (ender pearls, huesos, pólvora, carne podrida — además de su loot normal, no en vez de).
-- **`buena_racha`** (`BUENO`, `COMMAND`) — le da Velocidad II a todos los jugadores conectados por 5 minutos (`/effect give @a`).
-- **`tormenta`** (`NEUTRAL`, `COMMAND`) — ejemplo del escape genérico: ejecuta cualquier comando de consola al empezar (acá, `/weather rain`) — la forma de agregar eventos nuevos sin tocar código.
-- **`momento_revill`** (`PELIGRO`, `REVILL`) — inspirado en el "Momento Revill" de DEDsafio: tormenta + lluvia de meteoritos (`meteor-interval-ticks`, `meteor-yield`, `meteor-break-blocks`) + un objetivo (`objective-description`) con cuenta regresiva en una boss bar propia. Cuando se acaba el tiempo (`duration-seconds`), se evalúa a cada jugador conectado según `objective-type` (`Y_ABOVE`/`Y_BELOW` contra `objective-y`, ej. "bajá a Y=40"): quien no lo cumple queda **eliminado directo** (no pierde 1 vida, va a 0), el resto sobrevive. Ajustá `objective-y` a algo real de tu mapa antes de usarlo en serio.
-
 ### Ruleta de colores animada (`/ruletacolor`)
 
-La ruleta "de verdad" al estilo DEDsafio/Ruleta del Fénix: un disco de colores que **aparece agrandándose mientras ya empieza a girar, gira con desenfoque, acelera, frena, se tiñe del color ganador, tiembla y se va achicándose** — todo dibujado con una fuente custom (`resourcepack/Ruleta`) superpuesta en el título, así que no hace falta ningún mod ni ventana externa: **se ve igual, al mismo tiempo, en la pantalla de todos los jugadores conectados**, igual que `/ruleta`. El pack se manda solo (por un mini servidor HTTP interno del plugin) y no reemplaza el pack de monedas/comida, se suma encima.
+La ruleta "de verdad" al estilo DEDsafio/Ruleta del Fénix: un disco de colores que **aparece agrandándose mientras ya empieza a girar, gira con desenfoque, acelera, frena, se tiñe del color ganador, tiembla y se va achicándose** — todo dibujado con una fuente custom (`resourcepack/Ruleta`) superpuesta en el título, así que no hace falta ningún mod ni ventana externa: **se ve igual, al mismo tiempo, en la pantalla de todos los jugadores conectados**. El pack se manda solo (por un mini servidor HTTP interno del plugin) y no reemplaza el pack de monedas/comida, se suma encima.
 
 - `/ruletacolor girar <color|random>` — gira y cae en ese color (o al azar). La ruleta no manda mensajes al chat: al caer suena y ejecuta los comandos del color.
 
@@ -160,7 +141,7 @@ La ruleta "de verdad" al estilo DEDsafio/Ruleta del Fénix: un disco de colores 
 - `/ruletacolor reload` — recarga `config.yml` sin reiniciar el servidor.
 - Permiso: `voranixextremo.ruletacolor.admin`.
 
-**Cada color puede disparar comandos de consola.** En `config.yml` → `ruleta-colores.colores.<color>.comandos` (lista) se ponen los comandos que se ejecutan **por consola, con permisos completos** (exactamente igual a como `/ruleta` ejecuta su `command`), en el instante en que el disco se frena en ese color — antes de que tiemble y desaparezca. Esto es lo que te permite trigguear cualquier evento (efectos, clima, mobs, lo que sea) directamente desde la ruleta visual, sin depender de nada externo:
+**Cada color puede disparar comandos de consola.** En `config.yml` → `ruleta-colores.colores.<color>.comandos` (lista) se ponen los comandos que se ejecutan **por consola, con permisos completos** , en el instante en que el disco se frena en ese color — antes de que tiemble y desaparezca. Esto es lo que te permite trigguear cualquier evento (efectos, clima, mobs, lo que sea) directamente desde la ruleta visual, sin depender de nada externo:
 
 ```yaml
 rojo:
@@ -193,6 +174,24 @@ Si un color se queda sin `comandos` (como vienen todos ahora), `/ruletacolor gir
 
 > **Sobre la idea de "Ruleta del Fénix" (web + RCON):** ese proyecto es una página HTML/WebGL que se abre en el navegador (pensada como overlay de stream) y habla con el servidor por un puente Node.js que usa RCON. Funciona, pero agrega una pieza externa que hay que tener corriendo aparte (el puente), un puerto RCON abierto y una contraseña que proteger. Como la idea de fondo — una ruleta vistosa que al caer dispara comandos — **ya está resuelta dentro del plugin** con `/ruletacolor` (misma animación "de ruleta de verdad", comandos por color, visible a todos a la vez, sin servidor aparte ni RCON), no se portó esa arquitectura: sería redundante y menos seguro que lo que ya tenés corriendo en el propio Paper.
 
+### Teams (`/team`)
+
+Cada team tiene **nombre, tag y color**. Todo se configura en `plugins/VoranixExtremo/team.yml` (mensajes, menú, colores) y se recarga con `/voranixextremo reload`.
+
+- `/team create <nombre> <tag>` — crea el team con su tag, por ejemplo `/team create Voranix VRX`. El tag es de 2 a 4 letras o números (`team.tag-min`/`tag-max`) y no se puede repetir. Los teams creados antes de los tags reciben uno automático con las primeras letras del nombre.
+- `/team menu` (o `settings`) — abre el menú del team: nombre, tag, líder, cantidad y color; la cabeza de cada integrante (líder o integrante, conectado o no); un botón para entrar o salir del chat del team y, para el líder, el botón para **cambiar el color**.
+  Las cabezas usan la skin de la cuenta premium de cada nombre.
+- `/team color [color]` — el líder cambia el color directo (`/team color rojo`) o, sin color, abre el menú de colores. Los colores disponibles están en `team.yml → colores` (código `&` o hex `&#a855f7` y el ítem del menú).
+- `invite`, `accept`, `leave`, `kick`, `disband`, `info`, `list` y `chat join|leave` siguen igual.
+
+**Placeholders (PlaceholderAPI):** para poner el tag como sufijo o prefijo en el chat o el tab, usá `%voranixteam_sufijo%` (por defecto ` [VRX]` con el color del team) o `%voranixteam_prefijo%`; su formato está en `team.yml → placeholder`. También hay `%voranixteam_tag%`, `%voranixteam_tag_color%`, `%voranixteam_nombre%`, `%voranixteam_nombre_color%`, `%voranixteam_color%`, `%voranixteam_color_nombre%`, `%voranixteam_lider%`, `%voranixteam_miembros%`, `%voranixteam_max%` y `%voranixteam_tiene%`. Sin team dan vacío. Requiere PlaceholderAPI instalado (no hace falta descargar ninguna expansión con `/papi ecloud`).
+
+**Tab ordenado por team:** al apretar Tab, los integrantes de cada team salen juntos (el líder primero) y los que no tienen team al final, con el tag del team antes del nombre y el nombre pintado con su color. El orden de los teams (`nombre`, `miembros` o `conectados`), el prefijo, el sufijo y el resto se configuran en `team.yml → tab`. Funciona con teams del scoreboard principal (`vx001a`, `vx001b`... y `vxzzzz` sin team) que se borran al apagar el plugin. Si usás el plugin TAB, poné `tab.enabled: false` y ordená en TAB con `PLACEHOLDER_A_TO_Z:%voranixteam_orden%`.
+
+**Sobre la cabeza** cada integrante muestra una sola línea, `[VRX] Jugador`: es el nombre normal de Minecraft con el prefijo y el color del tab (`team.yml → tab`), así nunca se duplica. Con `nametag.modo: texto` el plugin dibuja sus propias líneas (`nametag.lineas`) y esconde el nombre normal, pero algunos clientes con mods muestran igual el nombre normal y se ven dos.
+
+El color se usa en el nombre sobre la cabeza, en el chat del team, en `/team info` y `/team list`. En esos textos sirven `%team%`, `%tag%`, `%color%` (pinta lo que va después) y `%nombre-color%`. Si tu `team.yml` todavía tenía los textos que traía el plugin, al arrancar se actualizan solos para mostrar el tag y el color; lo que hayas cambiado a mano no se toca.
+
 ## Estructura del proyecto
 
 ```
@@ -204,7 +203,6 @@ src/main/java/com/voranixextremo/plugin/
 ├── kills/                      # trofeos (cabeza + monedas) al matar en PVP
 ├── food/                       # comidas y bebidas (hambre/saturación/efectos)
 ├── shops/                      # aldeanos chef y su comercio
-├── worldevents/                # ruleta de eventos (afecta a todo el server: pvp libre, luna roja)
 ├── ruleta/                     # ruleta de colores animada (fuente custom + comandos por color)
 └── util/                       # utilidades (mensajes, resource pack)
 src/main/resources/

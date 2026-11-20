@@ -7,7 +7,10 @@ import co.aikar.commands.MessageKeys;
 import co.aikar.commands.MinecraftMessageKeys;
 import com.github.retrooper.packetevents.PacketEvents;
 import com.voranixextremo.plugin.chatsystem.Chat;
+import com.voranixextremo.plugin.teamsystem.TabOrden;
 import com.voranixextremo.plugin.teamsystem.TeamCommand;
+import com.voranixextremo.plugin.teamsystem.TeamGui;
+import com.voranixextremo.plugin.teamsystem.TeamPlaceholders;
 import com.voranixextremo.plugin.teamsystem.TeamManager;
 import com.voranixextremo.plugin.teamsystem.TeamNametag;
 import io.github.retrooper.packetevents.factory.spigot.SpigotPacketEventsBuilder;
@@ -42,9 +45,6 @@ import com.voranixextremo.plugin.totem.TotemPop;
 import com.voranixextremo.plugin.util.Messages;
 import com.voranixextremo.plugin.lives.StormEffect;
 import com.voranixextremo.plugin.voranixextremo.VoranixExtremoCommand;
-import com.voranixextremo.plugin.worldevents.RedMoonListener;
-import com.voranixextremo.plugin.worldevents.WorldEventCommand;
-import com.voranixextremo.plugin.worldevents.WorldEventManager;
 import net.milkbowl.vault.economy.Economy;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -65,9 +65,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
     private RuletaPackManager ruletaPackManager;
     private FoodManager foodManager;
     private ShopManager shopManager;
-    private WorldEventManager worldEventManager;
     private Chat chat;
     private TeamManager teamManager;
+    private TabOrden tabOrden;
     private TeamNametag teamNametag;
     private BukkitCommandManager commandManager;
 
@@ -97,7 +97,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         this.foodManager = new FoodManager(this);
         this.shopManager = new ShopManager(this);
         ChefVillagerManager chefVillagerManager = new ChefVillagerManager(this, economyManager, coinItemFactory, foodManager);
-        this.worldEventManager = new WorldEventManager(this, pvpManager, livesManager);
 
         getServer().getPluginManager().registerEvents(
                 new PlayerDeathListener(this, livesManager, deathEffects, pvpKillRewards), this);
@@ -109,7 +108,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);
         getServer().getPluginManager().registerEvents(new FoodConsumeListener(this, foodManager), this);
-        getServer().getPluginManager().registerEvents(new RedMoonListener(worldEventManager), this);
         getServer().getPluginManager().registerEvents(new TotemPop(this), this);
         this.chat = new Chat(this);
         getServer().getPluginManager().registerEvents(chat, this);
@@ -117,7 +115,13 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         // Teams: datos y config (team.yml), el nombre bajo el nametag y el chat del team
         this.teamManager = new TeamManager(this);
         this.teamNametag = new TeamNametag(this, teamManager);
-        teamManager.setAlCambiar(teamNametag::actualizar);
+        this.tabOrden = new TabOrden(this, teamManager);
+        getServer().getPluginManager().registerEvents(tabOrden, this);
+        teamManager.setAlCambiar(uuid -> {
+            teamNametag.actualizar(uuid);
+            tabOrden.actualizarTodo();
+        });
+        tabOrden.actualizarTodo();
         teamNametag.start();
         chat.setTeams(teamManager);
 
@@ -152,11 +156,21 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         commandManager.registerCommand(new CoinCommand(this, economyManager, coinItemFactory));
         commandManager.registerCommand(new FoodCommand(this, foodManager));
         commandManager.registerCommand(new ChefCommand(this, shopManager, chefVillagerManager));
-        commandManager.registerCommand(new WorldEventCommand(this, worldEventManager));
         commandManager.registerCommand(new RuletaCommand(this, ruletaManager, ruletaPackManager));
         commandManager.registerCommand(new VoranixExtremoCommand(this));
         completions.registerCompletion("teams", c -> teamManager.getNombres());
-        commandManager.registerCommand(new TeamCommand(teamManager));
+        completions.registerCompletion("colores-team", c -> {
+            List<String> ids = new ArrayList<>();
+            for (TeamManager.ColorOpcion color : teamManager.getColores()) ids.add(color.id());
+            return ids;
+        });
+        if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            // %voranixteam_tag%, %voranixteam_sufijo%... para el chat, el tab, etc.
+            new TeamPlaceholders(this, teamManager).register();
+        }
+        TeamGui teamGui = new TeamGui(this, teamManager);
+        getServer().getPluginManager().registerEvents(teamGui, this);
+        commandManager.registerCommand(new TeamCommand(teamManager, teamGui));
 
         registerVaultIfPresent();
 
@@ -195,7 +209,6 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         economyManager.reloadSettings();
         foodManager.reload();
         shopManager.reload();
-        worldEventManager.reload();
         ruletaManager.load();
         ruletaPackManager.stop();
         ruletaPackManager.start();
@@ -203,6 +216,7 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         chat.load();
         teamManager.reloadConfig();
         teamNametag.refrescarTodo();
+        tabOrden.actualizarTodo();
     }
 
     private void registerVaultIfPresent() {
@@ -246,6 +260,9 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         }
         if (teamNametag != null) {
             teamNametag.stop();
+        }
+        if (tabOrden != null) {
+            tabOrden.limpiar();
         }
         if (teamManager != null) {
             teamManager.save();
