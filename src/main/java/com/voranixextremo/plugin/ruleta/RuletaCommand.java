@@ -7,7 +7,6 @@ import co.aikar.commands.annotation.CommandCompletion;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Description;
-import co.aikar.commands.annotation.Optional;
 import co.aikar.commands.annotation.Subcommand;
 import co.aikar.commands.annotation.Syntax;
 import com.voranixextremo.plugin.VoranixExtremoPlugin;
@@ -19,8 +18,9 @@ import org.bukkit.entity.Player;
 import java.util.Locale;
 
 /**
- * /ruletacolor girar <color|random> [mensaje] | parar | pack | reload
- * (no es /ruleta porque ese ya es la ruleta de eventos).
+ * /ruletacolor girar <color|random> | parar | pack | reload
+ * (no es /ruleta porque ese ya es la ruleta de eventos). La ruleta no manda mensajes al chat:
+ * solo se avisa a quien usa el comando si algo sale mal.
  */
 @CommandAlias("ruletacolor")
 @CommandPermission("voranixextremo.ruletacolor.admin")
@@ -43,24 +43,22 @@ public class RuletaCommand extends BaseCommand {
         ruleta.enviar(sender, ruleta.msg("uso"));
     }
 
-    // el último String se queda con todo lo que venga después, así el mensaje puede tener espacios
     @Subcommand("girar")
     @CommandCompletion("@colores-ruleta @nothing")
-    @Syntax("<color|random> [mensaje]")
-    public void onSpin(CommandSender sender, String color, @Optional String mensaje) {
-        Component error = ruleta.spin(color.toLowerCase(Locale.ROOT), mensaje);
+    @Syntax("<color|random>")
+    public void onSpin(CommandSender sender, String color) {
+        Component error = ruleta.spin(color.toLowerCase(Locale.ROOT));
         if (error != null) ruleta.enviar(sender, error);
     }
 
     @Subcommand("parar")
     public void onStop(CommandSender sender) {
-        ruleta.enviar(sender, ruleta.msg(ruleta.stop(true) ? "parada" : "no-girando"));
+        if (!ruleta.stop(true)) ruleta.enviar(sender, ruleta.msg("no-girando"));
     }
 
     @Subcommand("pack")
     public void onPack(CommandSender sender) {
         for (Player p : Bukkit.getOnlinePlayers()) pack.send(p);
-        ruleta.enviar(sender, ruleta.msg("pack-enviado"));
     }
 
     @Subcommand("reload")
@@ -69,6 +67,5 @@ public class RuletaCommand extends BaseCommand {
         ruleta.load();
         pack.stop();
         pack.start();
-        ruleta.enviar(sender, ruleta.msg("recargado"));
     }
 }

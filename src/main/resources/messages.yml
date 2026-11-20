@@ -77,17 +77,12 @@ chef-none-near: "&cNo hay ningún chef cerca (8 bloques)."
 chef-removed: "&7Chef eliminado."
 
 # ------------------------------------------------------------------ ruleta de colores (MiniMessage)
+# La ruleta no manda nada al chat: estos son solo los avisos a quien usa /ruletacolor si algo sale mal.
 ruleta:
   prefijo: "<dark_gray>[<gold>Ruleta<dark_gray>] <gray>"
-  prefijo-broadcast: "<dark_gray>[<gold>Ruleta<dark_gray>] "
-  # Se usa cuando no escribes mensaje en el comando ni el color tiene uno propio
-  broadcast: "<yellow>¡La ruleta cayó en {color}<yellow>!"
-  uso: "Uso: <yellow>/ruletacolor girar <color|random> [mensaje]"
+  uso: "Uso: <yellow>/ruletacolor <girar <color|random>|parar|pack|reload>"
   ya-girando: "<red>La ruleta ya está girando."
   no-girando: "<red>La ruleta no está girando."
-  parada: "Ruleta detenida."
   color-invalido: "<red>El color <white>{color}</white> no existe."
-  pack-enviado: "Resource pack de la ruleta enviado a todos."
-  recargado: "<green>Configuración recargada."
   # Texto de la pantalla que pide aceptar el resource pack al entrar
   pack-pedido: "<gold>Este pack es necesario para ver la ruleta."

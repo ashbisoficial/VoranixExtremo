@@ -354,7 +354,8 @@ ruleta-colores:
   duracion-ticks: 140
   # Vueltas completas antes de frenar
   vueltas: 4
-  # Al terminar, la ruleta se tiñe del color ganador, tiembla y desaparece.
+  # Aparece agrandándose mientras ya empieza a girar; al terminar se tiñe del color ganador, tiembla y
+  # se va achicándose. No manda mensajes al chat: al caer suena y ejecuta los comandos del color.
   # Esto es cuánto rato queda teñida y quieta antes de temblar (0 = como en el diseño original)
   resultado-segundos: 0.5
 
@@ -363,12 +364,11 @@ ruleta-colores:
     final: "minecraft:entity.player.levelup"
 
   # Nombre de cada color de la ruleta (el orden de los colores viene en el resource pack: 8 colores -
-  # rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa). Quedan SIN mensaje y SIN comandos a propósito:
+  # rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa). Quedan SIN comandos a propósito:
   # la idea es que producción los cargue/cambie cada día antes del stream (ver "Cómo cargar los eventos
   # del día" en el README), no que queden fijos en el código. Mientras estén vacíos, /ruletacolor girar
-  # <color> solo gira y muestra el nombre, sin ejecutar nada ni mandar un mensaje especial.
+  # <color> solo gira, sin ejecutar nada.
   #
-  # "mensaje" (opcional): texto de broadcast propio de ese color (si no está, usa mensajes.broadcast).
   # "comandos" (opcional, lista): se ejecutan por CONSOLA -con permisos completos, igual que /ruleta-
   # en el instante en que la ruleta cae en ese color (antes de que tiemble y desaparezca). Podés poner
   # cualquier comando de servidor (effect, weather, summon, give, pvp toggle, etc.), uno por línea.

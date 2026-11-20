@@ -18,7 +18,7 @@ El `.jar` queda en `target/VoranixExtremo-1.0.0.jar`. Cópialo a la carpeta `plu
 
 > **Nota:** este proyecto descarga el API de Spigot desde `hub.spigotmc.org`. Si compilas en un entorno con red restringida (como una sesión en la nube sin ese dominio permitido), añade `hub.spigotmc.org` a los dominios permitidos del entorno o compílalo en tu máquina local.
 
-> **Sobre la versión:** el plugin apunta a **Spigot 1.20.1** (`pom.xml` → `spigot.version`, Java 17). Antes apuntaba a Paper 26.3; al bajarlo se volvió a los nombres de la 1.20.1 (`Attribute.GENERIC_MAX_HEALTH`, `Particle.REDSTONE`, `Particle.TOTEM`, `setBasePotionData`), los títulos usan `Player#sendTitle` de Spigot, y la ruleta de colores trae Adventure metido dentro del jar (Spigot no lo incluye) para mandar su title con fuente propia. Como la 1.20.1 acepta **un solo resource pack del servidor**, el pack que sirve el plugin junta la ruleta (`resourcepack/Ruleta`) con las monedas y la comida (`resourcepack/assets`), e incluye un shader (`resourcepack/Ruleta/assets/minecraft/shaders/core/rendertype_text.vsh`) que le quita la sombra al title de la ruleta.
+> **Sobre la versión:** el plugin apunta a **Spigot 1.20.1** (`pom.xml` → `spigot.version`, Java 17). Antes apuntaba a Paper 26.3; al bajarlo se volvió a los nombres de la 1.20.1 (`Attribute.GENERIC_MAX_HEALTH`, `Particle.REDSTONE`, `Particle.TOTEM`, `setBasePotionData`), los títulos usan `Player#sendTitle` de Spigot, y la ruleta de colores trae Adventure metido dentro del jar (Spigot no lo incluye) para mandar su title con fuente propia. Como la 1.20.1 acepta **un solo resource pack del servidor**, el pack que sirve el plugin junta la ruleta (`resourcepack/Ruleta`) con las monedas y la comida (`resourcepack/assets`), e incluye un shader (`resourcepack/Ruleta/assets/minecraft/shaders/core/rendertype_text.vsh` y `.fsh`) que le quita la sombra al title de la ruleta y la anima (agrandar, girar, suavizar).
 
 ## Funcionalidades actuales
 
@@ -150,9 +150,11 @@ No se puede girar si ya hay un evento activo (hay que esperar a que termine o us
 
 ### Ruleta de colores animada (`/ruletacolor`)
 
-La ruleta "de verdad" al estilo DEDsafio/Ruleta del Fénix: un disco de colores que **gira con desenfoque, acelera, frena, se tiñe del color ganador, tiembla y desaparece** — todo dibujado con una fuente custom (`resourcepack/Ruleta`) superpuesta en el título, así que no hace falta ningún mod ni ventana externa: **se ve igual, al mismo tiempo, en la pantalla de todos los jugadores conectados**, igual que `/ruleta`. El pack se manda solo (por un mini servidor HTTP interno del plugin) y no reemplaza el pack de monedas/comida, se suma encima.
+La ruleta "de verdad" al estilo DEDsafio/Ruleta del Fénix: un disco de colores que **aparece agrandándose mientras ya empieza a girar, gira con desenfoque, acelera, frena, se tiñe del color ganador, tiembla y se va achicándose** — todo dibujado con una fuente custom (`resourcepack/Ruleta`) superpuesta en el título, así que no hace falta ningún mod ni ventana externa: **se ve igual, al mismo tiempo, en la pantalla de todos los jugadores conectados**, igual que `/ruleta`. El pack se manda solo (por un mini servidor HTTP interno del plugin) y no reemplaza el pack de monedas/comida, se suma encima.
 
-- `/ruletacolor girar <color|random> [mensaje]` — gira y cae en ese color (o al azar), con un mensaje de resultado opcional.
+- `/ruletacolor girar <color|random>` — gira y cae en ese color (o al azar). La ruleta no manda mensajes al chat: al caer suena y ejecuta los comandos del color.
+
+**Calidad:** el disco y el aro están dibujados a 1024 px y se ven suavizados (no pixelados) a cualquier escala de interfaz. El shader del pack es el que agranda, gira y achica la ruleta en vivo (`rendertype_text.vsh`/`.fsh`), así el giro es continuo y la aparición y el giro son una sola animación. Las texturas salen de `tools/ruleta/GenerarRuleta.java` (`java tools/ruleta/GenerarRuleta.java` desde la raíz).
 - `/ruletacolor parar` — corta el giro en seco.
 - `/ruletacolor pack` — reenvía el resource pack de la ruleta a todos (por si alguien lo rechazó).
 - `/ruletacolor reload` — recarga `config.yml` sin reiniciar el servidor.
@@ -163,34 +165,31 @@ La ruleta "de verdad" al estilo DEDsafio/Ruleta del Fénix: un disco de colores 
 ```yaml
 rojo:
   nombre: "<#ff2b2b><bold>ROJO"
-  mensaje: "<red>¡ROJO! El PVP cambia de estado..."
   comandos:
     - "pvp toggle"
 ```
 
-Vienen los 8 colores (rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa) **sin `mensaje` ni `comandos` por defecto** — a propósito: son el esqueleto, pero qué hace cada color es decisión de producción, no algo fijo en el código.
+Vienen los 8 colores (rojo/naranjo/amarillo/verde/celeste/azul/morado/rosa) **sin `comandos` por defecto** — a propósito: son el esqueleto, pero qué hace cada color es decisión de producción, no algo fijo en el código.
 
 #### Cómo cargar los eventos del día (sin tocar código, sin recompilar)
 
-Como los efectos/mensajes/comandos de cada color van a cambiar todos los días (distinto evento cada stream), esto se hace 100% editando `config.yml` en el servidor y recargando — nunca hay que tocar Java ni volver a compilar el plugin:
+Como los efectos/comandos de cada color van a cambiar todos los días (distinto evento cada stream), esto se hace 100% editando `config.yml` en el servidor y recargando — nunca hay que tocar Java ni volver a compilar el plugin:
 
 1. En el servidor, abrí `plugins/VoranixExtremo/config.yml` con el editor que uses para administrar el server (el editor de archivos del panel de hosting, FTP/SFTP, o directamente en la consola/terminal del server con `nano`/`vim` si tenés acceso por SSH).
 2. Buscá `ruleta-colores:` → `colores:` y completá el/los color(es) del día, por ejemplo:
    ```yaml
    naranjo:
      nombre: "<#ff8a1c><bold>NARANJO"
-     mensaje: "<gold>¡NARANJO! Se viene tormenta."
      comandos:
        - "weather thunder"
        - "effect give @a minecraft:slowness 200 0"
    ```
-   - `mensaje` es opcional (si lo dejás vacío, usa el genérico de `messages.yml` → `ruleta.broadcast`).
    - `comandos` es una lista: podés poner uno o varios, cualquier comando de servidor (`effect`, `weather`, `summon`, `give`, comandos del propio plugin como `pvp toggle`, etc.), uno por línea con `-`.
 3. Guardá el archivo.
 4. Ejecutá `reload` de la ruleta: en la consola del servidor escribís `ruletacolor reload` (sin barra); en el juego, como admin, `/ruletacolor reload`. Recarga `config.yml` al vuelo — **no hace falta reiniciar el servidor**.
-5. Probá el color antes del stream con `/ruletacolor girar <color>` para confirmar que el mensaje y los comandos quedaron como querías.
+5. Probá el color antes del stream con `/ruletacolor girar <color>` para confirmar que los comandos quedaron como querías.
 
-Si un color se queda sin `mensaje`/`comandos` (como vienen todos ahora), `/ruletacolor girar` igual gira y anuncia el nombre del color — simplemente no dispara nada extra ni manda un mensaje especial.
+Si un color se queda sin `comandos` (como vienen todos ahora), `/ruletacolor girar` igual gira — simplemente no dispara nada.
 
 > **Sobre la idea de "Ruleta del Fénix" (web + RCON):** ese proyecto es una página HTML/WebGL que se abre en el navegador (pensada como overlay de stream) y habla con el servidor por un puente Node.js que usa RCON. Funciona, pero agrega una pieza externa que hay que tener corriendo aparte (el puente), un puerto RCON abierto y una contraseña que proteger. Como la idea de fondo — una ruleta vistosa que al caer dispara comandos — **ya está resuelta dentro del plugin** con `/ruletacolor` (misma animación "de ruleta de verdad", comandos por color, visible a todos a la vez, sin servidor aparte ni RCON), no se portó esa arquitectura: sería redundante y menos seguro que lo que ya tenés corriendo en el propio Paper.
 

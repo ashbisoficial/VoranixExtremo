@@ -1,12 +1,10 @@
 {
-  "disco": 57344, "discoFrames": 64,
-  "borroso": 57760, "borrosoFrames": 64,
-  "fijo": 57728,
+  "posiciones": 64,
+  "disco": 57344, "fijo": 57360,
+  "borroso": 57440, "borrosoGrados": [4.0, 9.0, 18.0],
   "fuego": 57600, "fuegoFrames": 30, "fuegoTicks": 2,
-  "flecha": 57732, "flechaFrames": 4,
+  "flecha": 57376, "flechaFrames": 4, "flechaPiezas": [false, true, true, false, false, true, true, false, false, false, false, false, false, false, false, false],
   "tinte": 57856, "tinteNiveles": 5,
-  "entrada": 58016, "entradaFrames": 24, "entradaPiezas": [1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-  "salida": 58112, "salidaFrames": 10, "salidaPiezas": [4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1, 4, 4, 4, 4, 4, 4, 4, 1, 1, 1],
-  "mover": 57840, "juntar": 57854, "atras": 57855, "atrasAmplio": 57853,
+  "mover": 57840, "juntar": 57854, "atras": 57855, "saltar2": 57848, "saltar4": 57849,
   "segmentos": ["rojo", "rosa", "morado", "azul", "celeste", "verde", "amarillo", "naranjo"]
 }

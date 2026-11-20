@@ -8,6 +8,7 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.platform.bukkit.BukkitAudiences;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -28,9 +29,14 @@ import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Ruleta de colores en pantalla (traída del plugin Ruleta_Custom, con las animaciones de
- * "Ruleta del fénix"): aparece con un rebote, gira (con desenfoque cuando va rápido), se tiñe
- * del color ganador, tiembla y desaparece girando. La ruleta son varias letras encimadas del
- * resource pack resourcepack/Ruleta: disco + aro + fuego (animado) + tinte + flecha (se inclina).
+ * "Ruleta del fénix"): aparece agrandándose mientras ya empieza a girar, gira (con desenfoque cuando
+ * va rápido), se tiñe del color ganador, tiembla y se va achicándose y girando. No manda mensajes:
+ * al caer suena y ejecuta los comandos del color.
+ *
+ * La ruleta son varias letras encimadas del resource pack resourcepack/Ruleta (disco, aro, fuego,
+ * tinte, flecha), cada capa de un "color" que no es un color: le dice al shader del pack
+ * (rendertype_text.vsh) cuánto agrandarla y girarla (ver {@link #ajuste}). Por eso el disco gira
+ * suave y la entrada y la salida son la misma ruleta en vivo, sin cuadros pregrabados.
  * Se configura en config.yml → ruleta-colores.
  */
 public final class RuletaManager {
@@ -38,30 +44,18 @@ public final class RuletaManager {
     private static final Key FONT = Key.key("ruleta", "ruleta");
     private static final MiniMessage MM = MiniMessage.miniMessage();
     private static final Title.Times SEGUIR = Title.Times.times(Duration.ZERO, Duration.ofMillis(500), Duration.ZERO);
-    /**
-     * En 1.20.1 los titles siempre llevan sombra (un fantasma oscuro detrás de la ruleta). El shader
-     * del pack (assets/minecraft/shaders/core/rendertype_text.vsh) reconoce este color: al texto lo
-     * dibuja blanco (sin teñir) y a su sombra, que sale de este color x 0,25, no la dibuja.
-     */
-    private static final TextColor SIN_SOMBRA = TextColor.color(76, 92, 36);
     /** Duración de cada fase del final, en ticks (como en el HTML: 0,8 s, 1,1 s y 0,75 s). */
     private static final int TENIR = 16, TEMBLOR = 22, SALIDA = 15;
-    /** Lo que dura la entrada (1,2 s), en ticks. */
-    private static final int ENTRADA = 24;
-    /**
-     * A partir de esta velocidad (fotogramas del disco por tick) se usa el disco desenfocado: entre
-     * 1 y 2 fotogramas por tick el disco nítido avanza a saltos disparejos y se nota "lagueado".
-     */
-    private static final double VELOCIDAD_BORROSA = 1.4;
+    /** Lo que tarda en aparecer, en ticks; el giro arranca antes de que termine (en GIRO_INICIO). */
+    private static final int ENTRADA = 20, GIRO_INICIO = 8;
 
     /** Lo que trae el resource pack; lo escribe tools/ruleta/GenerarRuleta.java. */
-    private record Layout(int disco, int discoFrames, int borroso, int borrosoFrames, int fijo,
-                          int fuego, int fuegoFrames, int fuegoTicks, int flecha, int flechaFrames,
-                          int tinte, int tinteNiveles, int entrada, int entradaFrames, List<Integer> entradaPiezas,
-                          int salida, int salidaFrames, List<Integer> salidaPiezas,
-                          int mover, int juntar, int atras, int atrasAmplio, List<String> segmentos) {}
+    private record Layout(int posiciones, int disco, int fijo, int borroso, List<Double> borrosoGrados,
+                          int fuego, int fuegoFrames, int fuegoTicks, int flecha, int flechaFrames, List<Boolean> flechaPiezas,
+                          int tinte, int tinteNiveles, int mover, int juntar, int atras, int saltar2, int saltar4,
+                          List<String> segmentos) {}
 
-    private record RuletaColor(String id, String nombre, String mensaje, List<String> comandos) {}
+    private record RuletaColor(String id, String nombre, List<String> comandos) {}
 
     private final VoranixExtremoPlugin plugin;
     /** Spigot no trae Adventure: esto manda titles, sonidos y mensajes de Adventure a los jugadores. */
@@ -74,7 +68,8 @@ public final class RuletaManager {
     private int duracion, vueltas, resultadoTicks;
     private Sound sonidoTick, sonidoFinal;
 
-    private int frameActual = 0;
+    /** Dónde quedó el disco (en posiciones: layout.posiciones() = una vuelta). */
+    private double posicionActual = 0;
     private BukkitTask task;
 
     public RuletaManager(VoranixExtremoPlugin plugin) {
@@ -106,11 +101,10 @@ public final class RuletaManager {
         ConfigurationSection sec = c.getConfigurationSection("colores");
         if (sec != null) {
             for (String id : sec.getKeys(false)) {
-                // mensaje y comandos solo si están en el config.yml del servidor: si no, Bukkit los sacaría
-                // del config.yml que trae el jar y un color sin comandos igual lanzaría efectos
-                String mensaje = sec.contains(id + ".mensaje", true) ? sec.getString(id + ".mensaje") : null;
+                // comandos solo si están en el config.yml del servidor: si no, Bukkit los sacaría del
+                // config.yml que trae el jar y un color sin comandos igual lanzaría efectos
                 List<String> comandos = sec.contains(id + ".comandos", true) ? sec.getStringList(id + ".comandos") : List.of();
-                colores.add(new RuletaColor(id.toLowerCase(), sec.getString(id + ".nombre", id), mensaje, comandos));
+                colores.add(new RuletaColor(id.toLowerCase(), sec.getString(id + ".nombre", id), comandos));
             }
         }
         segmentos.clear();
@@ -119,12 +113,11 @@ public final class RuletaManager {
             int i = ids.indexOf(s);
             if (i < 0) {
                 // el pack trae un color que la config no tiene: se agrega con su nombre tal cual
-                colores.add(new RuletaColor(s, s.toUpperCase(), null, List.of()));
+                colores.add(new RuletaColor(s, s.toUpperCase(), List.of()));
                 i = colores.size() - 1;
             }
             segmentos.add(i);
         }
-        frameActual %= layout.discoFrames();
     }
 
     /** Colores que de verdad están en la ruleta (los que se pueden pedir). */
@@ -137,7 +130,7 @@ public final class RuletaManager {
     }
 
     /** Empieza a girar. Devuelve un mensaje de error o null si arrancó. */
-    public Component spin(String id, String mensaje) {
+    public Component spin(String id) {
         if (isSpinning()) return msg("ya-girando");
 
         ThreadLocalRandom rnd = ThreadLocalRandom.current();
@@ -145,13 +138,13 @@ public final class RuletaManager {
         if (segmento < 0) return msg("color-invalido").replaceText(r("{color}", Component.text(id)));
         RuletaColor color = colores.get(segmentos.get(segmento));
 
-        int frames = layout.discoFrames();
-        int porColor = frames / segmentos.size();
-        // termina justo en el centro del color: el tinte y la salida del pack están hechos con el disco ahí
+        int vuelta = layout.posiciones();
+        int porColor = vuelta / segmentos.size();
+        // termina justo en el centro del color: el tinte del pack está hecho con el disco ahí
         int destino = segmento * porColor;
-        int desde = frameActual;
-        double[] pos = recorrido(desde, Math.floorMod(destino - desde, frames) + frames * vueltas, porColor);
-        int entrada = ENTRADA;
+        double desde = Math.floorMod(Math.round(posicionActual), vuelta);
+        double[] pos = recorrido(desde, Math.floorMod((int) (destino - desde), vuelta) + (double) vuelta * vueltas, porColor);
+        int finGiro = GIRO_INICIO + pos.length - 1;
 
         task = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
             int tick = 0;
@@ -160,61 +153,74 @@ public final class RuletaManager {
 
             @Override
             public void run() {
-                if (tick < entrada) {
-                    // aparece chica, se pasa un poco de tamaño y se endereza
-                    int f = tick * layout.entradaFrames() / ENTRADA;
-                    show(new Capas().amplia(layout.entrada() + 4 * f, layout.entradaPiezas().get(f)), 0);
-                } else if (tick - entrada < pos.length) {
-                    int s = tick - entrada;
-                    double p = pos[s];
-                    int frame = Math.floorMod((int) Math.round(p), frames);
-                    frameActual = frame;
-
-                    // cada vez que una línea pasa por la flecha: "tic" y la gema se inclina
-                    int c = cruce(p, porColor);
-                    if (c != ultimoCruce) {
-                        ultimoCruce = c;
-                        flecha = layout.flechaFrames() - 1;
-                        if (sonidoTick != null) audiences.players().playSound(sonidoTick);
-                    } else if (flecha > 0) flecha--;
-
-                    // rápido se usa el disco desenfocado (va a media resolución, pero el desenfoque lo disimula)
-                    double velocidad = s > 0 ? Math.abs(p - pos[s - 1]) : 0;
-                    Capas capas = new Capas();
-                    if (velocidad >= VELOCIDAD_BORROSA) capas.una(layout.borroso()
-                            + Math.floorMod((int) Math.round(p * layout.borrosoFrames() / frames), layout.borrosoFrames()));
-                    else capas.cuatro(layout.disco() + 4 * frame);
-                    capas.cuatro(layout.fijo()).cuatro(fuego()).cuatro(layout.flecha() + 4 * flecha);
-                    show(capas, 0);
-                    if (s == pos.length - 1) anunciar(color, mensaje);
+                if (tick <= finGiro) {
+                    girar();
                 } else {
-                    int r = tick - entrada - pos.length;
+                    int r = tick - finGiro - 1;
                     int temblor = TENIR + resultadoTicks, salida = temblor + TEMBLOR, fin = salida + SALIDA;
                     if (r >= fin) {
                         stop(true);
                         return;
                     }
+                    // se tiñe del color ganador; después tiembla latiendo, cada vez más fuerte, y se va
+                    int nivel = Math.min(layout.tinteNiveles() - 2, r * (layout.tinteNiveles() - 1) / TENIR);
+                    int mover = 0;
+                    double escala = 1, giro = 0;
                     if (r >= salida) {
-                        // se achica girando y se desvanece
-                        int f = Math.min(layout.salidaFrames() - 1, (r - salida) * layout.salidaFrames() / SALIDA);
-                        int i = segmento * layout.salidaFrames() + f;
-                        show(new Capas().amplia(layout.salida() + 4 * i, layout.salidaPiezas().get(i)), 0);
-                    } else {
-                        // se tiñe del color ganador; después tiembla latiendo, cada vez más fuerte
-                        int nivel = Math.min(layout.tinteNiveles() - 2, r * (layout.tinteNiveles() - 1) / TENIR);
-                        int mover = 0;
-                        if (r >= temblor) {
-                            int e = r - temblor;
-                            if (Math.sin(e * 1.7) > 0) nivel = layout.tinteNiveles() - 1;
-                            int amp = e < TEMBLOR / 2 ? 1 : 2;
-                            mover = ThreadLocalRandom.current().nextInt(-amp, amp + 1);
-                        }
-                        Capas capas = new Capas().cuatro(layout.disco() + 4 * frameActual).cuatro(layout.fijo()).cuatro(fuego())
-                                .cuatro(layout.tinte() + 4 * (segmento * layout.tinteNiveles() + nivel)).cuatro(layout.flecha());
-                        show(capas, mover);
+                        // se achica girando (antes se agranda un poquito, como tomando impulso)
+                        double p = (r - salida + 1.0) / SALIDA;
+                        escala = Math.max(0, 1 - easeInBack(p));
+                        giro = 120 * p * p;
+                        nivel = layout.tinteNiveles() - 1;
+                    } else if (r >= temblor) {
+                        int e = r - temblor;
+                        if (Math.sin(e * 1.7) > 0) nivel = layout.tinteNiveles() - 1;
+                        int amp = e < TEMBLOR / 2 ? 1 : 2;
+                        mover = ThreadLocalRandom.current().nextInt(-amp, amp + 1);
                     }
+                    show(new Capas(escala, giro)
+                            .capa(layout.disco(), 4, posicionActual)
+                            .capa(layout.fijo(), 4, 0)
+                            .capa(fuego(), 2, 0)
+                            .capa(layout.tinte() + 4 * (segmento * layout.tinteNiveles() + nivel), 2, 0)
+                            .flecha(0), mover);
                 }
                 tick++;
+            }
+
+            /** Entrada y giro, que se pisan: la ruleta todavía está apareciendo cuando el disco arranca. */
+            private void girar() {
+                double escala = 1, giro = 0;
+                if (tick < ENTRADA) {
+                    // aparece desde un punto, se pasa un poco de tamaño y se endereza
+                    double p = (tick + 1.0) / ENTRADA;
+                    escala = easeOutBack(p);
+                    giro = -25 * (1 - inOut(p));
+                }
+                int s = tick - GIRO_INICIO;
+                double p = s < 0 ? desde : pos[s];
+                posicionActual = p;
+
+                // cada vez que una línea pasa por la flecha: "tic" y la gema se inclina
+                int c = cruce(p, porColor);
+                if (c != ultimoCruce) {
+                    ultimoCruce = c;
+                    flecha = layout.flechaFrames() - 1;
+                    if (sonidoTick != null) audiences.players().playSound(sonidoTick);
+                } else if (flecha > 0) flecha--;
+
+                // rápido se usa el disco desenfocado: el desenfoque crece con la velocidad
+                double grados = s > 0 ? Math.abs(p - pos[s - 1]) * 360.0 / vuelta : 0;
+                int borroso = -1;
+                for (int i = 0; i < layout.borrosoGrados().size(); i++) {
+                    if (grados >= 1.6 * layout.borrosoGrados().get(i)) borroso = i;
+                }
+                Capas capas = new Capas(escala, giro);
+                if (borroso >= 0) capas.capa(layout.borroso() + 4 * borroso, 2, p);
+                else capas.capa(layout.disco(), 4, p);
+                capas.capa(layout.fijo(), 4, 0).capa(fuego(), 2, 0).flecha(flecha);
+                show(capas, 0);
+                if (s == pos.length - 1) caer(color);
             }
         }, 0L, 1L);
         return null;
@@ -229,50 +235,72 @@ public final class RuletaManager {
     }
 
     /**
-     * Arma las capas encimadas del title. Las de 4 piezas (2x2) van arriba-izq, arriba-der y luego
-     * vuelven atrás para la fila de abajo; las de una pieza (media resolución) ocupan lo mismo.
-     * Cada capa nueva empieza volviendo al inicio.
+     * El color de texto de una capa, que el shader lee como ajuste: el giro en 1024 pasos por vuelta
+     * (los 8 bits altos en el rojo y los 2 bajos en el verde, que va de 93 a 96: así el shader sabe que
+     * es la ruleta) y el tamaño en el azul (200 = normal).
+     */
+    private static TextColor ajuste(double grados, double escala) {
+        int paso = Math.floorMod((int) Math.round(grados * 1024 / 360.0), 1024);
+        int azul = (int) Math.max(0, Math.min(255, Math.round(escala * 200)));
+        return TextColor.color(paso >> 2, 93 + (paso & 3), azul);
+    }
+
+    /**
+     * Arma las capas encimadas del title. Cada capa es una imagen cortada en piezas (4 x 4 las de
+     * 1024 px, 2 x 2 las de 512): van fila por fila, pegadas con "juntar", y "atrás" vuelve al comienzo
+     * de la fila siguiente (o de la capa siguiente). Todas miden lo mismo en pantalla.
      */
     private final class Capas {
-        private final StringBuilder sb = new StringBuilder();
+        private final TextComponent.Builder title = Component.text().font(FONT);
+        private final double escala, giro;
+        private boolean vacia = true;
 
-        Capas cuatro(int c) {
-            if (!sb.isEmpty()) sb.appendCodePoint(layout.atras());
-            sb.appendCodePoint(c).appendCodePoint(layout.juntar()).appendCodePoint(c + 1).appendCodePoint(layout.atras())
-                    .appendCodePoint(c + 2).appendCodePoint(layout.juntar()).appendCodePoint(c + 3);
-            return this;
+        Capas(double escala, double giro) {
+            this.escala = escala;
+            this.giro = giro;
         }
 
-        Capas una(int c) {
-            if (!sb.isEmpty()) sb.appendCodePoint(layout.atras());
-            sb.appendCodePoint(c);
-            return this;
+        /** Una capa, girada `posicion` (en posiciones del disco) además del giro de toda la ruleta. */
+        Capas capa(int c, int piezas, double posicion) {
+            return capa(c, piezas, posicion, null);
         }
 
-        /**
-         * Un fotograma de la entrada o la salida (va solo, sin otras capas): en 1 pieza si es chico, o
-         * en 4 piezas a resolución completa (su recuadro es más grande, por eso vuelve con atrasAmplio).
-         */
-        Capas amplia(int c, int piezas) {
-            if (piezas == 1) {
-                sb.appendCodePoint(c);
-            } else {
-                sb.appendCodePoint(c).appendCodePoint(layout.juntar()).appendCodePoint(c + 1).appendCodePoint(layout.atrasAmplio())
-                        .appendCodePoint(c + 2).appendCodePoint(layout.juntar()).appendCodePoint(c + 3);
+        private Capas capa(int c, int piezas, double posicion, List<Boolean> usadas) {
+            StringBuilder sb = new StringBuilder();
+            if (!vacia) sb.appendCodePoint(layout.atras());
+            for (int f = 0; f < piezas; f++) {
+                if (f > 0) sb.appendCodePoint(layout.atras());
+                for (int k = 0; k < piezas; k++) {
+                    if (k > 0) sb.appendCodePoint(layout.juntar());
+                    int q = f * piezas + k;
+                    if (usadas != null && !usadas.get(q)) sb.appendCodePoint(piezas == 4 ? layout.saltar4() : layout.saltar2());
+                    else sb.appendCodePoint(c + q);
+                }
             }
+            vacia = false;
+            double grados = giro + posicion * 360.0 / layout.posiciones();
+            title.append(Component.text(sb.toString()).color(ajuste(grados, escala)));
             return this;
         }
 
-        /** Texto final, corrido `mover` (-2..2) hacia la derecha sin cambiar el ancho total (para el temblor). */
-        String texto(int mover) {
-            if (mover == 0) return sb.toString();
-            return new StringBuilder().appendCodePoint(layout.mover() + 2 + mover).append(sb)
-                    .appendCodePoint(layout.mover() + 2 - mover).toString();
+        /** La gema de arriba, inclinada `frame` (0 = derecha). Solo trae las piezas donde hay algo. */
+        Capas flecha(int frame) {
+            return capa(layout.flecha() + 16 * frame, 4, 0, layout.flechaPiezas());
+        }
+
+        /** El title, corrido `mover` (-2..2) hacia la derecha sin cambiar el ancho total (para el temblor). */
+        Component armar(int mover) {
+            if (mover == 0) return title.build();
+            return Component.text().font(FONT)
+                    .append(Component.text(new String(Character.toChars(layout.mover() + 2 + mover))))
+                    .append(title.build())
+                    .append(Component.text(new String(Character.toChars(layout.mover() + 2 - mover))))
+                    .build();
         }
     }
 
     /**
-     * Posición del disco (en fotogramas, sin envolver) para cada tick del giro:
+     * Posición del disco (en posiciones, sin envolver) para cada tick del giro:
      * se echa un poco hacia atrás, acelera, frena largo, se pasa un poquito y vuelve al centro del color.
      */
     private double[] recorrido(double desde, double total, int porColor) {
@@ -307,15 +335,9 @@ public final class RuletaManager {
         return (int) Math.floor((pos + porColor / 2.0) / porColor);
     }
 
-    private void anunciar(RuletaColor color, String mensaje) {
-        Component nombre = parse(color.nombre());
+    /** Cuando el disco se detiene: suena y se ejecutan los comandos del color (sin mensajes en el chat). */
+    private void caer(RuletaColor color) {
         if (sonidoFinal != null) audiences.players().playSound(sonidoFinal);
-        String texto = mensaje != null ? mensaje
-                : color.mensaje() != null ? color.mensaje()
-                : Messages.texto("ruleta.broadcast", "{color}");
-        Component broadcast = parse(texto).replaceText(r("{color}", nombre));
-        Component prefix = parse(Messages.texto("ruleta.prefijo-broadcast", ""));
-        audiences.all().sendMessage(prefix.append(broadcast));
         ejecutarComandos(color);
     }
 
@@ -352,10 +374,9 @@ public final class RuletaManager {
         audiences.sender(sender).sendMessage(mensaje);
     }
 
-    /** Muestra la ruleta en el title (sin sombra, ver SIN_SOMBRA). */
+    /** Muestra la ruleta en el title (el shader le quita la sombra, ver {@link #ajuste}). */
     private void show(Capas capas, int mover) {
-        Component wheel = Component.text(capas.texto(mover)).font(FONT).color(SIN_SOMBRA);
-        audiences.players().showTitle(Title.title(wheel, Component.empty(), SEGUIR));
+        audiences.players().showTitle(Title.title(capas.armar(mover), Component.empty(), SEGUIR));
     }
 
     public Component msg(String key) {
@@ -378,8 +399,13 @@ public final class RuletaManager {
     }
 
     private static double smooth(double x) { return x * x * (3 - 2 * x); }
+    private static double inOut(double x) { x = Math.max(0, Math.min(1, x)); return x * x * (3 - 2 * x); }
     private static double easeInOutSine(double x) { return 0.5 - 0.5 * Math.cos(Math.PI * x); }
     private static double easeInOutCubic(double x) { return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+    /** 0 → 1 pasándose hasta ~1,1 y volviendo (el "rebote" al aparecer). */
+    private static double easeOutBack(double x) { double c1 = 1.7, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); }
+    /** 0 → 1 empezando un poco para atrás (al irse se agranda apenas antes de achicarse). */
+    private static double easeInBack(double x) { double c1 = 1.4, c3 = c1 + 1; return c3 * x * x * x - c1 * x * x; }
 
     private Sound sound(String key, float volume, float pitch) {
         if (key == null || key.isBlank() || key.equalsIgnoreCase("none")) return null;

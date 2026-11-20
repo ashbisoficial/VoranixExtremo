@@ -6,13 +6,14 @@ import java.io.File;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.stream.IntStream;
 
 // Genera el resource pack de la ruleta (resourcepack/Ruleta) con las animaciones de
-// "Ruleta del fénix.html": entrada con rebote, desenfoque al girar, llamas y alas que
-// ondulan, estrellas y brasas, y al final se tiñe del color ganador, tiembla y desaparece.
+// "Ruleta del fénix.html": llamas y alas que ondulan, estrellas y brasas, desenfoque al girar,
+// y al final se tiñe del color ganador.
 // Ejecutar desde la raíz de VoranixExtremo: java tools/ruleta/GenerarRuleta.java [carpeta-vista-previa]
 //
 // Arte (tools/ruleta/art, sacado del HTML):
@@ -21,15 +22,18 @@ import java.util.stream.IntStream;
 //   mascara.png       R = cuánto se mueve el fuego, G = disco, B = flecha de arriba (a 627 px)
 //   mascara_fija.png  blanco = lo que nunca se deforma (disco, aro y flechas)
 //
-// La ruleta se arma con varias "letras" encimadas en el title:
-//   disco_XX     los 8 colores, girados (4 piezas por fotograma)
-//   borroso_XX   el disco con desenfoque de movimiento, para cuando gira rápido (1 pieza a media resolución)
-//   fijo         aro y fénix
-//   fuego_XX     llamas, alas, estrellas, brasas y el brillo del fénix, en loop
-//   flecha_X     la gema de arriba, inclinada cuando una línea la empuja
-//   tinte_K_N    el disco teñido del color ganador K (N = intensidad; la última es el latido) + aura (4 piezas)
-//   entrada_XX   la ruleta completa apareciendo (1 pieza a media resolución)
-//   salida_K_XX  la ruleta del color K desapareciendo (1 pieza a media resolución)
+// La ruleta se arma con varias "letras" encimadas en el title. Lo que se mueve entero (agrandarse al
+// aparecer, girar el disco, achicarse al irse) no va dibujado cuadro por cuadro: lo hace el shader del
+// pack (rendertype_text.vsh) con el color de cada capa (ver RuletaManager.java). Así cada capa es UNA
+// imagen y alcanza la memoria para dibujarlas al doble de resolución:
+//   disco        los 8 colores, a 1024 px (4 x 4 piezas de 256): el shader lo gira
+//   borroso_N    el disco con desenfoque de movimiento (3 fuerzas), para cuando gira rápido (512 px)
+//   fijo         aro y fénix (1024 px)
+//   flecha_X     la gema de arriba, inclinada cuando una línea la empuja (1024 px, solo las piezas con algo)
+//   fuego_XX     llamas, alas, estrellas, brasas y el brillo del fénix, en loop (512 px)
+//   tinte_K_N    el disco teñido del color ganador K (N = intensidad; la última es el latido) + aura (512 px)
+// Todas miden lo mismo en pantalla: las de 512 px van en 2 x 2 piezas más altas.
+// Cada pieza lleva en su píxel (255, 0) el color FIRMA: con eso el shader sabe que es la ruleta.
 // También escribe src/main/resources/ruleta-layout.json para que el plugin sepa qué hay en el pack.
 public class GenerarRuleta {
     // --- medidas del dibujo original (en píxeles de art/ruleta.png) ---
@@ -37,7 +41,10 @@ public class GenerarRuleta {
     static final double HUB_R = 111;             // radio del fénix con su borde
     static final double ARO_R = 400;             // borde exterior del aro dorado
     static final int[] FONDO = {2, 1, 10};       // color del fondo negro del dibujo
-    static final int CROP_X = 120, CROP_Y = 93, CROP = 1000; // recorte cuadrado que se muestra
+    // recorte cuadrado que se muestra: casi todo el dibujo, centrado en el fénix, para que las llamas y
+    // los destellos de los costados no queden cortados. El shader dibuja el cuadro un 5 % más grande que
+    // antes (RULETA_TAMANO en rendertype_text.vsh): con escala de GUI 4 en 1080p ocupa justo el alto de la pantalla.
+    static final int CROP = 1180, CROP_X = (int) HX - CROP / 2, CROP_Y = (int) HY - CROP / 2;
     static final double ARTE = 1254;             // lado del dibujo (las coordenadas del HTML van de 0 a 1)
     // Líneas entre colores del dibujo, en grados desde arriba en sentido horario (medidas desde el centro)
     static final double[] DIVISORES = {0.6, 29.3, 63.6, 99.1, 133.1, 164.2, 198.3, 229.9, 262.1, 296.8, 331.8};
@@ -57,40 +64,53 @@ public class GenerarRuleta {
     };
 
     // --- salida ---
-    static final int SIZE = 512;                 // cada capa se dibuja a 512 px...
-    static final int TILE = 256;                 // ...y se corta en 4 piezas, porque Minecraft no acepta glifos de más de 256 px
-    static final int MEDIA = 256;                // las capas a media resolución van en una sola pieza (ocupa 4 veces menos memoria)
+    static final int HD = 1024;                  // disco, aro y flecha
+    static final int MEDIA = 512;                // fuego, tinte y desenfoque (son suaves: no se nota)
+    static final int TILE = 256;                 // Minecraft no acepta glifos de más de 256 px: cada capa va en piezas
     static final int SEG = COLORES.length;
     static final int POR_SEGMENTO = 8;
-    static final int DISCO = SEG * POR_SEGMENTO; // 64 fotogramas del disco
-    static final int BORROSO = DISCO;            // 64 fotogramas del disco desenfocado (a media resolución)
-    static final double DESENFOQUE = 7;          // medio ancho del desenfoque, en grados
+    static final int DISCO = SEG * POR_SEGMENTO; // posiciones del disco por vuelta (el plugin cuenta el giro en estas unidades)
+    static final double[] DESENFOQUE = {4, 9, 18}; // medio ancho de cada desenfoque, en grados
     static final int FUEGO = 30;                 // fotogramas de las llamas...
     static final int FUEGO_TICKS = 2;            // ...cada uno dura 2 ticks: el loop dura 3 segundos
     static final double LOOP = FUEGO * FUEGO_TICKS / 20.0;
     static final double FUERZA_FUEGO = 1.3;      // el control "Fuego" del HTML
     static final double[] FLECHA_ANG = {0, -5, -10, -15};
     static final double[] TINTE = {0.25, 0.5, 0.75, 1, 1}; // el último es el latido (más claro, aura más fuerte)
-    // La entrada y la salida se agrandan (rebote hasta 1,1x) y giran: van en un recuadro más grande
-    // para que no se corten. Alto en unidades de la fuente (par, para quedar centrado) y su escala.
-    static final int ALTO_AMPLIO = 82;
-    static final double AMPLIO = ALTO_AMPLIO / (2.0 * GenerarRuleta.PIEZA);
-    static final int ENTRADA = 24;               // uno por tick: 1,2 s como en el HTML
-    static final int SALIDA = 10;                // 0,75 s (15 ticks): a resolución completa ocupan mucho, así que 10 alcanzan
-    // Cada pieza mide PIEZA de alto; el title la dibuja a 4x, así la ruleta completa mide 2 * 32 * 4 = 256 px de GUI.
-    // Con escala de GUI 2 eso son 512 px de pantalla: justo la resolución de las capas (se ve nítida, 1 a 1).
-    // La fila de arriba usa ascent = alto (el máximo que acepta Minecraft) y la de abajo 0.
-    static final int PIEZA = 32;
-    // Caracteres: los de 4 piezas usan 4 seguidos (arriba-izq, arriba-der, abajo-izq, abajo-der)
-    static final int CH_DISCO = 0xE000, CH_FUEGO = 0xE100, CH_FIJO = 0xE180, CH_FLECHA = 0xE184, CH_BORROSO = 0xE1A0,
-            CH_TINTE = 0xE200, CH_ENTRADA = 0xE2A0, CH_SALIDA = 0xE300;
+    // La ruleta completa mide LADO unidades de la fuente; el title la dibuja a 4x: 256 px de GUI
+    // (con escala de GUI 4, 1024 px de pantalla: justo la resolución del disco). Cada fila de piezas
+    // empieza en ARRIBA (el ascent de la primera) y baja de a una pieza; todas las capas, sean de
+    // 4 x 4 o de 2 x 2 piezas, ocupan exactamente el mismo cuadrado y avanzan LADO + 1.
+    static final int LADO = 64, ARRIBA = 16;
+    // Color que marca las piezas de la ruleta (en su píxel 255, 0); tiene que coincidir con rendertype_text.vsh/fsh
+    static final int FIRMA = 0x3DA75E;
+    // Caracteres: cada capa usa piezas*piezas seguidos (fila por fila)
+    static final int CH_DISCO = 0xE000, CH_FIJO = 0xE010, CH_FLECHA = 0xE020, CH_BORROSO = 0xE060,
+            CH_FUEGO = 0xE100, CH_TINTE = 0xE200;
     static final int CH_MOVER = 0xE1F0;          // 5 espacios: corren la ruleta -2, -1, 0, 1 y 2 (para el temblor)
+    static final int CH_SALTAR2 = 0xE1F8;        // lo que avanza una pieza de 2 x 2 (para una pieza vacía)
+    static final int CH_SALTAR4 = 0xE1F9;        // lo que avanza una pieza de 4 x 4
     static final int CH_JUNTAR = 0xE1FE;         // -1: pega la pieza derecha a la izquierda (sin el espacio de 1 px)
-    static final int CH_ATRAS = 0xE1FF;          // vuelve al inicio de la fila: -(2 * PIEZA + 1)
-    static final int CH_ATRAS_AMPLIO = 0xE1FD;   // lo mismo para la entrada/salida en 4 piezas: -(ALTO_AMPLIO + 1)
+    static final int CH_ATRAS = 0xE1FF;          // vuelve al inicio de la fila: -(LADO + 1)
 
     static BufferedImage src, plate, mascara, mascaraFija;
     static double[] radio = new double[3600];    // borde del disco cada 0,1 grados
+    static double radioMax;                      // el más grande
+    // El borde del dibujo no es redondo (se sale a la izquierda y abajo a la derecha). Como el disco gira,
+    // el hueco del aro tiene que ser un círculo: el disco mide DISCO_R, justo más que el borde más grande.
+    static double radioMin, DISCO_R, MARCO_FIN;
+    // Entre el disco y las gemas va un marco limpio (DISCO_R a MARCO_FIN) con el color de la banda oscura
+    // del dibujo en cada ángulo (bandaColor, sin gemas) y un filo de luz, para que las gemas no queden pegadas al disco.
+    static int[] bandaColor = new int[360];
+    static final int FILO_LUZ = 0x7A4FB0;
+    // Las 8 gemas chicas del aro (grados aprox.): sus puntas llegan casi al disco, así que van encima del marco
+    static final double[] GEMAS_ANG = {33.5, 74.5, 113.5, 147, 212.5, 246.5, 286, 327};
+    static final double GEMA_R = 19;               // radio alrededor del centro de cada gema que se copia tal cual
+    static double[][] gemas;                       // centros medidos (x, y en el dibujo)
+    // En el dibujo el aro no está centrado en el fénix (el centro de giro): está unos px a la izquierda y
+    // abajo, y la banda oscura se veía más ancha de un lado. CX, CY es el centro del aro (medirAro()):
+    // la capa fija se arma centrada en él, así el aro queda parejo alrededor del disco.
+    static double CX = HX, CY = HY, ARO_IN = 378; // ARO_IN: radio de adentro del dorado
     static Path2D flecha;
     static int[] tinteColor = new int[SEG];      // color de cada segmento de la ruleta (en el orden del layout)
 
@@ -101,8 +121,10 @@ public class GenerarRuleta {
         mascara = rgb(ImageIO.read(art.resolve("mascara.png").toFile()));
         mascaraFija = rgb(ImageIO.read(art.resolve("mascara_fija.png").toFile()));
         Path vista = args.length > 0 ? Paths.get(args[0]) : null;
+        medirAro();
         medirBorde();
         flecha = poligono(FLECHA);
+        for (int j = 0; j < SEG; j++) colorBase[j] = medirColor(j);
         for (int k = 0; k < SEG; k++) tinteColor[k] = muestrearColor(k);
 
         Path root = Paths.get("resourcepack/Ruleta");
@@ -113,88 +135,61 @@ public class GenerarRuleta {
         Files.createDirectories(font);
 
         StringBuilder json = new StringBuilder("{\n  \"providers\": [\n");
-        json.append(String.format("    {\"type\": \"space\", \"advances\": {\"\\u%04X\": %d, \"\\u%04X\": %d, \"\\u%04X\": -2, \"\\u%04X\": -1, \"\\u%04X\": 0, \"\\u%04X\": 1, \"\\u%04X\": 2}}",
-                CH_JUNTAR, -1, CH_ATRAS, -(2 * PIEZA + 1), CH_MOVER, CH_MOVER + 1, CH_MOVER + 2, CH_MOVER + 3, CH_MOVER + 4));
-        json.append(String.format(",\n    {\"type\": \"space\", \"advances\": {\"\\u%04X\": %d}}", CH_ATRAS_AMPLIO, -(ALTO_AMPLIO + 1)));
+        json.append(String.format("    {\"type\": \"space\", \"advances\": {\"\\u%04X\": %d, \"\\u%04X\": %d, \"\\u%04X\": %d, \"\\u%04X\": %d, "
+                        + "\"\\u%04X\": -2, \"\\u%04X\": -1, \"\\u%04X\": 0, \"\\u%04X\": 1, \"\\u%04X\": 2}}",
+                CH_JUNTAR, -1, CH_ATRAS, -(LADO + 1), CH_SALTAR2, LADO / 2 + 1, CH_SALTAR4, LADO / 4 + 1,
+                CH_MOVER, CH_MOVER + 1, CH_MOVER + 2, CH_MOVER + 3, CH_MOVER + 4));
 
-        // disco nítido
-        BufferedImage disco0 = null;
-        for (int i = 0; i < DISCO; i++) {
-            double giro = 360.0 * i / DISCO;
-            BufferedImage img = render(SIZE, (x, y) -> discoEn(x, y, giro, 0));
-            if (i == 0) disco0 = img;
-            json.append(glifo(tex, String.format("disco_%02d", i), img, CH_DISCO + 4 * i));
-        }
+        // disco: una sola imagen, el shader la gira
+        BufferedImage disco = render(HD, (x, y) -> discoEn(x, y, 0, 0));
+        glifos(json, tex, "disco", disco, CH_DISCO, null);
         log("disco");
 
-        // disco desenfocado (cuando gira rápido no se nota la media resolución)
-        BufferedImage borroso0 = null;
-        for (int i = 0; i < BORROSO; i++) {
-            double giro = 360.0 * i / BORROSO;
-            BufferedImage img = render(MEDIA, (x, y) -> discoEn(x, y, giro, DESENFOQUE));
-            if (i == 0) borroso0 = img;
-            json.append(glifoGrande(tex, String.format("borroso_%02d", i), img, CH_BORROSO + i));
+        // disco desenfocado: el desenfoque es igual en todo el giro, así que también lo gira el shader
+        BufferedImage[] borrosos = new BufferedImage[DESENFOQUE.length];
+        for (int i = 0; i < DESENFOQUE.length; i++) {
+            double d = DESENFOQUE[i];
+            borrosos[i] = render(MEDIA, (x, y) -> discoEn(x, y, 0, d));
+            glifos(json, tex, "borroso_" + i, borrosos[i], CH_BORROSO + 4 * i, null);
         }
         log("borroso");
 
         // aro y fénix: no se mueven, van en una sola capa
-        BufferedImage fijo0 = render(SIZE, (x, y) -> Math.hypot(x - HX, y - HY) < ARO_R + 2 ? fijo(x, y, 0) : 0);
-        json.append(glifo(tex, "fijo", fijo0, CH_FIJO));
+        BufferedImage fijo = render(HD, (x, y) -> Math.hypot(x - HX, y - HY) < ARO_R + 2 ? fijo(x, y, 0) : 0);
+        glifos(json, tex, "fijo", fijo, CH_FIJO, null);
+        log("fijo");
 
         // llamas, alas, estrellas, brasas y brillo del fénix (en loop)
         BufferedImage[] fuegos = new BufferedImage[FUEGO];
         for (int f = 0; f < FUEGO; f++) {
             double t = (double) f / FUEGO;
-            BufferedImage img = render(SIZE, (x, y) -> Math.hypot(x - HX, y - HY) >= ARO_R - 2 ? fijo(x, y, t) : 0);
+            BufferedImage img = render(MEDIA, (x, y) -> Math.hypot(x - HX, y - HY) >= ARO_R - 2 ? fijo(x, y, t) : 0);
             brillos(img, t);
             fuegos[f] = img;
-            json.append(glifo(tex, String.format("fuego_%02d", f), img, CH_FUEGO + 4 * f));
+            glifos(json, tex, String.format("fuego_%02d", f), img, CH_FUEGO + 4 * f, null);
         }
         log("fuego");
 
-        // flecha
+        // flecha: solo las piezas donde hay algo (las demás se saltan con un espacio)
         BufferedImage[] flechas = new BufferedImage[FLECHA_ANG.length];
         for (int k = 0; k < FLECHA_ANG.length; k++) {
             double a = FLECHA_ANG[k];
-            flechas[k] = render(SIZE, (x, y) -> flechaEn(x, y, a));
-            json.append(glifo(tex, "flecha_" + k, flechas[k], CH_FLECHA + 4 * k));
+            flechas[k] = render(HD, (x, y) -> flechaEn(x, y, a));
         }
+        boolean[] piezasFlecha = piezasUsadas(flechas);
+        for (int k = 0; k < FLECHA_ANG.length; k++) glifos(json, tex, "flecha_" + k, flechas[k], CH_FLECHA + 16 * k, piezasFlecha);
+        log("flecha");
 
-        // disco teñido del color ganador + aura (va encima de todo menos la flecha)
+        // disco teñido del color ganador + aura (va encima de todo menos la flecha), con el disco detenido en ese color
         BufferedImage[][] tintes = new BufferedImage[SEG][TINTE.length];
         for (int k = 0; k < SEG; k++) for (int n = 0; n < TINTE.length; n++) {
             int kk = k;
             double amt = TINTE[n];
             boolean latido = n == TINTE.length - 1;
-            tintes[k][n] = render(SIZE, (x, y) -> tinteEn(x, y, kk, amt, latido));
-            json.append(glifo(tex, "tinte_" + k + "_" + n, tintes[k][n], CH_TINTE + 4 * (k * TINTE.length + n)));
+            tintes[k][n] = render(MEDIA, (x, y) -> tinteEn(x, y, kk, amt, latido));
+            glifos(json, tex, "tinte_" + k + "_" + n, tintes[k][n], CH_TINTE + 4 * (k * TINTE.length + n), null);
         }
         log("tinte");
-
-        // entrada: aparece chica, se pasa un poco de tamaño y se endereza (a resolución completa)
-        BufferedImage[] entradas = new BufferedImage[ENTRADA];
-        List<Integer> piezasEntrada = new ArrayList<>();
-        for (int i = 0; i < ENTRADA; i++) {
-            double e = (i + 0.5) / 20.0, p = clamp(e / 1.2);
-            double s = 0.15 + 0.85 * easeBack(p), o = clamp(e / 0.4), rz = (1 - inOut(p)) * -14;
-            entradas[i] = render(SIZE, transformar((x, y) -> completa(x, y, -1), s, rz, o), AMPLIO);
-            piezasEntrada.add(glifoAmplio(json, tex, String.format("entrada_%02d", i), entradas[i], CH_ENTRADA + 4 * i));
-        }
-        log("entrada");
-
-        // salida: teñida del color ganador, se achica girando y se desvanece (a resolución completa)
-        BufferedImage[][] salidas = new BufferedImage[SEG][SALIDA];
-        List<Integer> piezasSalida = new ArrayList<>();
-        for (int k = 0; k < SEG; k++) for (int i = 0; i < SALIDA; i++) {
-            int kk = k;
-            double e = (i + 0.5) * 15.0 / SALIDA / 20.0, p = clamp(e / 0.75);
-            double s = Math.max(0.03, 1 - 0.97 * easeInBack(p)), o = 1 - inOut(p * 1.15), rz = p * 18;
-            // lo que ya casi no se ve (menos de 10 %) queda vacío: así no gasta 4 piezas de memoria
-            salidas[k][i] = o < 0.1 ? new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_ARGB)
-                    : render(SIZE, transformar((x, y) -> completa(x, y, kk), s, rz, o), AMPLIO);
-            piezasSalida.add(glifoAmplio(json, tex, String.format("salida_%d_%02d", k, i), salidas[k][i], CH_SALIDA + 4 * (k * SALIDA + i)));
-        }
-        log("salida");
 
         json.append("\n  ]\n}\n");
         Files.writeString(font.resolve("ruleta.json"), json);
@@ -202,7 +197,7 @@ public class GenerarRuleta {
         BufferedImage icono = new BufferedImage(128, 128, BufferedImage.TYPE_INT_ARGB);
         var g = icono.createGraphics();
         g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-        for (BufferedImage capa : new BufferedImage[]{disco0, fijo0, fuegos[0], flechas[0]}) g.drawImage(capa, 0, 0, 128, 128, null);
+        for (BufferedImage capa : new BufferedImage[]{disco, fijo, fuegos[0], flechas[0]}) g.drawImage(capa, 0, 0, 128, 128, null);
         g.dispose();
         ImageIO.write(icono, "png", root.resolve("pack.png").toFile());
 
@@ -215,24 +210,26 @@ public class GenerarRuleta {
                 }
                 """);
 
+        StringBuilder mascaraFlecha = new StringBuilder();
+        for (int i = 0; i < piezasFlecha.length; i++) mascaraFlecha.append(i > 0 ? ", " : "").append(piezasFlecha[i]);
+        StringBuilder grados = new StringBuilder();
+        for (int i = 0; i < DESENFOQUE.length; i++) grados.append(i > 0 ? ", " : "").append(DESENFOQUE[i]);
         Files.writeString(Paths.get("src/main/resources/ruleta-layout.json"), String.format("""
                 {
-                  "disco": %d, "discoFrames": %d,
-                  "borroso": %d, "borrosoFrames": %d,
-                  "fijo": %d,
+                  "posiciones": %d,
+                  "disco": %d, "fijo": %d,
+                  "borroso": %d, "borrosoGrados": [%s],
                   "fuego": %d, "fuegoFrames": %d, "fuegoTicks": %d,
-                  "flecha": %d, "flechaFrames": %d,
+                  "flecha": %d, "flechaFrames": %d, "flechaPiezas": [%s],
                   "tinte": %d, "tinteNiveles": %d,
-                  "entrada": %d, "entradaFrames": %d, "entradaPiezas": %s,
-                  "salida": %d, "salidaFrames": %d, "salidaPiezas": %s,
-                  "mover": %d, "juntar": %d, "atras": %d, "atrasAmplio": %d,
+                  "mover": %d, "juntar": %d, "atras": %d, "saltar2": %d, "saltar4": %d,
                   "segmentos": [%s]
                 }
-                """, CH_DISCO, DISCO, CH_BORROSO, BORROSO, CH_FIJO, CH_FUEGO, FUEGO, FUEGO_TICKS, CH_FLECHA, FLECHA_ANG.length,
-                CH_TINTE, TINTE.length, CH_ENTRADA, ENTRADA, piezasEntrada, CH_SALIDA, SALIDA, piezasSalida,
-                CH_MOVER, CH_JUNTAR, CH_ATRAS, CH_ATRAS_AMPLIO, orden()));
+                """, DISCO, CH_DISCO, CH_FIJO, CH_BORROSO, grados, CH_FUEGO, FUEGO, FUEGO_TICKS,
+                CH_FLECHA, FLECHA_ANG.length, mascaraFlecha, CH_TINTE, TINTE.length,
+                CH_MOVER, CH_JUNTAR, CH_ATRAS, CH_SALTAR2, CH_SALTAR4, orden()));
 
-        if (vista != null) vistaPrevia(vista, disco0, borroso0, fijo0, fuegos, flechas, tintes, entradas, salidas);
+        if (vista != null) vistaPrevia(vista, disco, borrosos, fijo, fuegos, flechas, tintes);
         System.out.println("Pack listo -> " + root.toAbsolutePath());
     }
 
@@ -250,9 +247,10 @@ public class GenerarRuleta {
 
     /** El disco girado `giro` grados; con desenfoque > 0 promedia varios ángulos (desenfoque de movimiento). */
     static int discoEn(double x, double y, double giro, double desenfoque) {
-        double d = Math.hypot(x - HX, y - HY), ang = angulo(x, y), borde = radioEn(ang);
-        if (d > borde + 3) return 0;
-        double rho = Math.min(d / borde, 0.995);
+        double d = Math.hypot(x - HX, y - HY), ang = angulo(x, y);
+        // el disco es redondo y un poco más grande que el hueco del aro, que va encima y tapa lo que sobra
+        if (d > DISCO_R + 4) return 0;
+        double rho = Math.min(d / DISCO_R, 0.995);
         if (desenfoque <= 0) return disco(rho, norm(ang - giro), d) | 0xFF000000;
         int n = 9;
         double r = 0, gg = 0, b = 0;
@@ -263,37 +261,54 @@ public class GenerarRuleta {
         return 0xFF000000 | ((int) (r / n) << 16) | ((int) (gg / n) << 8) | (int) (b / n);
     }
 
-    /** Color del disco en el punto (rho, ángulo de la ruleta nueva). */
+    /**
+     * Color del disco en el punto (rho, ángulo de la ruleta nueva). El disco se dibuja limpio: 8 gajos
+     * iguales con el color de cada gajo del dibujo (colorBase), todos con el mismo sombreado y líneas
+     * del mismo grosor. Antes se estiraban los gajos del dibujo (que son 11 y de distinto ancho) y
+     * algunos colores salían deformados.
+     */
     static int disco(double rho, double ang, double d) {
         double w = 360.0 / SEG;
         double t = norm(ang + w / 2) / w;
         int j = (int) Math.floor(t) % SEG;
-        double b0 = j * w - w / 2;                              // borde inicial del segmento nuevo
-        double rel = norm(ang - b0);                            // grados desde el borde inicial
+        double rel = norm(ang - (j * w - w / 2));               // grados desde el borde inicial del gajo
+        double r = Math.max(d, 1);
+        // distancia (en píxeles del dibujo) a la línea divisoria más cercana
+        double e = r * Math.sin(Math.toRadians(Math.min(Math.min(rel, w - rel), 90)));
+        int c = colorBase[j];
+        // un poco más claro hacia el centro y más oscuro hacia el aro, igual en todos los gajos
+        double luz = 1.08 - 0.2 * rho;
+        // bisel junto a cada línea: sombra pegada a la línea y un filo de luz un poco más adentro
+        luz *= 1 - 0.22 * Math.exp(-Math.max(0, e - LINEA) / 5);
+        luz += 0.10 * Math.exp(-Math.pow((e - LINEA - 6) / 2.5, 2));
+        // borde de afuera más oscuro (lo tapa casi todo el aro)
+        if (rho > 0.9) luz *= 1 - 0.35 * (rho - 0.9) / 0.1;
+        int col = escalar(c, luz);
+        // línea divisoria oscura, suavizada en su último píxel
+        double linea = Math.max(0, Math.min(1, LINEA + 0.5 - e));
+        return mezclarRGB(col, LINEA_COLOR, linea);
+    }
+
+    static final int LINEA_COLOR = 0x241336;
+    static int[] colorBase = new int[SEG];                       // color de cada gajo (en el orden de COLORES)
+
+    /** Color típico (mediana) del gajo s del dibujo, sin las líneas ni los bordes. */
+    static int medirColor(int j) {
         int s = (int) COLORES[j][1];
         double a0 = DIVISORES[s], a1 = s + 1 < DIVISORES.length ? DIVISORES[s + 1] : DIVISORES[0] + 360;
-        double r = Math.max(d, 1);
-        double desde = Math.toDegrees(Math.asin(Math.min(1, LINEA / r)));
-        double off0 = r * Math.sin(Math.toRadians(rel)), off1 = r * Math.sin(Math.toRadians(w - rel));
-        double srcAng;
-        if (off0 < LINEA) srcAng = a0 + Math.toDegrees(Math.asin(Math.min(1, off0 / r)));       // media línea del lado inicial
-        else if (off1 < LINEA) srcAng = a1 - Math.toDegrees(Math.asin(Math.min(1, off1 / r)));  // media línea del lado final
-        else {
-            double f = (rel - desde) / (w - 2 * desde);
-            srcAng = a0 + desde + f * (a1 - a0 - 2 * desde);
+        List<Integer> rs = new ArrayList<>(), gs = new ArrayList<>(), bs = new ArrayList<>();
+        for (double a = a0 + 6; a <= a1 - 6; a += 1) for (double f = 0.35; f <= 0.8; f += 0.03) {
+            double aa = norm(a);
+            double[] p = polar(f * radioEn(aa), aa);
+            if (flecha.contains(p[0], p[1])) continue;
+            int c = bilinear(src, p[0], p[1]);
+            rs.add((c >> 16) & 255); gs.add((c >> 8) & 255); bs.add(c & 255);
         }
-        srcAng = norm(srcAng);
-        double[] p = polar(rho * radioEn(srcAng), srcAng);
-        if (flecha.contains(p[0], p[1])) {
-            // bajo la flecha no hay disco: se copia de un poco más adentro del mismo color
-            double mitad = norm((a0 + a1) / 2);
-            double hacia = norm(mitad - srcAng + 180) - 180;
-            if (off0 < LINEA || off1 < LINEA) p = polar(0.88 * radioEn(srcAng), srcAng);
-            else p = polar(rho * radioEn(srcAng), norm(srcAng + Math.signum(hacia) * 7));
-        }
-        int c = bilinear(src, p[0], p[1]);
+        Collections.sort(rs); Collections.sort(gs); Collections.sort(bs);
+        int m = rs.size() / 2;
+        int c = (rs.get(m) << 16) | (gs.get(m) << 8) | bs.get(m);
         double giroTono = (double) COLORES[j][2];
-        return giroTono == 0 ? c & 0xFFFFFF : girarTono(c, giroTono);
+        return giroTono == 0 ? c : girarTono(c, giroTono);
     }
 
     static int girarTono(int c, double grados) {
@@ -313,7 +328,7 @@ public class GenerarRuleta {
         int n = 0;
         for (double a = -12; a <= 12; a += 3) for (double f = 0.55; f <= 0.8; f += 0.05) {
             double ang = norm(a);
-            int c = disco(f, norm(ang - giroDe(k)), f * radioEn(ang));
+            int c = disco(f, norm(ang - giroDe(k)), f * DISCO_R);
             r += (c >> 16) & 255; g += (c >> 8) & 255; b += c & 255; n++;
         }
         return ((int) (r / n) << 16) | ((int) (g / n) << 8) | (int) (b / n);
@@ -322,16 +337,18 @@ public class GenerarRuleta {
     // ---------------------------------------------------------------- aro + fuego
 
     static int fijo(double x, double y, double t) {
-        double d = Math.hypot(x - HX, y - HY);
-        double borde = radioEn(angulo(x, y));
+        double d = Math.hypot(x - HX, y - HY), ang = angulo(x, y);
+        // el hueco es un círculo de radio DISCO_R; hasta MARCO_FIN lo que hay del dibujo (su borde, que no
+        // es redondo) queda tapado por el marco que se dibuja más abajo
+        double ds = d;
+        // el aro se copia centrado en CX, CY; más afuera (llamas) se vuelve de a poco al dibujo tal cual
+        double aro = d < DISCO_R - 1 ? 0 : 1 - smoothstep(ARO_R + 5, ARO_R + 30, d);
         // la flecha va en su propia capa: aquí se rellena lo que hay detrás copiando de un poco al lado
-        double sx = x, sy = y;
-        if (flecha.intersects(x - 4, y - 4, 8, 8)) {
-            double[] q = polar(d, norm(angulo(x, y) + 24));
-            sx = q[0]; sy = q[1];
-        }
+        double angS = flecha.intersects(x - 4, y - 4, 8, 8) ? norm(ang + 24) : ang;
+        double[] q0 = polarC(ds, angS), q1 = polar(d, angS);
+        double sx = q1[0] + (q0[0] - q1[0]) * aro, sy = q1[1] + (q0[1] - q1[1]) * aro;
         boolean hub = d < HUB_R;
-        double hoyo = hub ? 0 : clamp(borde - d + 0.5);
+        double hoyo = hub ? 0 : clamp(DISCO_R - d + 0.5);
         if (hoyo >= 1) return 0;
 
         int p = bilinear(src, sx, sy);
@@ -344,12 +361,33 @@ public class GenerarRuleta {
             p = mezclarRGB(fl, p, canal(mascaraFija, sx, sy, 16));
         }
         p = quitarFondo(p, d);
+        // marco entre el disco y las gemas: banda oscura con un filo de luz, y se funde con el dibujo al final
+        if (!hub && d < MARCO_FIN + 3) {
+            int m = bandaColor[(int) Math.round(ang) % 360];
+            m = mezclarRGB(m, FILO_LUZ, 0.55 * Math.exp(-Math.pow((d - DISCO_R - 6) / 1.6, 2)));
+            double w = 1 - smoothstep(MARCO_FIN, MARCO_FIN + 3, d);
+            // las gemas quedan enteras, encima del marco
+            for (double[] g : gemas) w *= smoothstep(GEMA_R - 2, GEMA_R + 1, Math.hypot(sx - g[0], sy - g[1]));
+            p = (p & 0xFF000000) | mezclarRGB(p & 0xFFFFFF, m, w);
+        }
+        // filo de adentro de la banda: una línea oscura redonda pegada al disco
+        if (!hub && d < DISCO_R + 5) p = (p & 0xFF000000) | mezclarRGB(p & 0xFFFFFF, LINEA_COLOR, 1 - smoothstep(DISCO_R + 1.5, DISCO_R + 5, d));
 
-        double borde2 = Math.min(Math.min(x - CROP_X, CROP_X + CROP - x), Math.min(y - CROP_Y, CROP_Y + CROP - y));
-        // borde redondo y suave: las llamas se apagan en círculo, sin dejar ver el recorte cuadrado
-        double fade = clamp(borde2 / 70.0) * clamp((560 - d) / 130.0);
+        double fade = desvanecer(x, y);
         int a = (int) Math.round(((p >>> 24) & 255) * (1 - hoyo) * fade * fade);
         return (a << 24) | (p & 0xFFFFFF);
+    }
+
+    /**
+     * Cuánto se ve lo que está en (x, y), de 0 a 1: las llamas se apagan en círculo, sin dejar ver el
+     * recorte cuadrado; abajo se apagan antes, para no mostrar el pedestal del dibujo.
+     */
+    static double desvanecer(double x, double y) {
+        double d = Math.hypot(x - HX, y - HY);
+        double borde2 = Math.min(Math.min(x - CROP_X, CROP_X + CROP - x), Math.min(y - CROP_Y, CROP_Y + CROP - y));
+        double abajo = smoothstep(0.55, 0.85, (y - HY) / Math.max(d, 1));
+        double limite = 600 - 60 * abajo;
+        return clamp(borde2 / 30.0) * clamp((limite - d) / (120 - 10 * abajo));
     }
 
     /**
@@ -445,13 +483,16 @@ public class GenerarRuleta {
 
     /** Degradé radial que suma luz (como globalCompositeOperation = 'lighter'), en coordenadas del dibujo. */
     static void brillo(BufferedImage img, double cx, double cy, double r0, double r1, int rgb, double alpha, int rgbFin) {
+        double f0 = desvanecer(cx, cy);
+        alpha *= f0 * f0; // lo de los bordes se apaga igual que las llamas
         if (alpha <= 0.002) return;
         if (rgbFin == 0) rgbFin = rgb;
-        double k = (double) SIZE / CROP;
+        int n = img.getWidth();
+        double k = (double) n / CROP;
         double ox = (cx - CROP_X) * k, oy = (cy - CROP_Y) * k, R = r1 * k, R0 = r0 * k;
         for (int y = (int) Math.floor(oy - R); y <= oy + R; y++)
             for (int x = (int) Math.floor(ox - R); x <= ox + R; x++) {
-                if (x < 0 || y < 0 || x >= SIZE || y >= SIZE) continue;
+                if (x < 0 || y < 0 || x >= n || y >= n) continue;
                 double dist = Math.hypot(x + 0.5 - ox, y + 0.5 - oy);
                 if (dist >= R) continue;
                 double f = clamp((dist - R0) / (R - R0));
@@ -466,6 +507,7 @@ public class GenerarRuleta {
         double a = Math.toRadians(-grados);
         double dx = x - PIVOTE_X, dy = y - PIVOTE_Y;
         double sx = PIVOTE_X + dx * Math.cos(a) - dy * Math.sin(a), sy = PIVOTE_Y + dx * Math.sin(a) + dy * Math.cos(a);
+        sx += CX - HX; sy += CY - HY; // se mueve con el aro (ver CX, CY)
         return flecha.contains(sx, sy) ? bilinear(src, sx, sy) | 0xFF000000 : 0;
     }
 
@@ -474,7 +516,7 @@ public class GenerarRuleta {
      * Igual que el shader: conserva un poco las luces y sombras del disco para que se vean las líneas.
      */
     static int tinteEn(double x, double y, int k, double amt, boolean latido) {
-        double d = Math.hypot(x - HX, y - HY), ang = angulo(x, y), borde = radioEn(ang);
+        double d = Math.hypot(x - HX, y - HY), ang = angulo(x, y), borde = DISCO_R;
         int tinte = tinteColor[k];
         double aura = aura(d) * amt * (latido ? 1.25 : 1);
         if (d > HUB_R && d < borde + 1) {
@@ -499,158 +541,187 @@ public class GenerarRuleta {
         return pos < 0.35 ? 0.38 * pos / 0.35 : 0.38 * (1 - (pos - 0.35) / 0.65);
     }
 
-    /** La ruleta entera quieta (con el color k ganador teñido, o sin teñir si k < 0). */
-    static int completa(double x, double y, int k) {
-        int c = discoEn(x, y, k >= 0 ? giroDe(k) : 0, 0);
-        if (k >= 0) {
-            int t = tinteEn(x, y, k, 1, false);
-            double d = Math.hypot(x - HX, y - HY);
-            if (d < radioEn(angulo(x, y)) + 1) c = sobre(c, t);
-            c = sobre(c, fijo(x, y, 0));
-            c = sobre(c, flechaEn(x, y, 0));
-            if (d >= radioEn(angulo(x, y)) + 1) c = sobre(c, t);
-            return c;
-        }
-        return sobre(sobre(c, fijo(x, y, 0)), flechaEn(x, y, 0));
-    }
-
-    /** Escala s y gira rz grados (sentido horario) alrededor del fénix, con opacidad o. */
-    static Pixel transformar(Pixel f, double s, double rz, double o) {
-        double a = Math.toRadians(-rz), c = Math.cos(a), sn = Math.sin(a);
-        return (x, y) -> {
-            double dx = (x - HX) / s, dy = (y - HY) / s;
-            int p = f.at(HX + c * dx - sn * dy, HY + sn * dx + c * dy);
-            int al = (int) Math.round(((p >>> 24) & 255) * o);
-            return (al << 24) | (p & 0xFFFFFF);
-        };
-    }
-
     // ---------------------------------------------------------------- vista previa
 
-    static void vistaPrevia(Path dir, BufferedImage disco0, BufferedImage borroso0, BufferedImage fijo0, BufferedImage[] fuegos,
-                            BufferedImage[] flechas, BufferedImage[][] tintes, BufferedImage[] entradas, BufferedImage[][] salidas) throws Exception {
+    /**
+     * Arma la ruleta como la ve el juego (las capas giradas igual que el shader) para revisarla, y
+     * compara el disco girado por el shader con el disco dibujado ya girado: tienen que coincidir.
+     */
+    static void vistaPrevia(Path dir, BufferedImage disco, BufferedImage[] borrosos, BufferedImage fijo, BufferedImage[] fuegos,
+                            BufferedImage[] flechas, BufferedImage[][] tintes) throws Exception {
         Files.createDirectories(dir);
-        int c = 256, cols = 6;
-        BufferedImage hoja = new BufferedImage(c * cols, c * 5, BufferedImage.TYPE_INT_RGB);
+        int k = 3;
+        double giro = giroDe(k);
+        BufferedImage girado = girar(disco, giro);
+        BufferedImage esperado = render(HD, (x, y) -> discoEn(x, y, giro, 0));
+        double dif = 0;
+        int n = 0;
+        for (int y = 0; y < HD; y += 2) for (int x = 0; x < HD; x += 2) {
+            int a = girado.getRGB(x, y), b = esperado.getRGB(x, y);
+            if ((a >>> 24) < 250 || (b >>> 24) < 250) continue;
+            for (int sh = 0; sh <= 16; sh += 8) dif += Math.abs(((a >> sh) & 255) - ((b >> sh) & 255));
+            n += 3;
+        }
+        System.out.printf("disco girado por el shader vs. dibujado girado: diferencia media %.1f / 255%n", dif / n);
+
+        int c = 512, cols = 4;
+        BufferedImage hoja = new BufferedImage(c * cols, c, BufferedImage.TYPE_INT_RGB);
         var g = hoja.createGraphics();
         g.setColor(new Color(0x5a7d3a)); // pasto, para ver la transparencia
         g.fillRect(0, 0, hoja.getWidth(), hoja.getHeight());
         g.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-        // fila 1: el fuego en distintos momentos del loop
-        for (int i = 0; i < cols; i++)
-            for (BufferedImage capa : new BufferedImage[]{disco0, fijo0, fuegos[i * FUEGO / cols], flechas[0]}) g.drawImage(capa, i * c, 0, c, c, null);
-        // fila 2: girando rápido (desenfoque) y la flecha inclinada
-        for (int i = 0; i < cols; i++)
-            for (BufferedImage capa : new BufferedImage[]{borroso0, fijo0, fuegos[0], flechas[i % FLECHA_ANG.length]}) g.drawImage(capa, i * c, c, c, c, null);
-        // fila 3: el tinte subiendo para el segmento 0 (rojo) + latido
-        for (int i = 0; i < Math.min(cols, TINTE.length + 1); i++) {
-            BufferedImage[] capas = i == 0 ? new BufferedImage[]{disco0, fijo0, fuegos[0], flechas[0]}
-                    : new BufferedImage[]{disco0, fijo0, fuegos[0], tintes[0][i - 1], flechas[0]};
-            for (BufferedImage capa : capas) g.drawImage(capa, i * c, 2 * c, c, c, null);
-        }
-        // fila 4: entrada (cada 2 fotogramas)
-        for (int i = 0; i < cols; i++) g.drawImage(entradas[i * 4], i * c, 3 * c, c, c, null);
-        // fila 5: salida del color 3
-        for (int i = 0; i < cols; i++) g.drawImage(salidas[3][Math.min(SALIDA - 1, i * 2)], i * c, 4 * c, c, c, null);
+        BufferedImage[][] paneles = {
+                {disco, fijo, fuegos[0], flechas[0]},
+                {girar(borrosos[2], 100), fijo, fuegos[FUEGO / 2], flechas[2]},
+                {girado, fijo, fuegos[0], tintes[k][1], flechas[0]},
+                {girado, fijo, fuegos[0], tintes[k][TINTE.length - 1], flechas[0]},
+        };
+        for (int i = 0; i < paneles.length; i++) for (BufferedImage capa : paneles[i]) g.drawImage(capa, i * c, 0, c, c, null);
         g.dispose();
         ImageIO.write(hoja, "png", dir.resolve("vista_previa.png").toFile());
-        // y la ruleta sola a tamaño real de una capa, para ver detalle
-        BufferedImage grande = new BufferedImage(SIZE, SIZE, BufferedImage.TYPE_INT_RGB);
+
+        BufferedImage grande = new BufferedImage(HD, HD, BufferedImage.TYPE_INT_RGB);
         var g2 = grande.createGraphics();
         g2.setColor(new Color(0x5a7d3a));
-        g2.fillRect(0, 0, SIZE, SIZE);
-        for (BufferedImage capa : new BufferedImage[]{disco0, fijo0, fuegos[FUEGO / 3], flechas[0]}) g2.drawImage(capa, 0, 0, null);
+        g2.fillRect(0, 0, HD, HD);
+        g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        for (BufferedImage capa : new BufferedImage[]{disco, fijo, fuegos[FUEGO / 3], flechas[0]}) g2.drawImage(capa, 0, 0, HD, HD, null);
         g2.dispose();
         ImageIO.write(grande, "png", dir.resolve("vista_grande.png").toFile());
     }
 
+    /** Gira la imagen `grados` alrededor de su centro igual que el shader (sentido horario en pantalla). */
+    static BufferedImage girar(BufferedImage img, double grados) {
+        int n = img.getWidth();
+        double a = Math.toRadians(grados), cs = Math.cos(a), sn = Math.sin(a), c = n / 2.0;
+        BufferedImage out = new BufferedImage(n, n, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < n; y++) for (int x = 0; x < n; x++) {
+            // el shader lleva cada punto p del glifo a R(a)(p - c) + c: acá se busca de dónde viene cada píxel
+            double dx = x + 0.5 - c, dy = y + 0.5 - c;
+            int sx = (int) Math.floor(c + cs * dx + sn * dy), sy = (int) Math.floor(c - sn * dx + cs * dy);
+            if (sx >= 0 && sy >= 0 && sx < n && sy < n) out.setRGB(x, y, img.getRGB(sx, sy));
+        }
+        return out;
+    }
+
     // ---------------------------------------------------------------- utilidades
 
-    /** Corta la capa en 4 piezas de TILE px y devuelve sus entradas para la fuente. */
-    static String glifo(Path tex, String name, BufferedImage img, int ch) throws Exception {
-        StringBuilder sb = new StringBuilder();
-        for (int q = 0; q < 4; q++) {
-            BufferedImage copia = new BufferedImage(TILE, TILE, BufferedImage.TYPE_INT_ARGB);
-            copia.setRGB(0, 0, TILE, TILE, img.getRGB((q % 2) * TILE, (q / 2) * TILE, TILE, TILE, null, 0, TILE), 0, TILE);
-            String file = name + "_" + q;
-            guardar(copia, tex.resolve(file + ".png"));
-            sb.append(String.format(",\n    {\"type\": \"bitmap\", \"file\": \"ruleta:font/%s.png\", \"height\": %d, \"ascent\": %d, \"chars\": [\"\\u%04X\"]}",
-                    file, PIEZA, q < 2 ? PIEZA : 0, ch + q));
-        }
-        return sb.toString();
-    }
-
-    /** Una capa a media resolución en una sola pieza que ocupa lo mismo que las 4 piezas juntas. */
-    static String glifoGrande(Path tex, String name, BufferedImage img, int ch) throws Exception {
-        return glifoGrande(tex, name, img, ch, 2 * PIEZA);
-    }
-
-    /** Igual, pero de `alto` unidades (centrada en el mismo punto que el resto de las capas). */
-    static String glifoGrande(Path tex, String name, BufferedImage img, int ch, int alto) throws Exception {
-        guardar(img, tex.resolve(name + ".png"));
-        return String.format(",\n    {\"type\": \"bitmap\", \"file\": \"ruleta:font/%s.png\", \"height\": %d, \"ascent\": %d, \"chars\": [\"\\u%04X\"]}",
-                name, alto, alto / 2, ch);
-    }
-
     /**
-     * Un fotograma de la entrada o la salida (dibujado a 512 px en el recuadro amplio) a resolución
-     * completa. Si recortando el borde transparente cabe en 256 px, va en 1 pieza; si no, en 4 piezas
-     * de 256 px, igual que el giro. Usa 4 caracteres seguidos desde ch y devuelve cuántas piezas usó.
+     * Corta la capa en piezas de TILE px (2 x 2 si mide 512, 4 x 4 si mide 1024) y agrega sus entradas a
+     * la fuente: pieza (fila f, columna c) = carácter ch + f * piezas + c. Todas las capas terminan del
+     * mismo tamaño en pantalla: las piezas de una capa de 512 son el doble de altas. Si `usadas` no es
+     * null, solo se guardan esas piezas (el plugin pone un espacio en las otras).
      */
-    static int glifoAmplio(StringBuilder json, Path tex, String name, BufferedImage img, int ch) throws Exception {
-        int n = img.getWidth(), c = n / 2, mitad = 0;
-        for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
-            if ((img.getRGB(x, y) >>> 24) > 2) mitad = Math.max(mitad, Math.max(Math.abs(x - c), Math.abs(y - c)) + 1);
-        int u = Math.max(2, (int) Math.ceil((double) ALTO_AMPLIO * 2 * (mitad + 1) / n));
-        if (u % 2 == 1) u++;                      // par: el ascent (la mitad) queda exacto y la ruleta centrada
-        int lado = (int) Math.round((double) u * n / ALTO_AMPLIO);
-        if (lado <= TILE) {
-            int x0 = c - lado / 2;
-            BufferedImage recorte = new BufferedImage(lado, lado, BufferedImage.TYPE_INT_ARGB);
-            recorte.setRGB(0, 0, lado, lado, img.getRGB(x0, x0, lado, lado, null, 0, lado), 0, lado);
-            guardar(recorte, tex.resolve(name + ".png"));
-            json.append(String.format(",\n    {\"type\": \"bitmap\", \"file\": \"ruleta:font/%s.png\", \"height\": %d, \"ascent\": %d, \"chars\": [\"\\u%04X\"]}",
-                    name, u, u / 2, ch));
-            return 1;
-        }
-        int alto = ALTO_AMPLIO / 2;
-        for (int q = 0; q < 4; q++) {
+    static void glifos(StringBuilder json, Path tex, String name, BufferedImage img, int ch, boolean[] usadas) throws Exception {
+        int piezas = img.getWidth() / TILE, alto = LADO / piezas;
+        for (int f = 0; f < piezas; f++) for (int c = 0; c < piezas; c++) {
+            int q = f * piezas + c;
+            if (usadas != null && !usadas[q]) continue;
             BufferedImage pieza = new BufferedImage(TILE, TILE, BufferedImage.TYPE_INT_ARGB);
-            pieza.setRGB(0, 0, TILE, TILE, img.getRGB((q % 2) * TILE, (q / 2) * TILE, TILE, TILE, null, 0, TILE), 0, TILE);
-            guardar(pieza, tex.resolve(name + "_" + q + ".png"));
-            json.append(String.format(",\n    {\"type\": \"bitmap\", \"file\": \"ruleta:font/%s_%d.png\", \"height\": %d, \"ascent\": %d, \"chars\": [\"\\u%04X\"]}",
-                    name, q, alto, q < 2 ? alto : 0, ch + q));
+            pieza.setRGB(0, 0, TILE, TILE, img.getRGB(c * TILE, f * TILE, TILE, TILE, null, 0, TILE), 0, TILE);
+            String file = piezas == 1 ? name : name + "_" + q;
+            guardar(pieza, tex.resolve(file + ".png"));
+            json.append(String.format(",\n    {\"type\": \"bitmap\", \"file\": \"ruleta:font/%s.png\", \"height\": %d, \"ascent\": %d, \"chars\": [\"\\u%04X\"]}",
+                    file, alto, ARRIBA - alto * f, ch + q));
         }
-        return 4;
     }
 
-    /**
-     * Como glifoGrande, pero recorta el borde transparente (centrado, para no correr la ruleta).
-     * Los fotogramas chicos de la entrada y la salida quedan como glifos chicos y Minecraft los
-     * junta varios por página de textura, en vez de gastar una página entera en cada uno.
-     */
-    static String glifoRecortado(Path tex, String name, BufferedImage img, int ch, int alto) throws Exception {
-        int n = img.getWidth(), c = n / 2, mitad = 0;
-        for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
-            if ((img.getRGB(x, y) >>> 24) > 2) mitad = Math.max(mitad, Math.max(Math.abs(x - c), Math.abs(y - c)) + 1);
-        int u = Math.max(2, (int) Math.ceil((double) alto * 2 * (mitad + 1) / n));
-        if (u % 2 == 1) u++;                      // par: el ascent (la mitad) queda exacto y la ruleta centrada
-        int lado = Math.min(n, (int) Math.round((double) u * n / alto));
-        if (lado >= n) return glifoGrande(tex, name, img, ch, alto);
-        int x0 = c - lado / 2;
-        BufferedImage recorte = new BufferedImage(lado, lado, BufferedImage.TYPE_INT_ARGB);
-        recorte.setRGB(0, 0, lado, lado, img.getRGB(x0, x0, lado, lado, null, 0, lado), 0, lado);
-        guardar(recorte, tex.resolve(name + ".png"));
-        return String.format(",\n    {\"type\": \"bitmap\", \"file\": \"ruleta:font/%s.png\", \"height\": %d, \"ascent\": %d, \"chars\": [\"\\u%04X\"]}",
-                name, u, u / 2, ch);
+    /** Qué piezas de 256 px tienen algo visible en alguna de las imágenes (todas del mismo tamaño). */
+    static boolean[] piezasUsadas(BufferedImage[] imgs) {
+        int piezas = imgs[0].getWidth() / TILE;
+        boolean[] usadas = new boolean[piezas * piezas];
+        for (BufferedImage img : imgs) for (int y = 0; y < img.getHeight(); y++) for (int x = 0; x < img.getWidth(); x++)
+            if ((img.getRGB(x, y) >>> 24) > 0) usadas[(y / TILE) * piezas + x / TILE] = true;
+        return usadas;
     }
 
     static void guardar(BufferedImage img, Path file) throws Exception {
         BufferedImage copia = new BufferedImage(img.getWidth(), img.getHeight(), BufferedImage.TYPE_INT_ARGB);
         copia.setRGB(0, 0, img.getWidth(), img.getHeight(), img.getRGB(0, 0, img.getWidth(), img.getHeight(), null, 0, img.getWidth()), 0, img.getWidth());
-        marcarAncho(copia);
-        reducirColores(copia);
+        firmar(copia);
         ImageIO.write(copia, "png", file.toFile());
+    }
+
+    /** Centro del aro: círculo que mejor pasa por el borde de adentro del dorado. */
+    static void medirAro() {
+        List<double[]> pts = new ArrayList<>();
+        double[] g = new double[360];
+        for (int ang = 0; ang < 360; ang++) {
+            g[ang] = -1;
+            for (double d = 355; d < 430; d += 0.5) {
+                double[] p = polar(d, ang);
+                int c = src.getRGB((int) Math.round(p[0]), (int) Math.round(p[1]));
+                if (((c >> 16) & 255) > 190 && ((c >> 8) & 255) > 90 && (c & 255) < 140) { g[ang] = d; break; }
+            }
+        }
+        for (int ang = 0; ang < 360; ang++) {
+            double[] w = new double[21];
+            for (int k = -10; k <= 10; k++) w[k + 10] = g[(ang + k + 360) % 360];
+            Arrays.sort(w);
+            if (w[10] > 0 && Math.abs(g[ang] - w[10]) < 3) pts.add(polar(g[ang], ang)); // sin gemas ni flechas
+        }
+        // ajuste algebraico (Kasa): x² + y² = a x + b y + c
+        double[][] m = new double[3][3];
+        double[] v = new double[3];
+        for (double[] q : pts) {
+            double[] f = {q[0], q[1], 1};
+            double z = q[0] * q[0] + q[1] * q[1];
+            for (int i = 0; i < 3; i++) { v[i] += f[i] * z; for (int j = 0; j < 3; j++) m[i][j] += f[i] * f[j]; }
+        }
+        for (int i = 0; i < 3; i++) for (int j = i + 1; j < 3; j++) {
+            double k = m[j][i] / m[i][i];
+            for (int l = i; l < 3; l++) m[j][l] -= k * m[i][l];
+            v[j] -= k * v[i];
+        }
+        double[] x = new double[3];
+        for (int i = 2; i >= 0; i--) { double t = v[i]; for (int l = i + 1; l < 3; l++) t -= m[i][l] * x[l]; x[i] = t / m[i][i]; }
+        CX = x[0] / 2; CY = x[1] / 2;
+        ARO_IN = Math.sqrt(x[2] + CX * CX + CY * CY);
+        System.out.printf("centro del aro: (%.1f, %.1f), corrido (%.1f, %.1f) del fénix%n", CX, CY, CX - HX, CY - HY);
+    }
+
+    /** Centro de cada gema chica: promedio de sus píxeles claros cerca de donde debería estar. */
+    static void medirGemas() {
+        gemas = new double[GEMAS_ANG.length][];
+        for (int i = 0; i < GEMAS_ANG.length; i++) {
+            double[] c0 = polarC(361, GEMAS_ANG[i]);
+            double sx = 0, sy = 0, n = 0;
+            for (int y = (int) c0[1] - 25; y <= c0[1] + 25; y++) for (int x = (int) c0[0] - 25; x <= c0[0] + 25; x++) {
+                if (Math.hypot(x - c0[0], y - c0[1]) > 25) continue;
+                int c = src.getRGB(x, y);
+                if (Math.max((c >> 16) & 255, Math.max((c >> 8) & 255, c & 255)) > 110 && ((c >> 16) & 255) < 230) { sx += x; sy += y; n++; }
+            }
+            gemas[i] = n > 0 ? new double[]{sx / n, sy / n} : c0;
+        }
+    }
+
+    /** Color de la banda oscura del aro en cada grado (mediana, sin gemas ni brillos), suavizado. */
+    static void medirBanda() {
+        int[] crudo = new int[360];
+        boolean[] hay = new boolean[360];
+        for (int a = 0; a < 360; a++) {
+            List<Integer> rs = new ArrayList<>(), gs = new ArrayList<>(), bs = new ArrayList<>();
+            for (double rr = MARCO_FIN + 4; rr < ARO_IN - 6; rr += 1) for (double da = -0.5; da <= 0.5; da += 0.5) {
+                double[] q = polarC(rr, a + da);
+                int c = bilinear(src, q[0], q[1]);
+                int cr = (c >> 16) & 255, cg = (c >> 8) & 255, cb = c & 255;
+                if (Math.max(cr, Math.max(cg, cb)) < 100) { rs.add(cr); gs.add(cg); bs.add(cb); }
+            }
+            if (rs.size() < 5) continue;
+            Collections.sort(rs); Collections.sort(gs); Collections.sort(bs);
+            int k = rs.size() / 2;
+            crudo[a] = (rs.get(k) << 16) | (gs.get(k) << 8) | bs.get(k);
+            hay[a] = true;
+        }
+        for (int a = 0; a < 360; a++) {
+            double r = 0, g = 0, b = 0, n = 0;
+            for (int k = -8; k <= 8; k++) {
+                int i = Math.floorMod(a + k, 360);
+                if (!hay[i]) continue;
+                r += (crudo[i] >> 16) & 255; g += (crudo[i] >> 8) & 255; b += crudo[i] & 255; n++;
+            }
+            bandaColor[a] = n == 0 ? 0x301840 : ((int) (r / n) << 16) | ((int) (g / n) << 8) | (int) (b / n);
+        }
     }
 
     static void medirBorde() {
@@ -658,7 +729,7 @@ public class GenerarRuleta {
         for (int i = 0; i < 3600; i++) {
             double a = i / 10.0, d = 240;
             while (d < 380) {
-                double[] p = polar(d, a), q = polar(d + 2, a);
+                double[] p = polarC(d, a), q = polarC(d + 2, a);
                 if (canalMax(p[0], p[1]) < 45 && canalMax(q[0], q[1]) < 45) break; // el bisel oscuro del color cuenta como disco
                 d += 0.5;
             }
@@ -676,7 +747,14 @@ public class GenerarRuleta {
             double s = 0;
             for (int k = -50; k <= 50; k++) s += m[(i + k + 3600) % 3600];
             radio[i] = s / 101 - 1.5; // un poco hacia adentro: el borde negro queda en la capa fija
+            radioMax = Math.max(radioMax, radio[i]);
         }
+        radioMin = Arrays.stream(radio).min().getAsDouble();
+        DISCO_R = radioMin + 2;
+        MARCO_FIN = radioMax + 3;
+        medirBanda();
+        medirGemas();
+        System.out.printf("borde del disco: %.1f a %.1f px%n", radioMin, radioMax);
     }
 
     interface Pixel { int at(double x, double y); }
@@ -769,23 +847,14 @@ public class GenerarRuleta {
         return ((int) Math.round(oa * 255) << 24) | o;
     }
 
-    /** Baja cada canal a 64 niveles: casi no se nota y el PNG pesa mucho menos. */
-    static void reducirColores(BufferedImage img) {
-        for (int y = 0; y < img.getHeight(); y++) for (int x = 0; x < img.getWidth(); x++) {
-            int p = img.getRGB(x, y), a = p >>> 24;
-            if (a == 0) { img.setRGB(x, y, 0); continue; }
-            int[] c = {(p >> 16) & 255, (p >> 8) & 255, p & 255, a};
-            for (int k = 0; k < 4; k++) c[k] = Math.min(255, (int) Math.round(c[k] / 4.0) * 4);
-            if (a > 250) c[3] = 255;
-            if (c[3] == 0) c[3] = Math.min(4, a);
-            img.setRGB(x, y, (c[3] << 24) | (c[0] << 16) | (c[1] << 8) | c[2]);
-        }
-    }
-
-    /** Minecraft mide el ancho del glifo hasta el último píxel visible: esto deja todas las capas del mismo ancho. */
-    static void marcarAncho(BufferedImage img) {
-        int w = img.getWidth() - 1;
-        if ((img.getRGB(w, 0) >>> 24) == 0) img.setRGB(w, 0, 0x01000000);
+    /**
+     * Pone el color FIRMA en el píxel de arriba a la derecha. Sirve para dos cosas: el shader reconoce
+     * ahí las piezas de la ruleta (y el fsh usa el píxel de al lado en su lugar), y Minecraft, que mide
+     * el ancho del glifo hasta el último píxel visible, ve todas las piezas del mismo ancho.
+     */
+    static void firmar(BufferedImage img) {
+        int w = img.getWidth() - 1, a = Math.max(1, img.getRGB(w, 0) >>> 24);
+        img.setRGB(w, 0, (a << 24) | FIRMA);
     }
 
     static Path2D poligono(double[][] pts) {
@@ -804,6 +873,7 @@ public class GenerarRuleta {
 
     static double radioEn(double ang) { return radio[(int) Math.round(norm(ang) * 10) % 3600]; }
     static double angulo(double x, double y) { return norm(Math.toDegrees(Math.atan2(x - HX, -(y - HY)))); }
+    static double[] polarC(double d, double ang) { double t = Math.toRadians(ang); return new double[]{CX + d * Math.sin(t), CY - d * Math.cos(t)}; }
     static double[] polar(double d, double ang) { double t = Math.toRadians(ang); return new double[]{HX + d * Math.sin(t), HY - d * Math.cos(t)}; }
     static double norm(double a) { a %= 360; return a < 0 ? a + 360 : a; }
     static double clamp(double v) { return Math.max(0, Math.min(1, v)); }
