@@ -27,6 +27,7 @@ import com.voranixextremo.plugin.lives.DeathEffects;
 import com.voranixextremo.plugin.lives.LivesCommand;
 import com.voranixextremo.plugin.lives.LivesManager;
 import com.voranixextremo.plugin.lives.PlayerDeathListener;
+import com.voranixextremo.plugin.lives.LivesDisplay;
 import com.voranixextremo.plugin.lives.LivesHud;
 import com.voranixextremo.plugin.lives.PlayerJoinListener;
 import com.voranixextremo.plugin.pvp.PvpCommand;
@@ -104,7 +105,13 @@ public final class VoranixExtremoPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(livesManager), this);
         // Cristales de vidas abajo a la derecha (boss bar + fuente y shader del resource pack)
         this.livesHud = new LivesHud(this, livesManager);
-        livesManager.setAlCambiar(livesHud::actualizar);
+        // Vidas junto al nombre (sobre la cabeza y en el tab): se actualizan con cada cambio de vidas
+        LivesDisplay livesDisplay = new LivesDisplay(this, livesManager);
+        livesDisplay.start();
+        livesManager.setAlCambiar(jugador -> {
+            livesHud.actualizar(jugador);
+            livesDisplay.actualizar(jugador);
+        });
         getServer().getPluginManager().registerEvents(livesHud, this);
         getServer().getPluginManager().registerEvents(new PvpListener(pvpManager), this);
         getServer().getPluginManager().registerEvents(new CoinProtectionListener(coinItemFactory), this);

@@ -17,6 +17,8 @@ lives:
   hud: true
   # Aura animada alrededor de las vidas que quedan (false = cristales quietos).
   hud-animado: true
+  # Número de vidas con el icono de cristal junto al nombre (sobre la cabeza y en el tab).
+  mostrar-en-nombre: true
 
 pvp:
   # Estado del PVP cuando el plugin se activa por primera vez.

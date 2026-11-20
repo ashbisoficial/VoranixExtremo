@@ -449,6 +449,13 @@
         "\uE112": 15,
         "\uE113": -19
       }
+    },
+    {
+      "type": "bitmap",
+      "file": "voranixextremo:font/vida_icono.png",
+      "height": 10,
+      "ascent": 9,
+      "chars": ["\uE150"]
     }
   ]
 }

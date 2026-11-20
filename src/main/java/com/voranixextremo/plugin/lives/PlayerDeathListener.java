@@ -27,6 +27,10 @@ public class PlayerDeathListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
 
+        // El aviso de muerte lo da el plugin (chat de vidas y título): el mensaje vanilla
+        // ("X fue asesinado por Y") se quita para que no salga duplicado.
+        event.setDeathMessage(null);
+
         if (livesManager.isEliminated(player)) {
             return;
         }
